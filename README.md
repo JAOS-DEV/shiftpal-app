@@ -25,26 +25,51 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## Firebase Email/Password Auth Setup
 
-When you're ready, run:
+1. Create a Firebase project and enable Email/Password provider in Authentication.
 
-```bash
-npm run reset-project
+2. Add a Web app in Firebase Settings and copy config values.
+
+3. Configure env vars (preferred) in a `.env` file at the project root:
+
+```
+EXPO_PUBLIC_FIREBASE_API_KEY=YOUR_API_KEY
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=YOUR_SENDER_ID
+EXPO_PUBLIC_FIREBASE_APP_ID=YOUR_APP_ID
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Then run:
 
-## Learn more
+```
+npx expo start --clear
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Alternatively, put values in `app.json` under `expo.extra.firebase`:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```json
+{
+  "expo": {
+    "extra": {
+      "firebase": {
+        "apiKey": "YOUR_API_KEY",
+        "authDomain": "YOUR_AUTH_DOMAIN",
+        "projectId": "YOUR_PROJECT_ID",
+        "storageBucket": "YOUR_STORAGE_BUCKET",
+        "messagingSenderId": "YOUR_SENDER_ID",
+        "appId": "YOUR_APP_ID"
+      }
+    }
+  }
+}
+```
 
-## Join the community
+4. Run the app and use the auth screens:
 
-Join our community of developers creating universal apps.
+- `/(auth)/register` to create an account
+- `/(auth)/login` to sign in
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The app uses an AuthProvider with persistence (web localStorage, native AsyncStorage) and protects routes via Expo Router segments.
