@@ -1,5 +1,11 @@
 import { getFirebase } from "@/lib/firebase";
-import { Day, HistoryFilter, Shift, Submission } from "@/types/shift";
+import {
+  Day,
+  HistoryFilter,
+  RunningTimer,
+  Shift,
+  Submission,
+} from "@/types/shift";
 import { calculateDuration, formatDurationText } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -14,11 +20,106 @@ import {
 
 const SHIFTS_STORAGE_KEY = "shifts_data";
 const DAYS_STORAGE_KEY = "days_data";
+const TIMER_STORAGE_KEY = "running_timer";
 
 class ShiftService {
   private getFirestore() {
     const { firestore } = getFirebase();
     return firestore;
+  }
+
+  // Timer helpers
+  async getRunningTimer(): Promise<RunningTimer | null> {
+    try {
+      const data = await AsyncStorage.getItem(TIMER_STORAGE_KEY);
+      return data ? (JSON.parse(data) as RunningTimer) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async startTimer(date: string): Promise<RunningTimer> {
+    const timer: RunningTimer = {
+      id: Date.now().toString(36),
+      date,
+      startedAt: Date.now(),
+      status: "running",
+      pauses: [],
+      lastUpdatedAt: Date.now(),
+    };
+    await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    return timer;
+  }
+
+  async pauseTimer(): Promise<RunningTimer | null> {
+    const timer = await this.getRunningTimer();
+    if (!timer || timer.status !== "running") return timer;
+    timer.status = "paused";
+    timer.pauses.push({ start: Date.now() });
+    timer.lastUpdatedAt = Date.now();
+    await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    return timer;
+  }
+
+  async resumeTimer(): Promise<RunningTimer | null> {
+    const timer = await this.getRunningTimer();
+    if (!timer || timer.status !== "paused") return timer;
+    const last = timer.pauses[timer.pauses.length - 1];
+    if (last && !last.end) last.end = Date.now();
+    timer.status = "running";
+    timer.lastUpdatedAt = Date.now();
+    await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    return timer;
+  }
+
+  private computeBreakMinutes(timer: RunningTimer, now: number): number {
+    return timer.pauses.reduce((sum, p) => {
+      const end = p.end ?? (timer.status === "paused" ? now : p.start);
+      const ms = Math.max(0, (end ?? now) - p.start);
+      return sum + Math.floor(ms / 60000);
+    }, 0);
+  }
+
+  async stopTimer(): Promise<Shift | null> {
+    const timer = await this.getRunningTimer();
+    if (!timer) return null;
+    const now = Date.now();
+    // close open pause if any
+    const last = timer.pauses[timer.pauses.length - 1];
+    if (timer.status === "paused" && last && !last.end) last.end = now;
+
+    const breakMinutes = this.computeBreakMinutes(timer, now);
+    const totalMinutes =
+      Math.floor((now - timer.startedAt) / 60000) - breakMinutes;
+    if (totalMinutes <= 0) {
+      await AsyncStorage.removeItem(TIMER_STORAGE_KEY);
+      return null;
+    }
+
+    const startDate = new Date(timer.startedAt);
+    const endDate = new Date(now);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const start = `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`;
+    const end = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+
+    const newShift: Shift = {
+      id: now.toString(36),
+      start,
+      end,
+      durationMinutes: totalMinutes,
+      durationText: formatDurationText(totalMinutes),
+      createdAt: now,
+    };
+
+    // Save under SHIFTS_STORAGE_KEY for the timer date
+    const data = await AsyncStorage.getItem(SHIFTS_STORAGE_KEY);
+    const allShifts: Record<string, Shift[]> = data ? JSON.parse(data) : {};
+    if (!allShifts[timer.date]) allShifts[timer.date] = [];
+    allShifts[timer.date].push(newShift);
+    await AsyncStorage.setItem(SHIFTS_STORAGE_KEY, JSON.stringify(allShifts));
+
+    await AsyncStorage.removeItem(TIMER_STORAGE_KEY);
+    return newShift;
   }
 
   private getUserId() {

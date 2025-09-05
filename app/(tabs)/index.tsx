@@ -33,6 +33,7 @@ export default function HomeScreen() {
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>({
     type: "all",
   });
+  const [timerRunning, setTimerRunning] = useState(false);
 
   // Load shifts for selected date
   useEffect(() => {
@@ -45,6 +46,20 @@ export default function HomeScreen() {
       loadSubmittedDays();
     }
   }, [activeTab, historyFilter]);
+
+  // Poll timer state to show tiny indicator on tab (future) or other UX
+  useEffect(() => {
+    let id: any;
+    const tick = async () => {
+      try {
+        const t = await shiftService.getRunningTimer();
+        setTimerRunning(Boolean(t));
+      } catch {}
+    };
+    tick();
+    id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const loadShiftsForDate = async (date: string) => {
     try {
@@ -202,7 +217,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
-        <TabSwitcher activeTab={activeTab} onTabChange={handleTabChange} />
+        <TabSwitcher
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          showTrackerDot={timerRunning}
+        />
 
         <ScrollView
           style={styles.scrollView}
@@ -215,6 +234,7 @@ export default function HomeScreen() {
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
               />
+              {/* Timer banner removed; status shown inline in Shift input header. */}
               <ShiftInputSection onAddShift={handleAddShift} />
               <ShiftEntriesList
                 shifts={shifts}
@@ -251,5 +271,28 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  timerBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+    backgroundColor: "#FFF9E6",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  timerBannerText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  bannerBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
   },
 });

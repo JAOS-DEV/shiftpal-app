@@ -1,10 +1,12 @@
+import { shiftService } from "@/services/shiftService";
 import {
   calculateDuration,
   formatDurationText,
+  getCurrentDateString,
   isValidTimeFormat,
   isValidTimeRange,
 } from "@/utils/timeUtils";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   StyleSheet,
@@ -20,12 +22,20 @@ interface ShiftInputSectionProps {
 }
 
 export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
+  const [mode, setMode] = useState<"manual" | "timer">("manual");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isValid, setIsValid] = useState(false);
   const endTimeRef = useRef<TextInput>(null);
   const [prevStartTime, setPrevStartTime] = useState("");
   const [prevEndTime, setPrevEndTime] = useState("");
+  const [timerState, setTimerState] = useState<{
+    running: boolean;
+    paused: boolean;
+    startedAt?: number;
+    elapsedMs: number;
+  }>({ running: false, paused: false, elapsedMs: 0 });
+  const [timerInterval, setTimerInterval] = useState<any>(null);
 
   const validateInputs = (start: string, end: string) => {
     const valid =
@@ -118,60 +128,190 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
     return "";
   };
 
+  // Timer helpers
+  const refreshTimer = async () => {
+    const t = await shiftService.getRunningTimer();
+    if (!t) {
+      setTimerState({ running: false, paused: false, elapsedMs: 0 });
+      return;
+    }
+    const now = Date.now();
+    let pausedMs = 0;
+    for (const p of t.pauses) {
+      const end = p.end ?? (t.status === "paused" ? now : p.start);
+      if (end && p.start) pausedMs += Math.max(0, end - p.start);
+    }
+    const elapsedMs = Math.max(0, now - t.startedAt - pausedMs);
+    setTimerState({
+      running: true,
+      paused: t.status === "paused",
+      startedAt: t.startedAt,
+      elapsedMs,
+    });
+  };
+
+  useEffect(() => {
+    if (mode !== "timer") {
+      if (timerInterval) clearInterval(timerInterval);
+      return;
+    }
+    refreshTimer();
+    if (timerInterval) clearInterval(timerInterval);
+    const id = setInterval(() => {
+      refreshTimer();
+    }, 1000);
+    setTimerInterval(id);
+    return () => clearInterval(id);
+  }, [mode]);
+
+  const handleTimerStart = async () => {
+    await shiftService.startTimer(getCurrentDateString());
+    await refreshTimer();
+  };
+  const handleTimerPauseResume = async () => {
+    if (timerState.paused) {
+      await shiftService.resumeTimer();
+    } else {
+      await shiftService.pauseTimer();
+    }
+    await refreshTimer();
+  };
+  const handleTimerStop = async () => {
+    const shift = await shiftService.stopTimer();
+    await refreshTimer();
+    if (shift) {
+      onAddShift(shift.start, shift.end);
+      Alert.alert("Shift Added", `Recorded ${shift.durationText}`);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
         Add New Shift
       </ThemedText>
 
-      <View style={styles.inputRow}>
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>Start Time</ThemedText>
-          <TextInput
+      <View style={styles.headerRow}>
+        <View style={styles.modeRow}>
+          <TouchableOpacity
             style={[
-              styles.timeInput,
-              isValidTimeFormat(startTime) && styles.validInput,
-              !startTime || isValidTimeFormat(startTime)
-                ? styles.defaultInput
-                : styles.invalidInput,
+              styles.modeButton,
+              mode === "manual" && styles.modeButtonActive,
             ]}
-            value={startTime}
-            onChangeText={handleStartTimeChange}
-            placeholder="09:00"
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-            maxLength={5}
-            returnKeyType="next"
-            onSubmitEditing={() => endTimeRef.current?.focus()}
-            accessibilityLabel="Start time input"
-          />
+            onPress={() => setMode("manual")}
+          >
+            <ThemedText
+              style={[
+                styles.modeText,
+                mode === "manual" && styles.modeTextActive,
+              ]}
+            >
+              Manual
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modeButton,
+              mode === "timer" && styles.modeButtonActive,
+            ]}
+            onPress={() => setMode("timer")}
+          >
+            <ThemedText
+              style={[
+                styles.modeText,
+                mode === "timer" && styles.modeTextActive,
+              ]}
+            >
+              Timer
+            </ThemedText>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>End Time</ThemedText>
-          <TextInput
-            ref={endTimeRef}
-            style={[
-              styles.timeInput,
-              isValidTimeFormat(endTime) && styles.validInput,
-              !endTime || isValidTimeFormat(endTime)
-                ? styles.defaultInput
-                : styles.invalidInput,
-            ]}
-            value={endTime}
-            onChangeText={handleEndTimeChange}
-            placeholder="17:00"
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-            maxLength={5}
-            returnKeyType="done"
-            onSubmitEditing={handleAddShift}
-            accessibilityLabel="End time input"
-          />
-        </View>
+        {/* Timer chip removed per UX */}
       </View>
 
-      {getDurationPreview() ? (
+      {mode === "manual" ? (
+        <View style={styles.inputRow}>
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.inputLabel}>Start Time</ThemedText>
+            <TextInput
+              style={[
+                styles.timeInput,
+                isValidTimeFormat(startTime) && styles.validInput,
+                !startTime || isValidTimeFormat(startTime)
+                  ? styles.defaultInput
+                  : styles.invalidInput,
+              ]}
+              value={startTime}
+              onChangeText={handleStartTimeChange}
+              placeholder="09:00"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              maxLength={5}
+              returnKeyType="next"
+              onSubmitEditing={() => endTimeRef.current?.focus()}
+              accessibilityLabel="Start time input"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.inputLabel}>End Time</ThemedText>
+            <TextInput
+              ref={endTimeRef}
+              style={[
+                styles.timeInput,
+                isValidTimeFormat(endTime) && styles.validInput,
+                !endTime || isValidTimeFormat(endTime)
+                  ? styles.defaultInput
+                  : styles.invalidInput,
+              ]}
+              value={endTime}
+              onChangeText={handleEndTimeChange}
+              placeholder="17:00"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              maxLength={5}
+              returnKeyType="done"
+              onSubmitEditing={handleAddShift}
+              accessibilityLabel="End time input"
+            />
+          </View>
+        </View>
+      ) : (
+        <View style={styles.timerContainer}>
+          <ThemedText style={styles.timerElapsed}>
+            {new Date(timerState.elapsedMs).toISOString().substr(11, 8)}
+          </ThemedText>
+
+          {!timerState.running ? (
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleTimerStart}
+            >
+              <ThemedText style={styles.primaryButtonText}>Start</ThemedText>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.timerButtonsRow}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={handleTimerPauseResume}
+              >
+                <ThemedText style={styles.secondaryButtonText}>
+                  {timerState.paused ? "Resume" : "Pause"}
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dangerButton}
+                onPress={handleTimerStop}
+              >
+                <ThemedText style={styles.dangerButtonText}>Stop</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+
+      {mode === "manual" && getDurationPreview() ? (
         <View style={styles.previewContainer}>
           <ThemedText style={styles.previewText}>
             Duration: {getDurationPreview()}
@@ -179,38 +319,77 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
         </View>
       ) : null}
 
-      <TouchableOpacity
-        style={[styles.addButton, !isValid && styles.disabledButton]}
-        onPress={handleAddShift}
-        disabled={!isValid}
-        accessibilityLabel="Add shift"
-      >
-        <ThemedText
-          style={[styles.addButtonText, !isValid && styles.disabledButtonText]}
+      {mode === "manual" && (
+        <TouchableOpacity
+          style={[styles.addButton, !isValid && styles.disabledButton]}
+          onPress={handleAddShift}
+          disabled={!isValid}
+          accessibilityLabel="Add shift"
         >
-          Add Shift
-        </ThemedText>
-      </TouchableOpacity>
+          <ThemedText
+            style={[
+              styles.addButtonText,
+              !isValid && styles.disabledButtonText,
+            ]}
+          >
+            Add Shift
+          </ThemedText>
+        </TouchableOpacity>
+      )}
 
-      <View style={styles.helpContainer}>
-        <ThemedText style={styles.helpText}>
-          Type numbers and the colon will be added automatically. Overnight
-          shifts are supported.
-        </ThemedText>
-      </View>
+      {mode === "manual" && (
+        <View style={styles.helpContainer}>
+          <ThemedText style={styles.helpText}>
+            Type numbers and the colon will be added automatically. Overnight
+            shifts are supported.
+          </ThemedText>
+        </View>
+      )}
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
     marginBottom: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  modeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+    backgroundColor: "#F8F8F8",
+  },
+  modeButtonActive: {
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
+  },
+  modeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111",
+  },
+  modeTextActive: {
+    color: "#fff",
   },
   inputRow: {
     flexDirection: "row",
@@ -281,5 +460,94 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
     textAlign: "center",
+  },
+  timerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+    backgroundColor: "#FFF9E6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  timerChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  timerChipButtons: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  timerChipBtn: {
+    backgroundColor: "#F0F0F5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  timerChipBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  timerChipDanger: {
+    backgroundColor: "#FFEBEB",
+  },
+  timerChipDangerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#D00",
+  },
+  timerContainer: {
+    alignItems: "center",
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  timerElapsed: {
+    fontSize: 32,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 12,
+    lineHeight: 40,
+  },
+  timerButtonsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  primaryButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    backgroundColor: "#F0F0F5",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#111",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  dangerButton: {
+    backgroundColor: "#FF3B30",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  dangerButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

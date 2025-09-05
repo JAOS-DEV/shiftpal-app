@@ -8,9 +8,14 @@ type Tab = "tracker" | "history";
 interface TabSwitcherProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  showTrackerDot?: boolean;
 }
 
-export function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
+export function TabSwitcher({
+  activeTab,
+  onTabChange,
+  showTrackerDot,
+}: TabSwitcherProps) {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.tabContainer}>
@@ -19,14 +24,17 @@ export function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
           onPress={() => onTabChange("tracker")}
           accessibilityLabel="Shift tracker tab"
         >
-          <ThemedText
-            style={[
-              styles.tabText,
-              activeTab === "tracker" && styles.activeTabText,
-            ]}
-          >
-            Tracker
-          </ThemedText>
+          <View style={styles.tabLabelWrap}>
+            <ThemedText
+              style={[
+                styles.tabText,
+                activeTab === "tracker" && styles.activeTabText,
+              ]}
+            >
+              Tracker
+            </ThemedText>
+            {showTrackerDot && <View style={styles.dot} />}
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -68,6 +76,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
+  tabLabelWrap: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   activeTab: {
     backgroundColor: "white",
     // Use boxShadow for web compatibility
@@ -90,5 +103,14 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: "#007AFF",
     fontWeight: "600",
+  },
+  dot: {
+    position: "absolute",
+    top: -3,
+    right: -18,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FF3B30",
   },
 });

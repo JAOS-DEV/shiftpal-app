@@ -118,8 +118,10 @@ export function DateSelector({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+    marginBottom: 4,
   },
   header: {
     flexDirection: "row",
@@ -128,7 +130,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
   },
   todayButton: {
@@ -147,12 +149,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   navButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 8,
+    marginHorizontal: 6,
     borderWidth: 1,
   },
   navButtonText: {
@@ -162,18 +164,18 @@ const styles = StyleSheet.create({
   dateButton: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginHorizontal: 6,
     borderWidth: 1,
   },
   dateText: {
-    fontSize: 18,
-    marginBottom: 2,
+    fontSize: 16,
+    marginBottom: 1,
   },
   dateSubtext: {
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.6,
   },
 });

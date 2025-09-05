@@ -15,6 +15,17 @@ export interface Submission {
   submittedAt: number; // timestamp when this submission was created
 }
 
+export type TimerStatus = "idle" | "running" | "paused";
+
+export interface RunningTimer {
+  id: string; // unique session id
+  date: string; // YYYY-MM-DD (based on local start date)
+  startedAt: number; // epoch ms
+  status: TimerStatus;
+  pauses: Array<{ start: number; end?: number }>; // open interval when paused
+  lastUpdatedAt: number;
+}
+
 export interface Day {
   id: string;
   date: string; // YYYY-MM-DD format
