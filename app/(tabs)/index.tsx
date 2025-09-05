@@ -12,7 +12,7 @@ import { shiftService } from "@/services/shiftService";
 import { Day, HistoryFilter, Shift } from "@/types/shift";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import React, { useEffect, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -91,69 +91,13 @@ export default function HomeScreen() {
 
   const handleSubmitDay = async () => {
     if (shifts.length === 0) return;
-
-    console.log("Submitting day with shifts:", shifts);
-    console.log("Selected date:", selectedDate);
-
-    // Check if there are already submitted shifts for this date
-    const existingDay = submittedDays.find((day) => day.date === selectedDate);
-
-    if (existingDay) {
-      // Show confirmation dialog for existing day
-      const message = `You already have ${existingDay.shifts.length} shift${
-        existingDay.shifts.length > 1 ? "s" : ""
-      } submitted for ${formatDateDisplay(selectedDate)} (${
-        existingDay.totalText
-      }).\n\nWhat would you like to do?`;
-
-      if (Platform.OS === "web") {
-        const choice = confirm(
-          `${message}\n\nClick OK to add these shifts to the existing ones, or Cancel to replace them.`
-        );
-        if (choice) {
-          await submitShifts(true); // Add to existing
-        } else {
-          await submitShifts(false); // Replace existing
-        }
-      } else {
-        Alert.alert("Day Already Has Shifts", message, [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Add to Existing",
-            onPress: () => submitShifts(true), // Add to existing
-          },
-          {
-            text: "Replace All",
-            style: "destructive",
-            onPress: () => submitShifts(false), // Replace existing
-          },
-        ]);
-      }
-    } else {
-      // No existing shifts, submit normally
-      await submitShifts(false);
-    }
+    await submitShifts();
   };
 
-  const submitShifts = async (addToExisting: boolean) => {
+  const submitShifts = async () => {
     setIsSubmitting(true);
     try {
-      let submittedDay;
-
-      if (
-        addToExisting &&
-        submittedDays.find((day) => day.date === selectedDate)
-      ) {
-        // Merge with existing shifts
-        const existingDay = submittedDays.find(
-          (day) => day.date === selectedDate
-        )!;
-        const mergedShifts = [...existingDay.shifts, ...shifts];
-        submittedDay = await shiftService.submitDay(selectedDate, mergedShifts);
-      } else {
-        // Replace or create new
-        submittedDay = await shiftService.submitDay(selectedDate, shifts);
-      }
+      const submittedDay = await shiftService.submitDay(selectedDate, shifts);
 
       console.log("Successfully submitted day:", submittedDay);
 
@@ -165,18 +109,15 @@ export default function HomeScreen() {
       const timeText =
         totalHours > 0 ? `${totalHours}h ${totalMins}m` : `${totalMins}m`;
 
-      const actionText = addToExisting
-        ? "Added to existing shifts"
+      const actionText = submittedDays.find((d) => d.date === selectedDate)
+        ? "Added as a new submission"
         : "Submitted";
-      const shiftCount = submittedDay.shifts.length;
 
       Alert.alert(
         "✅ Success!",
-        `${actionText} ${shifts.length} shift${
+        `${actionText} with ${shifts.length} shift${
           shifts.length > 1 ? "s" : ""
-        } for ${formatDateDisplay(
-          selectedDate
-        )}\n\nTotal shifts: ${shiftCount}\nTotal time: ${timeText}`,
+        } for ${formatDateDisplay(selectedDate)}\n\nDay total: ${timeText}`,
         [
           {
             text: "View History",
@@ -226,6 +167,16 @@ export default function HomeScreen() {
     }
   };
 
+  const handleDeleteSubmission = async (date: string, submissionId: string) => {
+    try {
+      await shiftService.deleteSubmission(date, submissionId);
+      await loadSubmittedDays();
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      Alert.alert("Error", "Failed to delete submission");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
@@ -260,6 +211,7 @@ export default function HomeScreen() {
               filter={historyFilter}
               onFilterChange={handleHistoryFilterChange}
               onDeleteDay={handleDeleteDay}
+              onDeleteSubmission={handleDeleteSubmission}
             />
           )}
         </ScrollView>

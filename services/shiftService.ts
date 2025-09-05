@@ -1,5 +1,5 @@
 import { getFirebase } from "@/lib/firebase";
-import { Day, HistoryFilter, Shift } from "@/types/shift";
+import { Day, HistoryFilter, Shift, Submission } from "@/types/shift";
 import { calculateDuration, formatDurationText } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -119,14 +119,13 @@ class ShiftService {
   }
 
   /**
-   * Submit all shifts for a date (save to history)
+   * Submit shifts for a date as a new submission (append to the day)
    */
   async submitDay(date: string, shifts: Shift[]): Promise<Day> {
     const { totalMinutes, totalText } = this.calculateDayTotal(shifts);
 
-    const day: Day = {
-      id: date,
-      date,
+    const newSubmission: Submission = {
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
       shifts: [...shifts],
       totalMinutes,
       totalText,
@@ -134,10 +133,53 @@ class ShiftService {
     };
 
     try {
-      // Save to local storage first (this should always work)
+      // Load current days
       const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
       const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
-      allDays[date] = day;
+
+      // Initialize or append submission
+      const existingDay = allDays[date];
+      let updatedDay: Day;
+      if (existingDay) {
+        const submissions = Array.isArray((existingDay as any).submissions)
+          ? [...(existingDay as any).submissions]
+          : // Backward compatibility for any old local data
+            [
+              {
+                id: existingDay.submittedAt?.toString() || "legacy",
+                shifts: (existingDay as any).shifts || [],
+                totalMinutes: existingDay.totalMinutes || 0,
+                totalText: existingDay.totalText || "0m",
+                submittedAt: existingDay.submittedAt || Date.now(),
+              } as Submission,
+            ];
+
+        const newSubmissions = [newSubmission, ...submissions]; // newest first
+        const dayTotalMinutes = newSubmissions.reduce(
+          (sum, s) => sum + s.totalMinutes,
+          0
+        );
+
+        updatedDay = {
+          id: date,
+          date,
+          submissions: newSubmissions,
+          totalMinutes: dayTotalMinutes,
+          totalText: formatDurationText(dayTotalMinutes),
+          submittedAt: newSubmission.submittedAt,
+        };
+      } else {
+        updatedDay = {
+          id: date,
+          date,
+          submissions: [newSubmission],
+          totalMinutes,
+          totalText,
+          submittedAt: newSubmission.submittedAt,
+        };
+      }
+
+      allDays[date] = updatedDay;
       await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
 
       // Clear shifts for this date since they're now submitted
@@ -148,19 +190,18 @@ class ShiftService {
       delete allShifts[date];
       await AsyncStorage.setItem(SHIFTS_STORAGE_KEY, JSON.stringify(allShifts));
 
-      // Try to sync to Firebase, but don't fail if it doesn't work
+      // Best-effort sync to Firebase
       try {
-        await this.syncToFirebase(day);
+        await this.syncToFirebase(updatedDay);
         console.log("Successfully synced to Firebase");
       } catch (firebaseError) {
         console.warn(
           "Firebase sync failed, but data saved locally:",
           firebaseError
         );
-        // Don't throw error - data is still saved locally
       }
 
-      return day;
+      return updatedDay;
     } catch (error) {
       console.error("Error submitting day:", error);
       throw error;
@@ -218,7 +259,7 @@ class ShiftService {
         );
       }
 
-      return days;
+      return days.map((d) => this.ensureDayHasSubmissions(d));
     } catch (error) {
       console.error("Error getting submitted days:", error);
       return [];
@@ -255,6 +296,63 @@ class ShiftService {
       console.log("Successfully deleted day:", date);
     } catch (error) {
       console.error("Error deleting day:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a single submission within a day
+   */
+  async deleteSubmission(date: string, submissionId: string): Promise<void> {
+    try {
+      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
+      const day = allDays[date];
+      if (!day) return;
+
+      const safeDay = this.ensureDayHasSubmissions(day);
+      const remaining = safeDay.submissions.filter(
+        (s) => s.id !== submissionId
+      );
+
+      if (remaining.length === 0) {
+        delete allDays[date];
+      } else {
+        const totalMinutes = remaining.reduce(
+          (sum, s) => sum + s.totalMinutes,
+          0
+        );
+        allDays[date] = {
+          id: date,
+          date,
+          submissions: remaining,
+          totalMinutes,
+          totalText: formatDurationText(totalMinutes),
+          submittedAt: remaining[0]?.submittedAt,
+        };
+      }
+
+      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+
+      // Try to sync to Firebase
+      try {
+        const updated = allDays[date];
+        if (updated) {
+          await this.syncToFirebase(updated);
+        } else {
+          // If day was deleted entirely, reuse deleteDay's Firebase logic
+          const userId = this.getUserId();
+          if (userId) {
+            const firestore = this.getFirestore();
+            const dayRef = doc(firestore, "users", userId, "days", date);
+            await deleteDoc(dayRef);
+          }
+        }
+      } catch (firebaseError) {
+        console.warn("Firebase submission delete sync failed:", firebaseError);
+      }
+    } catch (error) {
+      console.error("Error deleting submission:", error);
       throw error;
     }
   }
@@ -306,14 +404,15 @@ class ShiftService {
       const days: Day[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        days.push({
+        const dayFromDb: any = {
           id: data.id || doc.id,
           date: data.date,
-          shifts: data.shifts || [],
+          submissions: data.submissions || [],
           totalMinutes: data.totalMinutes || 0,
           totalText: data.totalText || "0h 0m",
           submittedAt: data.submittedAt,
-        });
+        };
+        days.push(this.ensureDayHasSubmissions(dayFromDb));
       });
 
       return days;
@@ -321,6 +420,32 @@ class ShiftService {
       console.error("Error loading from Firebase:", error);
       return [];
     }
+  }
+
+  private ensureDayHasSubmissions(day: any): Day {
+    // Convert any legacy shape {shifts[]} into {submissions[]}
+    if (Array.isArray(day.submissions)) {
+      return day as Day;
+    }
+
+    const shifts: Shift[] = Array.isArray(day.shifts) ? day.shifts : [];
+    const { totalMinutes, totalText } = this.calculateDayTotal(shifts);
+    const fallbackSubmission: Submission = {
+      id: day.submittedAt?.toString() || "legacy",
+      shifts,
+      totalMinutes,
+      totalText,
+      submittedAt: day.submittedAt || Date.now(),
+    };
+
+    return {
+      id: day.id,
+      date: day.date,
+      submissions: shifts.length ? [fallbackSubmission] : [],
+      totalMinutes: day.totalMinutes ?? totalMinutes,
+      totalText: day.totalText ?? totalText,
+      submittedAt: day.submittedAt,
+    };
   }
 }
 

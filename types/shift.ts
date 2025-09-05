@@ -7,13 +7,21 @@ export interface Shift {
   createdAt: number; // timestamp
 }
 
+export interface Submission {
+  id: string;
+  shifts: Shift[];
+  totalMinutes: number;
+  totalText: string;
+  submittedAt: number; // timestamp when this submission was created
+}
+
 export interface Day {
   id: string;
   date: string; // YYYY-MM-DD format
-  shifts: Shift[];
+  submissions: Submission[];
   totalMinutes: number;
   totalText: string; // e.g., "7h 35m"
-  submittedAt?: number; // timestamp, undefined if not submitted
+  submittedAt?: number; // timestamp of latest submission
 }
 
 export interface HistoryFilter {

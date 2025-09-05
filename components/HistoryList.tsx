@@ -1,10 +1,12 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import { Day, HistoryFilter } from "@/types/shift";
+import { Day, HistoryFilter, Submission } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -17,6 +19,7 @@ interface HistoryListProps {
   filter: HistoryFilter;
   onFilterChange: (filter: HistoryFilter) => void;
   onDeleteDay: (date: string) => void;
+  onDeleteSubmission?: (date: string, submissionId: string) => void;
 }
 
 export function HistoryList({
@@ -24,6 +27,7 @@ export function HistoryList({
   filter,
   onFilterChange,
   onDeleteDay,
+  onDeleteSubmission,
 }: HistoryListProps) {
   const { colors } = useTheme();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
@@ -44,8 +48,8 @@ export function HistoryList({
 
     const message = `Are you sure you want to delete the entry for ${formatDateDisplay(
       date
-    )}?\n\nThis will permanently remove ${day.shifts.length} shift${
-      day.shifts.length > 1 ? "s" : ""
+    )}?\n\nThis will permanently remove ${day.submissions.length} submission${
+      day.submissions.length === 1 ? "" : "s"
     } totaling ${day.totalText}.`;
 
     if (Platform.OS === "web") {
@@ -137,6 +141,7 @@ export function HistoryList({
             isExpanded={expandedDays.has(day.id)}
             onToggle={() => toggleDayExpansion(day.id)}
             onDelete={() => handleDeleteDay(day.date)}
+            onDeleteSubmission={onDeleteSubmission}
           />
         ))}
       </View>
@@ -149,10 +154,18 @@ interface DayRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onDelete: () => void;
+  onDeleteSubmission?: (date: string, submissionId: string) => void;
 }
 
-function DayRow({ day, isExpanded, onToggle, onDelete }: DayRowProps) {
+function DayRow({
+  day,
+  isExpanded,
+  onToggle,
+  onDelete,
+  onDeleteSubmission,
+}: DayRowProps) {
   const { colors } = useTheme();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   return (
     <View
@@ -190,16 +203,20 @@ function DayRow({ day, isExpanded, onToggle, onDelete }: DayRowProps) {
 
         <View style={styles.dayActions}>
           <TouchableOpacity
-            style={[styles.deleteButton, { backgroundColor: colors.error }]}
+            style={styles.actionsTrigger}
             onPress={(e) => {
               e.stopPropagation();
-              onDelete();
+              setMenuVisible(true);
             }}
-            accessibilityLabel={`Delete entry for ${formatDateDisplay(
+            accessibilityLabel={`Open actions for ${formatDateDisplay(
               day.date
             )}`}
           >
-            <ThemedText style={styles.deleteButtonText}>🗑️</ThemedText>
+            <ThemedText
+              style={[styles.actionsTriggerText, { color: colors.primary }]}
+            >
+              Actions
+            </ThemedText>
           </TouchableOpacity>
 
           <ThemedText
@@ -220,23 +237,241 @@ function DayRow({ day, isExpanded, onToggle, onDelete }: DayRowProps) {
             },
           ]}
         >
-          {day.shifts.map((shift, index) => (
-            <View
-              key={shift.id}
-              style={[styles.shiftRow, { borderBottomColor: colors.border }]}
-            >
-              <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
-                {shift.start} - {shift.end}
-              </ThemedText>
-              <ThemedText
-                style={[styles.shiftDuration, { color: colors.textSecondary }]}
-              >
-                {shift.durationText} ({shift.durationMinutes} min)
-              </ThemedText>
-            </View>
+          <ThemedText
+            style={[styles.submissionCount, { color: colors.textSecondary }]}
+          >
+            {day.submissions.length} submission
+            {day.submissions.length === 1 ? "" : "s"}
+          </ThemedText>
+
+          {day.submissions.map((submission) => (
+            <SubmissionBlock
+              key={submission.id}
+              date={day.date}
+              submission={submission}
+              onDeleteSubmission={onDeleteSubmission}
+            />
           ))}
+
+          <View
+            style={[
+              styles.submissionTotalRow,
+              { borderTopColor: colors.border },
+            ]}
+          >
+            <ThemedText
+              style={[
+                styles.submissionTotalLabel,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Day Total:
+            </ThemedText>
+            <ThemedText
+              style={[styles.submissionTotalValue, { color: colors.text }]}
+            >
+              {day.totalText} ({day.totalMinutes} min)
+            </ThemedText>
+          </View>
         </View>
       )}
+
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable
+          style={styles.menuBackdrop}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View
+            style={[
+              styles.menuContainer,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                onToggle();
+              }}
+            >
+              <ThemedText style={[styles.menuItemText, { color: colors.text }]}>
+                {isExpanded ? "Collapse" : "Expand"}
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                onDelete();
+              }}
+            >
+              <ThemedText
+                style={[
+                  styles.menuItemTextDestructive,
+                  { color: colors.error },
+                ]}
+              >
+                Delete Day
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+interface SubmissionBlockProps {
+  date: string;
+  submission: Submission;
+  onDeleteSubmission?: (date: string, submissionId: string) => void;
+}
+
+function SubmissionBlock({
+  date,
+  submission,
+  onDeleteSubmission,
+}: SubmissionBlockProps) {
+  const { colors } = useTheme();
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const handleDelete = () => {
+    if (!onDeleteSubmission) return;
+
+    const message = `Delete this submission from ${formatDateDisplay(date)}?`;
+    if (Platform.OS === "web") {
+      if (confirm(message)) onDeleteSubmission(date, submission.id);
+    } else {
+      Alert.alert("Delete Submission", message, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onDeleteSubmission(date, submission.id),
+        },
+      ]);
+    }
+  };
+
+  return (
+    <View style={[styles.submissionBlock, { borderColor: colors.border }]}>
+      <View style={styles.submissionHeader}>
+        <ThemedText
+          style={[styles.submittedAt, { color: colors.textSecondary }]}
+        >
+          Submitted at{" "}
+          {new Date(submission.submittedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </ThemedText>
+
+        <TouchableOpacity
+          style={styles.actionsTrigger}
+          onPress={() => setMenuVisible(true)}
+          accessibilityLabel="Open actions menu"
+        >
+          <ThemedText
+            style={[styles.actionsTriggerText, { color: colors.primary }]}
+          >
+            Actions
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      {submission.shifts.map((shift) => (
+        <View
+          key={shift.id}
+          style={[styles.shiftRow, { borderBottomColor: colors.border }]}
+        >
+          <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
+            {shift.start} - {shift.end}
+          </ThemedText>
+          <ThemedText
+            style={[styles.shiftDuration, { color: colors.textSecondary }]}
+          >
+            {shift.durationText} ({shift.durationMinutes} min)
+          </ThemedText>
+        </View>
+      ))}
+
+      <View style={styles.submissionFooter}>
+        <ThemedText
+          style={[styles.submissionTotalLabel, { color: colors.textSecondary }]}
+        >
+          Total:
+        </ThemedText>
+        <ThemedText
+          style={[styles.submissionTotalValue, { color: colors.text }]}
+        >
+          {submission.totalText} ({submission.totalMinutes} min)
+        </ThemedText>
+
+        <Modal
+          visible={menuVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMenuVisible(false)}
+        >
+          <Pressable
+            style={styles.menuBackdrop}
+            onPress={() => setMenuVisible(false)}
+          >
+            <View
+              style={[
+                styles.menuContainer,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                }}
+              >
+                <ThemedText
+                  style={[styles.menuItemText, { color: colors.text }]}
+                >
+                  Edit
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                }}
+              >
+                <ThemedText
+                  style={[styles.menuItemText, { color: colors.text }]}
+                >
+                  Duplicate
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleDelete();
+                }}
+              >
+                <ThemedText
+                  style={[
+                    styles.menuItemTextDestructive,
+                    { color: colors.error },
+                  ]}
+                >
+                  Delete
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+      </View>
     </View>
   );
 }
@@ -334,6 +569,31 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     // Dynamic colors applied via style prop
   },
+  submissionCount: {
+    fontSize: 12,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  submissionBlock: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  submissionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  submittedAt: {
+    fontSize: 12,
+  },
+  actionsTrigger: {},
+  actionsTriggerText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
   shiftRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -350,6 +610,66 @@ const styles = StyleSheet.create({
   shiftDuration: {
     fontSize: 12,
     opacity: 0.7,
+  },
+  submissionFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  submissionActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  placeholderButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 6,
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  menuContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    minWidth: 180,
+    paddingVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  menuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  menuItemText: {
+    fontSize: 14,
+  },
+  menuItemTextDestructive: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  submissionTotalRow: {
+    borderTopWidth: 1,
+    marginTop: 4,
+    paddingTop: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  submissionTotalLabel: {
+    fontSize: 12,
+  },
+  submissionTotalValue: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   dayActions: {
     flexDirection: "row",
