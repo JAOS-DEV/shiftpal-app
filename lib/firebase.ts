@@ -6,6 +6,7 @@ import {
   getAuth,
   setPersistence,
 } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
 import { Platform } from "react-native";
 
 type FirebaseConfig = {
@@ -60,6 +61,7 @@ function getFirebaseConfig(): FirebaseConfig {
 
 let app: FirebaseApp;
 let auth: Auth;
+let firestore: Firestore;
 
 export function getFirebase() {
   if (!getApps().length) {
@@ -76,7 +78,9 @@ export function getFirebase() {
     auth = getAuth(app);
   }
 
-  return { app, auth };
+  firestore = getFirestore(app);
+
+  return { app, auth, firestore };
 }
 
-export type { Auth };
+export type { Auth, Firestore };

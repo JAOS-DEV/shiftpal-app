@@ -1,5 +1,6 @@
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
+import { ThemeProvider as CustomThemeProvider } from "@/providers/ThemeProvider";
 import {
   DarkTheme,
   DefaultTheme,
@@ -37,11 +38,13 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <RootNavigator />
-        <StatusBar style="auto" />
-      </AuthProvider>
-    </ThemeProvider>
+    <CustomThemeProvider>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <AuthProvider>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </AuthProvider>
+      </ThemeProvider>
+    </CustomThemeProvider>
   );
 }
