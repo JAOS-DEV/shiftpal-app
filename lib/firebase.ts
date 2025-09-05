@@ -16,6 +16,7 @@ type FirebaseConfig = {
   storageBucket?: string;
   messagingSenderId?: string;
   appId: string;
+  measurementId?: string;
 };
 
 function getFirebaseConfig(): FirebaseConfig {
@@ -27,6 +28,7 @@ function getFirebaseConfig(): FirebaseConfig {
     storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
   } as Record<string, string | undefined>;
 
   const requiredKeys: Array<
@@ -62,6 +64,7 @@ function getFirebaseConfig(): FirebaseConfig {
 let app: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
+let analyticsInstance: any | undefined;
 
 export function getFirebase() {
   if (!getApps().length) {
@@ -73,6 +76,7 @@ export function getFirebase() {
   if (Platform.OS === "web") {
     auth = getAuth(app);
     setPersistence(auth, browserLocalPersistence);
+    void initWebAnalytics();
   } else {
     // Expo Go native: use default in-memory auth; avoids native persistence module requirements
     auth = getAuth(app);
@@ -84,3 +88,29 @@ export function getFirebase() {
 }
 
 export type { Auth, Firestore };
+
+export async function initWebAnalytics() {
+  if (Platform.OS !== "web") return undefined;
+  try {
+    const { isSupported, getAnalytics } = await import("firebase/analytics");
+    const supported = await isSupported();
+    if (!supported) return undefined;
+    analyticsInstance = getAnalytics(app);
+    return analyticsInstance;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+export async function logAnalyticsEvent(
+  eventName: string,
+  params?: Record<string, any>
+) {
+  if (Platform.OS !== "web") return;
+  if (!analyticsInstance) {
+    await initWebAnalytics();
+  }
+  if (!analyticsInstance) return;
+  const { logEvent } = await import("firebase/analytics");
+  logEvent(analyticsInstance, eventName, params);
+}

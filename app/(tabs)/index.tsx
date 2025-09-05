@@ -6,6 +6,7 @@ import { ShiftInputSection } from "@/components/ShiftInputSection";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TabSwitcher } from "@/components/TabSwitcher";
 import { ThemedView } from "@/components/ThemedView";
+import { logAnalyticsEvent } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { shiftService } from "@/services/shiftService";
@@ -73,6 +74,10 @@ export default function HomeScreen() {
         endTime
       );
       setShifts((prev) => [...prev, newShift]);
+      await logAnalyticsEvent("add_shift", {
+        date: selectedDate,
+        duration_minutes: newShift.durationMinutes,
+      });
     } catch (error) {
       console.error("Error adding shift:", error);
       Alert.alert("Error", "Failed to add shift");
@@ -83,6 +88,10 @@ export default function HomeScreen() {
     try {
       await shiftService.removeShift(selectedDate, shiftId);
       setShifts((prev) => prev.filter((shift) => shift.id !== shiftId));
+      await logAnalyticsEvent("remove_shift", {
+        date: selectedDate,
+        shift_id: shiftId,
+      });
     } catch (error) {
       console.error("Error removing shift:", error);
       Alert.alert("Error", "Failed to remove shift");
@@ -109,9 +118,21 @@ export default function HomeScreen() {
       const timeText =
         totalHours > 0 ? `${totalHours}h ${totalMins}m` : `${totalMins}m`;
 
-      const actionText = submittedDays.find((d) => d.date === selectedDate)
+      const hadExisting = Boolean(
+        submittedDays.find((d) => d.date === selectedDate)
+      );
+      const actionText = hadExisting
         ? "Added as a new submission"
         : "Submitted";
+      // Analytics: submission
+      try {
+        await logAnalyticsEvent("submit_day", {
+          date: selectedDate,
+          shift_count: shifts.length,
+          had_existing: hadExisting,
+          action: hadExisting ? "append" : "create",
+        });
+      } catch {}
 
       Alert.alert(
         "✅ Success!",
@@ -161,6 +182,7 @@ export default function HomeScreen() {
       await shiftService.deleteDay(date);
       // Reload the submitted days to reflect the deletion
       await loadSubmittedDays();
+      await logAnalyticsEvent("delete_day", { date });
     } catch (error) {
       console.error("Error deleting day:", error);
       Alert.alert("Error", "Failed to delete day's entry");
