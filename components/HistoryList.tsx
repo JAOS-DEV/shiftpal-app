@@ -1,9 +1,10 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { Day, HistoryFilter, Submission } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Alert,
+  Dimensions,
   Modal,
   Platform,
   Pressable,
@@ -166,6 +167,35 @@ function DayRow({
 }: DayRowProps) {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [anchor, setAnchor] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
+  const actionsRef = useRef<any>(null);
+
+  const computeMenuPosition = (items: number) => {
+    const { width: screenW, height: screenH } = Dimensions.get("window");
+    const MENU_WIDTH = 200;
+    const EST_ITEM_HEIGHT = 44;
+    const MENU_HEIGHT = items * EST_ITEM_HEIGHT + 8; // + vertical padding
+
+    const ax = anchor?.x ?? 0;
+    const ay = anchor?.y ?? 0;
+    const aw = anchor?.w ?? 0;
+    const ah = anchor?.h ?? 0;
+
+    let left = ax + aw - MENU_WIDTH;
+    left = Math.max(8, Math.min(left, screenW - MENU_WIDTH - 8));
+
+    const belowTop = ay + ah + 6;
+    const aboveTop = ay - MENU_HEIGHT - 6;
+    const top =
+      screenH - belowTop >= MENU_HEIGHT ? belowTop : Math.max(8, aboveTop);
+
+    return { top, left, width: MENU_WIDTH } as const;
+  };
 
   return (
     <View
@@ -203,10 +233,16 @@ function DayRow({
 
         <View style={styles.dayActions}>
           <TouchableOpacity
+            ref={actionsRef}
             style={styles.actionsTrigger}
             onPress={(e) => {
               e.stopPropagation();
-              setMenuVisible(true);
+              actionsRef.current?.measureInWindow?.(
+                (x: number, y: number, w: number, h: number) => {
+                  setAnchor({ x, y, w, h });
+                  setMenuVisible(true);
+                }
+              );
             }}
             accessibilityLabel={`Open actions for ${formatDateDisplay(
               day.date
@@ -289,7 +325,12 @@ function DayRow({
           <View
             style={[
               styles.menuContainer,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                position: "absolute",
+                ...computeMenuPosition(2),
+              },
             ]}
           >
             <TouchableOpacity
@@ -339,6 +380,35 @@ function SubmissionBlock({
 }: SubmissionBlockProps) {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [anchor, setAnchor] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
+  const actionsRef = useRef<any>(null);
+
+  const computeMenuPosition = (items: number) => {
+    const { width: screenW, height: screenH } = Dimensions.get("window");
+    const MENU_WIDTH = 200;
+    const EST_ITEM_HEIGHT = 44;
+    const MENU_HEIGHT = items * EST_ITEM_HEIGHT + 8;
+
+    const ax = anchor?.x ?? 0;
+    const ay = anchor?.y ?? 0;
+    const aw = anchor?.w ?? 0;
+    const ah = anchor?.h ?? 0;
+
+    let left = ax + aw - MENU_WIDTH;
+    left = Math.max(8, Math.min(left, screenW - MENU_WIDTH - 8));
+
+    const belowTop = ay + ah + 6;
+    const aboveTop = ay - MENU_HEIGHT - 6;
+    const top =
+      screenH - belowTop >= MENU_HEIGHT ? belowTop : Math.max(8, aboveTop);
+
+    return { top, left, width: MENU_WIDTH } as const;
+  };
 
   const handleDelete = () => {
     if (!onDeleteSubmission) return;
@@ -372,8 +442,16 @@ function SubmissionBlock({
         </ThemedText>
 
         <TouchableOpacity
+          ref={actionsRef}
           style={styles.actionsTrigger}
-          onPress={() => setMenuVisible(true)}
+          onPress={() => {
+            actionsRef.current?.measureInWindow?.(
+              (x: number, y: number, w: number, h: number) => {
+                setAnchor({ x, y, w, h });
+                setMenuVisible(true);
+              }
+            );
+          }}
           accessibilityLabel="Open actions menu"
         >
           <ThemedText
@@ -425,7 +503,12 @@ function SubmissionBlock({
             <View
               style={[
                 styles.menuContainer,
-                { backgroundColor: colors.card, borderColor: colors.border },
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  position: "absolute",
+                  ...computeMenuPosition(3),
+                },
               ]}
             >
               <TouchableOpacity
