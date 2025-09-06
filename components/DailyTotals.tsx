@@ -54,7 +54,7 @@ export function DailyTotals({ shifts }: DailyTotalsProps) {
         </View>
       </View>
 
-      {totalMinutes > 0 && (
+      {/* {totalMinutes > 0 && (
         <View style={styles.summaryContainer}>
           <ThemedText style={styles.summaryText}>
             {totalMinutes >= 480 ? "Great work! " : ""}
@@ -62,7 +62,7 @@ export function DailyTotals({ shifts }: DailyTotalsProps) {
             {shifts.length > 1 ? ` across ${shifts.length} shifts` : ""}.
           </ThemedText>
         </View>
-      )}
+      )} */}
     </ThemedView>
   );
 }

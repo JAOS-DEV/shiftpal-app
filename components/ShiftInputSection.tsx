@@ -340,8 +340,8 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
       {mode === "manual" && (
         <View style={styles.helpContainer}>
           <ThemedText style={styles.helpText}>
-            Type numbers and the colon will be added automatically. Overnight
-            shifts are supported.
+            Enter the start and end times of your shift in 24-hour format
+            (HH:MM). Overnight shifts are supported.
           </ThemedText>
         </View>
       )}
