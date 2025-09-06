@@ -72,6 +72,39 @@ class ShiftService {
     return timer;
   }
 
+  /**
+   * Undo the last break if currently paused with an open pause interval.
+   * Removes the last pause entry and resumes the timer.
+   */
+  async undoLastBreak(): Promise<RunningTimer | null> {
+    const timer = await this.getRunningTimer();
+    if (!timer) return null;
+    const last = timer.pauses[timer.pauses.length - 1];
+    if (timer.status === "paused" && last && !last.end) {
+      timer.pauses.pop();
+      timer.status = "running";
+      timer.lastUpdatedAt = Date.now();
+      await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+      return timer;
+    }
+    return timer;
+  }
+
+  /**
+   * Set or update a note on the current open break (if paused).
+   */
+  async setCurrentBreakNote(note: string): Promise<RunningTimer | null> {
+    const timer = await this.getRunningTimer();
+    if (!timer || timer.status !== "paused") return timer;
+    const last = timer.pauses[timer.pauses.length - 1];
+    if (last && !last.end) {
+      last.note = note;
+      timer.lastUpdatedAt = Date.now();
+      await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    }
+    return timer;
+  }
+
   private computeBreakMinutes(timer: RunningTimer, now: number): number {
     return timer.pauses.reduce((sum, p) => {
       const end = p.end ?? (timer.status === "paused" ? now : p.start);
@@ -89,6 +122,20 @@ class ShiftService {
     if (timer.status === "paused" && last && !last.end) last.end = now;
 
     const breakMinutes = this.computeBreakMinutes(timer, now);
+    // Build detailed break entries for the shift
+    const breaksDetailed = timer.pauses
+      .filter((p) => p.end && p.start && p.end > p.start)
+      .map((p) => {
+        const durationMinutes = Math.floor(
+          ((p.end as number) - p.start) / 60000
+        );
+        return {
+          start: p.start,
+          end: p.end as number,
+          durationMinutes,
+          note: p.note,
+        };
+      });
     const grossMinutes = Math.floor((now - timer.startedAt) / 60000);
     const totalMinutes = includeBreaks
       ? grossMinutes
@@ -114,6 +161,7 @@ class ShiftService {
       breakMinutes,
       breakCount: timer.pauses.length,
       includeBreaks,
+      breaks: breaksDetailed,
     };
 
     // Save under SHIFTS_STORAGE_KEY for the timer date

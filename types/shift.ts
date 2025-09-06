@@ -9,6 +9,13 @@ export interface Shift {
   breakMinutes?: number; // total break minutes (not counted when includeBreaks=false)
   breakCount?: number; // number of break intervals
   includeBreaks?: boolean; // whether breaks were counted into duration
+  // Detailed breaks captured from timer (if created via timer)
+  breaks?: Array<{
+    start: number; // epoch ms
+    end: number; // epoch ms
+    durationMinutes: number;
+    note?: string;
+  }>;
 }
 
 export interface Submission {
@@ -26,7 +33,7 @@ export interface RunningTimer {
   date: string; // YYYY-MM-DD (based on local start date)
   startedAt: number; // epoch ms
   status: TimerStatus;
-  pauses: Array<{ start: number; end?: number }>; // open interval when paused
+  pauses: Array<{ start: number; end?: number; note?: string }>; // open interval when paused
   lastUpdatedAt: number;
 }
 

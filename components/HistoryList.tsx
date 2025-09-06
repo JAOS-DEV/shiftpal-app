@@ -503,19 +503,28 @@ function SubmissionBlock({
       {submission.shifts.map((shift) => (
         <View
           key={shift.id}
-          style={[styles.shiftRow, { borderBottomColor: colors.border }]}
+          style={[
+            styles.shiftBlock,
+            { borderBottomColor: colors.textSecondary, borderBottomWidth: 2 },
+          ]}
         >
-          <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
-            {shift.start} - {shift.end}
-          </ThemedText>
-          <ThemedText
-            style={[styles.shiftDuration, { color: colors.textSecondary }]}
-          >
-            {shift.durationText} ({shift.durationMinutes} min)
-          </ThemedText>
-          {typeof shift.includeBreaks === "boolean" && (
+          <View style={styles.shiftRow}>
+            <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
+              {shift.start} - {shift.end}
+            </ThemedText>
             <ThemedText
               style={[styles.shiftDuration, { color: colors.textSecondary }]}
+            >
+              {shift.durationText} ({shift.durationMinutes} min)
+            </ThemedText>
+          </View>
+
+          {typeof shift.includeBreaks === "boolean" && (
+            <ThemedText
+              style={[
+                styles.shiftBreakSummary,
+                { color: colors.textSecondary },
+              ]}
             >
               Breaks:{" "}
               {typeof shift.breakMinutes === "number" ? shift.breakMinutes : 0}m
@@ -525,6 +534,68 @@ function SubmissionBlock({
               {shift.includeBreaks ? " (included)" : " (excluded)"}
             </ThemedText>
           )}
+
+          {Array.isArray(shift.breaks) && shift.breaks.length > 0 ? (
+            <View
+              style={[
+                styles.breaksDetailContainer,
+                { borderColor: colors.border, backgroundColor: colors.card },
+              ]}
+            >
+              <ThemedText
+                style={[styles.breaksTitle, { color: colors.textSecondary }]}
+              >
+                Breaks
+              </ThemedText>
+              {shift.breaks.map((b, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.breakDetailRow,
+                    { borderTopColor: colors.border },
+                  ]}
+                >
+                  <View style={styles.breakDetailHeader}>
+                    <ThemedText
+                      style={[
+                        styles.breakDetailIndex,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      #{i + 1}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.breakDetailTime, { color: colors.text }]}
+                    >
+                      {new Date(b.start).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {" - "}
+                      {new Date(b.end).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </ThemedText>
+                    <View style={styles.breakDurationChip}>
+                      <ThemedText style={styles.breakDurationChipText}>
+                        {b.durationMinutes}m
+                      </ThemedText>
+                    </View>
+                  </View>
+                  {b.note ? (
+                    <View style={styles.breakNoteBox}>
+                      <ThemedText
+                        style={[styles.breakDetailNote, { color: colors.text }]}
+                      >
+                        {b.note}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
       ))}
 
@@ -732,8 +803,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 8,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
     // Dynamic colors applied via style prop
+  },
+  shiftBlock: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    // Dynamic colors applied via style prop in parent
+  },
+  shiftBreakSummary: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginTop: 2,
   },
   shiftTime: {
     fontSize: 14,
@@ -807,6 +888,63 @@ const styles = StyleSheet.create({
   breakSummaryText: {
     fontSize: 12,
     marginTop: 4,
+  },
+  breaksDetailContainer: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    width: "100%",
+  },
+  breaksTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  breakDetailRow: {
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  breakDetailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  breakDetailIndex: {
+    fontSize: 11,
+  },
+  breakDetailTime: {
+    fontSize: 13,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  breakDetailDuration: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  breakDurationChip: {
+    backgroundColor: "#F0F0F5",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignSelf: "center",
+    marginTop: 2,
+  },
+  breakDurationChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  breakDetailNote: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  breakNoteBox: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 8,
   },
   dayActions: {
     flexDirection: "row",
