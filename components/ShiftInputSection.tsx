@@ -6,6 +6,7 @@ import {
   isValidTimeFormat,
   isValidTimeRange,
 } from "@/utils/timeUtils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -43,6 +44,51 @@ export function ShiftInputSection({
   }>({ running: false, paused: false, elapsedMs: 0 });
   const [timerInterval, setTimerInterval] = useState<any>(null);
   const [includeBreaks, setIncludeBreaks] = useState(false);
+
+  // Keys for persisted preferences
+  const STORAGE_KEYS = {
+    mode: "shiftpal.preferences.input_mode",
+    includeBreaks: "shiftpal.preferences.include_breaks",
+    startTime: "shiftpal.preferences.manual_start_time",
+    endTime: "shiftpal.preferences.manual_end_time",
+  } as const;
+
+  // Load persisted preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const [savedMode, savedIncludeBreaks, savedStart, savedEnd] =
+          await Promise.all([
+            AsyncStorage.getItem(STORAGE_KEYS.mode),
+            AsyncStorage.getItem(STORAGE_KEYS.includeBreaks),
+            AsyncStorage.getItem(STORAGE_KEYS.startTime),
+            AsyncStorage.getItem(STORAGE_KEYS.endTime),
+          ]);
+        if (savedMode === "manual" || savedMode === "timer") {
+          setMode(savedMode);
+        }
+        if (savedIncludeBreaks === "true" || savedIncludeBreaks === "false") {
+          setIncludeBreaks(savedIncludeBreaks === "true");
+        }
+        if (savedStart) setStartTime(savedStart);
+        if (savedEnd) setEndTime(savedEnd);
+      } catch {}
+    };
+    loadPreferences();
+  }, []);
+
+  // Persist mode changes
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE_KEYS.mode, mode).catch(() => {});
+  }, [mode]);
+
+  // Persist includeBreaks changes
+  useEffect(() => {
+    AsyncStorage.setItem(
+      STORAGE_KEYS.includeBreaks,
+      includeBreaks ? "true" : "false"
+    ).catch(() => {});
+  }, [includeBreaks]);
 
   const validateInputs = (start: string, end: string) => {
     const valid =
@@ -88,6 +134,7 @@ export function ShiftInputSection({
     setPrevStartTime(formatted);
     setStartTime(formatted);
     validateInputs(formatted, endTime);
+    AsyncStorage.setItem(STORAGE_KEYS.startTime, formatted).catch(() => {});
 
     // Auto-focus end time when start time is valid
     if (isValidTimeFormat(formatted) && endTimeRef.current) {
@@ -100,6 +147,7 @@ export function ShiftInputSection({
     setPrevEndTime(formatted);
     setEndTime(formatted);
     validateInputs(startTime, formatted);
+    AsyncStorage.setItem(STORAGE_KEYS.endTime, formatted).catch(() => {});
   };
 
   const handleAddShift = () => {
@@ -125,6 +173,10 @@ export function ShiftInputSection({
     setPrevStartTime("");
     setPrevEndTime("");
     setIsValid(false);
+    AsyncStorage.multiRemove([
+      STORAGE_KEYS.startTime,
+      STORAGE_KEYS.endTime,
+    ]).catch(() => {});
   };
 
   const getDurationPreview = () => {

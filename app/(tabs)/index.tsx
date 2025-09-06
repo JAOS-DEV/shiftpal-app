@@ -12,6 +12,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { shiftService } from "@/services/shiftService";
 import { Day, HistoryFilter, Shift } from "@/types/shift";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import {
@@ -40,6 +41,19 @@ export default function HomeScreen() {
   useEffect(() => {
     loadShiftsForDate(selectedDate);
   }, [selectedDate]);
+
+  // Load last selected tab once on mount
+  useEffect(() => {
+    const loadTab = async () => {
+      try {
+        const saved = await AsyncStorage.getItem("shiftpal.ui.active_tab");
+        if (saved === "tracker" || saved === "history") {
+          setActiveTab(saved);
+        }
+      } catch {}
+    };
+    loadTab();
+  }, []);
 
   // Load submitted days when history tab is active
   useEffect(() => {
@@ -179,6 +193,7 @@ export default function HomeScreen() {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
+    AsyncStorage.setItem("shiftpal.ui.active_tab", tab).catch(() => {});
   };
 
   const handleHistoryFilterChange = (filter: HistoryFilter) => {
