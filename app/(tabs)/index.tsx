@@ -18,6 +18,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 type Tab = "tracker" | "history";
 
@@ -149,22 +150,14 @@ export default function HomeScreen() {
         });
       } catch {}
 
-      Alert.alert(
-        "✅ Success!",
-        `${actionText} with ${shifts.length} shift${
+      Toast.show({
+        type: "success",
+        text1: "Day submitted",
+        text2: `${actionText} • ${shifts.length} shift${
           shifts.length > 1 ? "s" : ""
-        } for ${formatDateDisplay(selectedDate)}\n\nDay total: ${timeText}`,
-        [
-          {
-            text: "View History",
-            onPress: () => {
-              setActiveTab("history");
-              loadSubmittedDays();
-            },
-          },
-          { text: "OK" },
-        ]
-      );
+        } • ${formatDateDisplay(selectedDate)} • Total ${timeText}`,
+        position: "bottom",
+      });
 
       // Refresh history if we're on that tab
       if (activeTab === "history") {
@@ -235,7 +228,10 @@ export default function HomeScreen() {
                 onDateChange={setSelectedDate}
               />
               {/* Timer banner removed; status shown inline in Shift input header. */}
-              <ShiftInputSection onAddShift={handleAddShift} />
+              <ShiftInputSection
+                onAddShift={handleAddShift}
+                onShiftListRefresh={() => loadShiftsForDate(selectedDate)}
+              />
               <ShiftEntriesList
                 shifts={shifts}
                 onRemoveShift={handleRemoveShift}

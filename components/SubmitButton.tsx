@@ -1,6 +1,7 @@
 import { Shift } from "@/types/shift";
 import React from "react";
 import { Alert, Platform, StyleSheet, TouchableOpacity } from "react-native";
+import Toast from "react-native-toast-message";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
@@ -44,47 +45,19 @@ export function SubmitButton({
       return;
     }
 
-    console.log("SubmitButton: Showing confirmation dialog");
+    // No confirmation: invoke directly
+    onSubmit();
 
-    if (Platform.OS === "web") {
-      // Use browser's native confirm dialog for web
-      const message = `Are you sure you want to submit ${shifts.length} shift${
+    // Optional: lightweight feedback on press
+    Toast.show({
+      type: "info",
+      text1: "Submitting",
+      text2: `Saving ${shifts.length} shift${
         shifts.length > 1 ? "s" : ""
-      } totaling ${Math.floor(totalMinutes / 60)}h ${
-        totalMinutes % 60
-      }m?\n\nThis will save your shifts to history.`;
-
-      if (confirm(message)) {
-        console.log(
-          "SubmitButton: User confirmed submission, calling onSubmit"
-        );
-        onSubmit();
-      } else {
-        console.log("SubmitButton: User cancelled submission");
-      }
-    } else {
-      // Use React Native Alert for mobile
-      Alert.alert(
-        "Submit Day's Shifts",
-        `Are you sure you want to submit ${shifts.length} shift${
-          shifts.length > 1 ? "s" : ""
-        } totaling ${Math.floor(totalMinutes / 60)}h ${
-          totalMinutes % 60
-        }m?\n\nThis will save your shifts to history.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Submit",
-            onPress: () => {
-              console.log(
-                "SubmitButton: User confirmed submission, calling onSubmit"
-              );
-              onSubmit();
-            },
-          },
-        ]
-      );
-    }
+      } to history...`,
+      position: "bottom",
+      visibilityTime: 1500,
+    });
   };
 
   return (

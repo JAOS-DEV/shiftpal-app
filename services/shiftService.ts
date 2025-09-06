@@ -80,7 +80,7 @@ class ShiftService {
     }, 0);
   }
 
-  async stopTimer(): Promise<Shift | null> {
+  async stopTimer(includeBreaks: boolean = false): Promise<Shift | null> {
     const timer = await this.getRunningTimer();
     if (!timer) return null;
     const now = Date.now();
@@ -89,8 +89,10 @@ class ShiftService {
     if (timer.status === "paused" && last && !last.end) last.end = now;
 
     const breakMinutes = this.computeBreakMinutes(timer, now);
-    const totalMinutes =
-      Math.floor((now - timer.startedAt) / 60000) - breakMinutes;
+    const grossMinutes = Math.floor((now - timer.startedAt) / 60000);
+    const totalMinutes = includeBreaks
+      ? grossMinutes
+      : grossMinutes - breakMinutes;
     if (totalMinutes <= 0) {
       await AsyncStorage.removeItem(TIMER_STORAGE_KEY);
       return null;
@@ -109,6 +111,9 @@ class ShiftService {
       durationMinutes: totalMinutes,
       durationText: formatDurationText(totalMinutes),
       createdAt: now,
+      breakMinutes,
+      breakCount: timer.pauses.length,
+      includeBreaks,
     };
 
     // Save under SHIFTS_STORAGE_KEY for the timer date

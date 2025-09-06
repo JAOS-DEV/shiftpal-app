@@ -10,18 +10,24 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
 interface ShiftInputSectionProps {
   onAddShift: (startTime: string, endTime: string) => void;
+  onShiftListRefresh?: () => void;
 }
 
-export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
+export function ShiftInputSection({
+  onAddShift,
+  onShiftListRefresh,
+}: ShiftInputSectionProps) {
   const [mode, setMode] = useState<"manual" | "timer">("manual");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -36,6 +42,7 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
     elapsedMs: number;
   }>({ running: false, paused: false, elapsedMs: 0 });
   const [timerInterval, setTimerInterval] = useState<any>(null);
+  const [includeBreaks, setIncludeBreaks] = useState(false);
 
   const validateInputs = (start: string, end: string) => {
     const valid =
@@ -177,12 +184,22 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
     await refreshTimer();
   };
   const handleTimerStop = async () => {
-    const shift = await shiftService.stopTimer();
+    const shift = await shiftService.stopTimer(includeBreaks);
     await refreshTimer();
-    if (shift) {
-      onAddShift(shift.start, shift.end);
-      Alert.alert("Shift Added", `Recorded ${shift.durationText}`);
-    }
+    if (!shift) return;
+    // stopTimer already persisted the shift to storage; ask parent to refresh
+    onShiftListRefresh?.();
+    const suffix = shift.breakMinutes
+      ? includeBreaks
+        ? ` (breaks ${shift.breakMinutes}m included)`
+        : ` (breaks ${shift.breakMinutes}m excluded)`
+      : "";
+    Toast.show({
+      type: "success",
+      text1: "Shift added",
+      text2: `Recorded ${shift.durationText}${suffix}`,
+      position: "bottom",
+    });
   };
 
   return (
@@ -283,6 +300,13 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
             {new Date(timerState.elapsedMs).toISOString().substr(11, 8)}
           </ThemedText>
 
+          <View style={styles.breakToggleRow}>
+            <ThemedText style={styles.breakToggleLabel}>
+              Include breaks in total
+            </ThemedText>
+            <Switch value={includeBreaks} onValueChange={setIncludeBreaks} />
+          </View>
+
           {!timerState.running ? (
             <TouchableOpacity
               style={styles.primaryButton}
@@ -295,9 +319,12 @@ export function ShiftInputSection({ onAddShift }: ShiftInputSectionProps) {
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={handleTimerPauseResume}
+                accessibilityLabel={
+                  timerState.paused ? "Resume shift" : "Start break"
+                }
               >
                 <ThemedText style={styles.secondaryButtonText}>
-                  {timerState.paused ? "Resume" : "Pause"}
+                  {timerState.paused ? "Resume" : "Break"}
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
@@ -549,5 +576,16 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  breakToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  breakToggleLabel: {
+    fontSize: 12,
+    opacity: 0.8,
   },
 });

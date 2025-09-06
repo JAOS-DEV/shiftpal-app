@@ -87,6 +87,15 @@ function ShiftRow({ shift, index, onRemove }: ShiftRowProps) {
           <ThemedText style={styles.durationText}>
             {shift.durationText}
           </ThemedText>
+          {typeof shift.breakMinutes === "number" && shift.breakMinutes > 0 && (
+            <ThemedText style={styles.breakText}>
+              Breaks: {shift.breakMinutes}m
+              {typeof shift.breakCount === "number"
+                ? ` (${shift.breakCount})`
+                : ""}
+              {shift.includeBreaks ? " (included)" : " (excluded)"}
+            </ThemedText>
+          )}
           <ThemedText style={styles.minutesText}>
             ({shift.durationMinutes} min)
           </ThemedText>
@@ -172,6 +181,10 @@ const styles = StyleSheet.create({
     color: "#34C759",
   },
   minutesText: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  breakText: {
     fontSize: 12,
     opacity: 0.6,
   },

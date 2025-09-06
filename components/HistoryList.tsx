@@ -309,6 +309,44 @@ function DayRow({
               {day.totalText} ({day.totalMinutes} min)
             </ThemedText>
           </View>
+          {(() => {
+            const allShifts =
+              day.submissions?.flatMap((s) => s.shifts || []) || [];
+            const total = allShifts.reduce(
+              (sum, s) =>
+                sum + (typeof s.breakMinutes === "number" ? s.breakMinutes : 0),
+              0
+            );
+            if (!total) return null;
+            const included = allShifts.reduce(
+              (sum, s) =>
+                sum +
+                (s.includeBreaks
+                  ? typeof s.breakMinutes === "number"
+                    ? s.breakMinutes
+                    : 0
+                  : 0),
+              0
+            );
+            const excluded = total - included;
+            const count = allShifts.reduce(
+              (sum, s) =>
+                sum + (typeof s.breakCount === "number" ? s.breakCount : 0),
+              0
+            );
+            return (
+              <ThemedText
+                style={[
+                  styles.breakSummaryText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Breaks: {total}m{count ? ` (${count})` : ""}
+                {included ? ` • included ${included}m` : ""}
+                {excluded ? ` • excluded ${excluded}m` : ""}
+              </ThemedText>
+            );
+          })()}
         </View>
       )}
 
@@ -475,6 +513,18 @@ function SubmissionBlock({
           >
             {shift.durationText} ({shift.durationMinutes} min)
           </ThemedText>
+          {typeof shift.includeBreaks === "boolean" && (
+            <ThemedText
+              style={[styles.shiftDuration, { color: colors.textSecondary }]}
+            >
+              Breaks:{" "}
+              {typeof shift.breakMinutes === "number" ? shift.breakMinutes : 0}m
+              {typeof shift.breakCount === "number" && shift.breakCount > 0
+                ? ` (${shift.breakCount})`
+                : ""}
+              {shift.includeBreaks ? " (included)" : " (excluded)"}
+            </ThemedText>
+          )}
         </View>
       ))}
 
@@ -753,6 +803,10 @@ const styles = StyleSheet.create({
   submissionTotalValue: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  breakSummaryText: {
+    fontSize: 12,
+    marginTop: 4,
   },
   dayActions: {
     flexDirection: "row",
