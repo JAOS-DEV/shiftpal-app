@@ -467,7 +467,9 @@ function SubmissionBlock({
   };
 
   return (
-    <View style={[styles.submissionBlock, { borderColor: colors.border }]}>
+    <View
+      style={[styles.submissionBlock, { borderColor: colors.textSecondary }]}
+    >
       <View style={styles.submissionHeader}>
         <ThemedText
           style={[styles.submittedAt, { color: colors.textSecondary }]}
@@ -584,10 +586,18 @@ function SubmissionBlock({
                     </View>
                   </View>
                   {b.note ? (
-                    <View style={styles.breakNoteBox}>
+                    <View
+                      style={[
+                        styles.breakNoteBox,
+                        { borderColor: colors.border },
+                      ]}
+                    >
                       <ThemedText
                         style={[styles.breakDetailNote, { color: colors.text }]}
                       >
+                        <ThemedText style={styles.breakDetailNoteLabel}>
+                          Note:{" "}
+                        </ThemedText>
                         {b.note}
                       </ThemedText>
                     </View>
@@ -779,7 +789,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   submissionBlock: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
@@ -879,7 +889,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submissionTotalLabel: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: "600",
   },
   submissionTotalValue: {
     fontSize: 14,
@@ -939,6 +950,11 @@ const styles = StyleSheet.create({
   breakDetailNote: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  breakDetailNoteLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 2,
   },
   breakNoteBox: {
     marginTop: 6,

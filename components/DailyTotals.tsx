@@ -38,20 +38,22 @@ export function DailyTotals({ shifts }: DailyTotalsProps) {
       <View style={styles.totalsContainer}>
         <View style={styles.totalRow}>
           <ThemedText style={styles.totalLabel}>Total Time:</ThemedText>
-          <ThemedText style={styles.totalValue}>{totalText}</ThemedText>
+          <ThemedText style={styles.totalValue}>
+            {totalText} / {totalMinutes} min
+          </ThemedText>
         </View>
 
-        <View style={styles.totalRow}>
+        {/* <View style={styles.totalRow}>
           <ThemedText style={styles.totalLabel}>Total Minutes:</ThemedText>
           <ThemedText style={styles.totalMinutesValue}>
             {totalMinutes} min
           </ThemedText>
-        </View>
+        </View> */}
 
-        <View style={styles.totalRow}>
+        {/* <View style={styles.totalRow}>
           <ThemedText style={styles.totalLabel}>Shifts Count:</ThemedText>
           <ThemedText style={styles.totalValue}>{shifts.length}</ThemedText>
-        </View>
+        </View> */}
       </View>
 
       {/* {totalMinutes > 0 && (
@@ -96,7 +98,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
   },
   totalLabel: {
     fontSize: 16,
