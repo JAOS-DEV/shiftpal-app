@@ -1,10 +1,10 @@
 import { DailyTotals } from "@/components/DailyTotals";
 import { DateSelector } from "@/components/DateSelector";
 import { HistoryList } from "@/components/HistoryList";
+import { SegmentedSwitcher } from "@/components/SegmentedSwitcher";
 import { ShiftEntriesList } from "@/components/ShiftEntriesList";
 import { ShiftInputSection } from "@/components/ShiftInputSection";
 import { SubmitButton } from "@/components/SubmitButton";
-import { TabSwitcher } from "@/components/TabSwitcher";
 import { ThemedView } from "@/components/ThemedView";
 import { logAnalyticsEvent } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
@@ -225,10 +225,13 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
-        <TabSwitcher
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          showTrackerDot={timerRunning}
+        <SegmentedSwitcher
+          items={[
+            { id: "tracker", label: "Tracker", showDot: timerRunning },
+            { id: "history", label: "History" },
+          ]}
+          activeId={activeTab}
+          onChange={(id) => handleTabChange(id as Tab)}
         />
 
         <ScrollView

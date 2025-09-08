@@ -1,0 +1,120 @@
+export type PayRateType = "base" | "overtime" | "premium";
+
+export interface PayRate {
+  id: string;
+  label: string;
+  value: number; // hourly value in currency units
+  type: PayRateType;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface OvertimeRules {
+  dailyThreshold?: number; // hours
+  dailyMultiplier?: number; // e.g., 1.5
+  weeklyThreshold?: number; // hours
+  weeklyMultiplier?: number; // e.g., 2.0
+}
+
+export interface NightRules {
+  start?: string; // "HH:MM"
+  end?: string; // "HH:MM"
+  type?: "percentage" | "fixed";
+  value?: number; // percentage or fixed uplift per hour
+}
+
+export interface WeekendRules {
+  days?: Array<"Sat" | "Sun">;
+  type?: "percentage" | "fixed";
+  value?: number;
+}
+
+export interface TaxRules {
+  type?: "flat"; // future: "banded"
+  percentage?: number; // 0-100
+  personalAllowance?: number; // currency units deducted from gross before tax
+}
+
+export interface NiRules {
+  type?: "flat"; // future: "banded"
+  percentage?: number; // 0-100
+  threshold?: number; // gross above this is NI-chargeable
+}
+
+export interface AllowanceItem {
+  id: string;
+  type: string; // e.g., "Meal", "Mileage"
+  value: number; // currency amount or per-unit amount
+  unit: "perShift" | "perHour" | "perKm";
+}
+
+export interface PayPeriodConfig {
+  cycle: "weekly" | "fortnightly" | "monthly";
+  startDay?: string; // Monday, etc.
+  startDate?: number; // 1-31 when monthly
+}
+
+export interface PayRules {
+  overtime?: OvertimeRules;
+  night?: NightRules;
+  weekend?: WeekendRules;
+  allowances?: AllowanceItem[];
+  payPeriod?: PayPeriodConfig;
+  tax?: TaxRules;
+  ni?: NiRules;
+}
+
+export interface Preferences {
+  currency: "GBP" | "USD" | "EUR" | string;
+  dateFormat: "DD/MM/YYYY" | "MM/DD/YYYY" | string;
+  timeFormat: "24h" | "12h";
+  stackingRule: "stack" | "highestOnly";
+  holidayRecognition: boolean;
+  roundingRule: "5min" | "15min" | "none" | string;
+  weeklyGoal?: number; // target gross or net per week (we'll use net total)
+  monthlyGoal?: number; // target per month (net)
+}
+
+export interface NotificationsPrefs {
+  remindSubmitShifts: boolean;
+  remindCheckPay: boolean;
+}
+
+export interface AppSettings {
+  payRates: PayRate[];
+  payRules: PayRules;
+  preferences: Preferences;
+  notifications: NotificationsPrefs;
+}
+
+export interface HoursAndMinutes {
+  hours: number;
+  minutes: number;
+}
+
+export interface PayBreakdown {
+  base: number;
+  overtime: number;
+  uplifts: number;
+  allowances: number;
+  gross: number; // base + overtime + uplifts + allowances
+  tax: number; // deductions
+  ni: number; // deductions
+  total: number; // final total after deductions (kept as 'total' for compatibility)
+}
+
+export interface PayCalculationInput {
+  mode: "tracker" | "manual";
+  date: string; // YYYY-MM-DD
+  hourlyRateId: string | null;
+  overtimeRateId: string | null;
+  hoursWorked: HoursAndMinutes; // base hours
+  overtimeWorked: HoursAndMinutes; // overtime hours (manual) or derived
+}
+
+export interface PayCalculationEntry {
+  id: string;
+  input: PayCalculationInput;
+  calculatedPay: PayBreakdown;
+  createdAt: number;
+}
