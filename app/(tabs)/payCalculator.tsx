@@ -1042,11 +1042,20 @@ export default function PayCalculatorScreen() {
                       </View>
 
                       {entries.map((entry) => {
+                        const savedBaseVal = resolveRateValue(
+                          entry.input.hourlyRateId
+                        );
                         const baseRateVal =
-                          resolveRateValue(entry.input.hourlyRateId) || 0;
+                          (typeof savedBaseVal === "number"
+                            ? savedBaseVal
+                            : entry.rateSnapshot?.base) ?? 0;
+                        const savedOtVal = resolveRateValue(
+                          entry.input.overtimeRateId
+                        );
                         const overtimeRateVal =
-                          resolveRateValue(entry.input.overtimeRateId) ||
-                          baseRateVal;
+                          (typeof savedOtVal === "number"
+                            ? savedOtVal
+                            : entry.rateSnapshot?.overtime) ?? baseRateVal;
                         const baseMinutes = hmToMinutes(
                           entry.input.hoursWorked
                         );
