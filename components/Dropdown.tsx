@@ -61,7 +61,11 @@ export function Dropdown({
           </ThemedText>
         ) : null}
         <View style={styles.triggerValueRow}>
-          <ThemedText style={[styles.triggerValue, { color: colors.text }]}>
+          <ThemedText
+            style={[styles.triggerValue, { color: colors.text }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {selectedLabel || placeholder || "Select"}
           </ThemedText>
           <ThemedText style={[styles.caret, { color: colors.textSecondary }]}>
@@ -146,10 +150,17 @@ const styles = StyleSheet.create({
   },
   triggerValue: {
     fontWeight: "600",
+    flex: 1,
+    overflow: "hidden",
   },
   caret: {
     opacity: 0.6,
     marginLeft: 8,
+    fontSize: 12,
+    lineHeight: 16,
+    flexShrink: 0,
+    textAlign: "center",
+    minWidth: 12,
   },
   backdrop: {
     flex: 1,

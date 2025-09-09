@@ -59,16 +59,29 @@ function defaultSettings(): AppSettings {
 class SettingsService {
   // Simple in-memory listeners so other screens can react immediately to changes
   private settingsListeners = new Set<(s: AppSettings) => void>();
+  private versionListeners = new Set<(v: string) => void>();
 
   subscribe(listener: (s: AppSettings) => void): () => void {
     this.settingsListeners.add(listener);
     return () => this.settingsListeners.delete(listener);
   }
 
+  subscribeVersion(listener: (v: string) => void): () => void {
+    this.versionListeners.add(listener);
+    return () => this.versionListeners.delete(listener);
+  }
+
   private notifySettingsChanged(next: AppSettings) {
     for (const cb of this.settingsListeners) {
       try {
         cb(next);
+      } catch {}
+    }
+    // Also notify version listeners
+    const v = this.computeSettingsVersion(next);
+    for (const cb of this.versionListeners) {
+      try {
+        cb(v);
       } catch {}
     }
   }
@@ -119,6 +132,30 @@ class SettingsService {
       notifications: { ...base.notifications, ...(input?.notifications || {}) },
     };
     return merged;
+  }
+
+  // Versioning: capture only deduction-related and rounding fields that affect totals
+  computeSettingsVersion(s: AppSettings): string {
+    const payload = {
+      tax: s?.payRules?.tax || {},
+      ni: s?.payRules?.ni || {},
+      roundingRule: s?.preferences?.roundingRule,
+    };
+    try {
+      return this.simpleHash(JSON.stringify(payload));
+    } catch {
+      return "v0";
+    }
+  }
+
+  private simpleHash(input: string): string {
+    let h = 2166136261;
+    for (let i = 0; i < input.length; i++) {
+      h ^= input.charCodeAt(i);
+      h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+    }
+    // to unsigned 32-bit and base36
+    return (h >>> 0).toString(36);
   }
 
   async saveSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
@@ -350,9 +387,95 @@ class SettingsService {
     }
   }
 
+  // Recompute a single entry with current settings
+  async recomputeEntry(
+    entry: PayCalculationEntry
+  ): Promise<PayCalculationEntry> {
+    const settings = await this.getSettings();
+    const recalculated = this.computePay(entry.input, settings);
+    return {
+      ...entry,
+      calculatedPay: recalculated,
+      settingsVersion: this.computeSettingsVersion(settings),
+    };
+  }
+
+  async updateHistoryEntry(updated: PayCalculationEntry): Promise<void> {
+    const data = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+    const list: PayCalculationEntry[] = JSON.parse(data);
+    const idx = list.findIndex((e) => e.id === updated.id);
+    if (idx !== -1) {
+      list[idx] = updated;
+      await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(list));
+    }
+  }
+
+  async recomputeMany(entryIds: string[]): Promise<PayCalculationEntry[]> {
+    const data = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+    const list: PayCalculationEntry[] = JSON.parse(data);
+    const settings = await this.getSettings();
+    const version = this.computeSettingsVersion(settings);
+    const map = new Map(list.map((e) => [e.id, e] as const));
+    const updated: PayCalculationEntry[] = [];
+    for (const id of entryIds) {
+      const original = map.get(id);
+      if (!original) continue;
+      const next = {
+        ...original,
+        calculatedPay: this.computePay(original.input, settings),
+        settingsVersion: version,
+      };
+      map.set(id, next);
+      updated.push(next);
+    }
+    const nextList = Array.from(map.values());
+    await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(nextList));
+    // Best effort: sync updated entries to Firebase as well
+    try {
+      const userId = getUserId();
+      if (userId) {
+        const { firestore } = getFirebase();
+        const { doc, setDoc } = await import("firebase/firestore");
+        for (const entry of updated) {
+          const ref = doc(firestore, "users", userId, "payHistory", entry.id);
+          await setDoc(ref, { ...entry, userId }, { merge: true });
+        }
+      }
+    } catch {}
+    return updated;
+  }
+
+  async getHistorySettingsVersion(): Promise<string> {
+    const settings = await this.getSettings();
+    return this.computeSettingsVersion(settings);
+  }
+
+  async deletePayCalculation(entryId: string): Promise<void> {
+    try {
+      const local = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+      const list: PayCalculationEntry[] = JSON.parse(local);
+      const next = list.filter((e) => e.id !== entryId);
+      await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(next));
+    } catch {}
+  }
+
+  async clearPayHistory(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify([]));
+    } catch {}
+  }
+
   async deriveTrackerHoursForDate(date: string): Promise<HoursAndMinutes> {
+    // Sum unsubmitted + submitted totals for the same date (no double-counting between stores)
     const shifts = await shiftService.getShiftsForDate(date);
-    const { totalMinutes } = shiftService.calculateDayTotal(shifts);
+    const unsubmitted = shiftService.calculateDayTotal(shifts).totalMinutes;
+    let submitted = 0;
+    try {
+      const days = await shiftService.getSubmittedDays({ type: "all" });
+      const day = days.find((d) => d.date === date);
+      submitted = Math.max(0, day?.totalMinutes || 0);
+    } catch {}
+    const totalMinutes = Math.max(0, (unsubmitted || 0) + (submitted || 0));
     return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
   }
 }

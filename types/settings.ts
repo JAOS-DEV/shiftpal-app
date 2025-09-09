@@ -116,5 +116,12 @@ export interface PayCalculationEntry {
   id: string;
   input: PayCalculationInput;
   calculatedPay: PayBreakdown;
+  // Snapshot of deduction-related settings when this entry was saved
+  settingsVersion?: string;
+  // When user used manual rates (no saved pay rates), store the numeric rates
+  rateSnapshot?: {
+    base?: number;
+    overtime?: number;
+  };
   createdAt: number;
 }

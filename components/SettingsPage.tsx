@@ -12,7 +12,9 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Platform,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
@@ -45,6 +47,23 @@ export function SettingsPage() {
     unit: AllowanceItem["unit"];
   }>({ label: "", value: "", unit: "perShift" });
 
+  // Local text state for numeric fields to allow decimals and smoother typing
+  const [taxPctText, setTaxPctText] = useState("");
+  const [niPctText, setNiPctText] = useState("");
+  const [overtimeDailyThresholdText, setOvertimeDailyThresholdText] =
+    useState("");
+  const [overtimeDailyMultiplierText, setOvertimeDailyMultiplierText] =
+    useState("");
+  const [overtimeWeeklyThresholdText, setOvertimeWeeklyThresholdText] =
+    useState("");
+  const [overtimeWeeklyMultiplierText, setOvertimeWeeklyMultiplierText] =
+    useState("");
+  const [nightValueText, setNightValueText] = useState("");
+  const [weekendValueText, setWeekendValueText] = useState("");
+  const [payPeriodStartDateText, setPayPeriodStartDateText] = useState("");
+  const [weeklyGoalText, setWeeklyGoalText] = useState("");
+  const [monthlyGoalText, setMonthlyGoalText] = useState("");
+
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
@@ -63,6 +82,76 @@ export function SettingsPage() {
     };
     load();
   }, []);
+
+  // Sync numeric text inputs when settings change
+  useEffect(() => {
+    setTaxPctText(
+      settings?.payRules?.tax?.percentage !== undefined &&
+        settings?.payRules?.tax?.percentage !== null
+        ? String(settings?.payRules?.tax?.percentage)
+        : ""
+    );
+    setNiPctText(
+      settings?.payRules?.ni?.percentage !== undefined &&
+        settings?.payRules?.ni?.percentage !== null
+        ? String(settings?.payRules?.ni?.percentage)
+        : ""
+    );
+    setOvertimeDailyThresholdText(
+      settings?.payRules?.overtime?.dailyThreshold !== undefined &&
+        settings?.payRules?.overtime?.dailyThreshold !== null
+        ? String(settings?.payRules?.overtime?.dailyThreshold)
+        : ""
+    );
+    setOvertimeDailyMultiplierText(
+      settings?.payRules?.overtime?.dailyMultiplier !== undefined &&
+        settings?.payRules?.overtime?.dailyMultiplier !== null
+        ? String(settings?.payRules?.overtime?.dailyMultiplier)
+        : ""
+    );
+    setOvertimeWeeklyThresholdText(
+      settings?.payRules?.overtime?.weeklyThreshold !== undefined &&
+        settings?.payRules?.overtime?.weeklyThreshold !== null
+        ? String(settings?.payRules?.overtime?.weeklyThreshold)
+        : ""
+    );
+    setOvertimeWeeklyMultiplierText(
+      settings?.payRules?.overtime?.weeklyMultiplier !== undefined &&
+        settings?.payRules?.overtime?.weeklyMultiplier !== null
+        ? String(settings?.payRules?.overtime?.weeklyMultiplier)
+        : ""
+    );
+    setNightValueText(
+      settings?.payRules?.night?.value !== undefined &&
+        settings?.payRules?.night?.value !== null
+        ? String(settings?.payRules?.night?.value)
+        : ""
+    );
+    setWeekendValueText(
+      settings?.payRules?.weekend?.value !== undefined &&
+        settings?.payRules?.weekend?.value !== null
+        ? String(settings?.payRules?.weekend?.value)
+        : ""
+    );
+    setPayPeriodStartDateText(
+      settings?.payRules?.payPeriod?.startDate !== undefined &&
+        settings?.payRules?.payPeriod?.startDate !== null
+        ? String(settings?.payRules?.payPeriod?.startDate)
+        : ""
+    );
+    setWeeklyGoalText(
+      settings?.preferences?.weeklyGoal !== undefined &&
+        settings?.preferences?.weeklyGoal !== null
+        ? String(settings?.preferences?.weeklyGoal)
+        : ""
+    );
+    setMonthlyGoalText(
+      settings?.preferences?.monthlyGoal !== undefined &&
+        settings?.preferences?.monthlyGoal !== null
+        ? String(settings?.preferences?.monthlyGoal)
+        : ""
+    );
+  }, [settings]);
 
   const addRate = async () => {
     if (!newRate.label || !newRate.value) return;
@@ -243,9 +332,10 @@ export function SettingsPage() {
             placeholder="Daily threshold (h)"
             placeholderTextColor={colors.textSecondary}
             keyboardType="number-pad"
-            value={String(settings?.payRules?.overtime?.dailyThreshold ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            value={overtimeDailyThresholdText}
+            onChangeText={setOvertimeDailyThresholdText}
+            onEndEditing={() => {
+              const n = parseFloat(overtimeDailyThresholdText || "");
               updatePayRules({
                 overtime: {
                   ...(settings?.payRules?.overtime || {}),
@@ -263,9 +353,10 @@ export function SettingsPage() {
             placeholder="Daily multiplier"
             placeholderTextColor={colors.textSecondary}
             keyboardType="decimal-pad"
-            value={String(settings?.payRules?.overtime?.dailyMultiplier ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            value={overtimeDailyMultiplierText}
+            onChangeText={setOvertimeDailyMultiplierText}
+            onEndEditing={() => {
+              const n = parseFloat(overtimeDailyMultiplierText || "");
               updatePayRules({
                 overtime: {
                   ...(settings?.payRules?.overtime || {}),
@@ -285,9 +376,10 @@ export function SettingsPage() {
             placeholder="Weekly threshold (h)"
             placeholderTextColor={colors.textSecondary}
             keyboardType="number-pad"
-            value={String(settings?.payRules?.overtime?.weeklyThreshold ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            value={overtimeWeeklyThresholdText}
+            onChangeText={setOvertimeWeeklyThresholdText}
+            onEndEditing={() => {
+              const n = parseFloat(overtimeWeeklyThresholdText || "");
               updatePayRules({
                 overtime: {
                   ...(settings?.payRules?.overtime || {}),
@@ -305,9 +397,10 @@ export function SettingsPage() {
             placeholder="Weekly multiplier"
             placeholderTextColor={colors.textSecondary}
             keyboardType="decimal-pad"
-            value={String(settings?.payRules?.overtime?.weeklyMultiplier ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            value={overtimeWeeklyMultiplierText}
+            onChangeText={setOvertimeWeeklyMultiplierText}
+            onEndEditing={() => {
+              const n = parseFloat(overtimeWeeklyMultiplierText || "");
               updatePayRules({
                 overtime: {
                   ...(settings?.payRules?.overtime || {}),
@@ -381,9 +474,10 @@ export function SettingsPage() {
             placeholder="Value"
             placeholderTextColor={colors.textSecondary}
             keyboardType="decimal-pad"
-            value={String(settings?.payRules?.night?.value ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            value={nightValueText}
+            onChangeText={setNightValueText}
+            onEndEditing={() => {
+              const n = parseFloat(nightValueText || "");
               updatePayRules({
                 night: {
                   ...(settings?.payRules?.night || {}),
@@ -399,23 +493,71 @@ export function SettingsPage() {
           />
         </View>
 
-        {/* Tax & National Insurance */}
+        {/* Tax Calculations */}
         <ThemedText
           style={[
             styles.subsectionTitle,
             { color: colors.textSecondary, marginTop: 16 },
           ]}
         >
-          Tax & National Insurance
+          Tax Calculations
         </ThemedText>
-        <View style={[styles.inlineInputs, { marginTop: 4 }]}>
+        <View style={styles.toggleRow}>
+          <ThemedText style={{ flex: 1, color: colors.text }}>
+            Enable Tax Calculations
+          </ThemedText>
+          <Switch
+            value={
+              !!(
+                settings?.payRules?.tax?.percentage ||
+                settings?.payRules?.tax?.percentage === 0
+              )
+            }
+            onValueChange={(val) => {
+              if (val) {
+                const current = settings?.payRules?.tax?.percentage;
+                const nextVal = typeof current === "number" ? current : 20;
+                setTaxPctText(String(nextVal));
+                updatePayRules({
+                  tax: {
+                    ...(settings?.payRules?.tax || {}),
+                    percentage: nextVal,
+                    type: "flat",
+                  },
+                });
+              } else {
+                setTaxPctText("");
+                updatePayRules({
+                  tax: {
+                    ...(settings?.payRules?.tax || {}),
+                    percentage: undefined,
+                    type: "flat",
+                  },
+                });
+              }
+            }}
+          />
+        </View>
+        <ThemedText
+          style={[styles.sectionDescription, { color: colors.textSecondary }]}
+        >
+          Show after-tax earnings in pay breakdown.
+        </ThemedText>
+        <View style={[styles.inlineInputs, { marginTop: 8, flexWrap: "wrap" }]}>
           <TextInput
-            placeholder="Tax %"
+            placeholder="Tax rate (%)"
             placeholderTextColor={colors.textSecondary}
-            keyboardType="decimal-pad"
-            value={String(settings?.payRules?.tax?.percentage ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
+            editable={
+              !!(
+                settings?.payRules?.tax?.percentage ||
+                settings?.payRules?.tax?.percentage === 0
+              )
+            }
+            value={taxPctText}
+            onChangeText={setTaxPctText}
+            onEndEditing={() => {
+              const n = parseFloat(taxPctText || "");
               updatePayRules({
                 tax: {
                   ...(settings?.payRules?.tax || {}),
@@ -430,36 +572,78 @@ export function SettingsPage() {
               { color: colors.text, borderColor: colors.border },
             ]}
           />
-          <TextInput
-            placeholder="Personal allowance"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="decimal-pad"
-            value={String(settings?.payRules?.tax?.personalAllowance ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
-              updatePayRules({
-                tax: {
-                  ...(settings?.payRules?.tax || {}),
-                  personalAllowance: Number.isNaN(n) ? undefined : n,
-                  type: "flat",
-                },
-              });
+        </View>
+        <ThemedText
+          style={[styles.sectionDescription, { color: colors.textSecondary }]}
+        >
+          Standard UK tax rate is 20%. This will show after-tax earnings.
+        </ThemedText>
+
+        {/* National Insurance */}
+        <ThemedText
+          style={[
+            styles.subsectionTitle,
+            { color: colors.textSecondary, marginTop: 16 },
+          ]}
+        >
+          National Insurance
+        </ThemedText>
+        <View style={styles.toggleRow}>
+          <ThemedText style={{ flex: 1, color: colors.text }}>
+            Enable NI Calculations
+          </ThemedText>
+          <Switch
+            value={
+              !!(
+                settings?.payRules?.ni?.percentage ||
+                settings?.payRules?.ni?.percentage === 0
+              )
+            }
+            onValueChange={(val) => {
+              if (val) {
+                const current = settings?.payRules?.ni?.percentage;
+                const nextVal = typeof current === "number" ? current : 12;
+                setNiPctText(String(nextVal));
+                updatePayRules({
+                  ni: {
+                    ...(settings?.payRules?.ni || {}),
+                    percentage: nextVal,
+                    type: "flat",
+                  },
+                });
+              } else {
+                setNiPctText("");
+                updatePayRules({
+                  ni: {
+                    ...(settings?.payRules?.ni || {}),
+                    percentage: undefined,
+                    type: "flat",
+                  },
+                });
+              }
             }}
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
           />
         </View>
-        <View style={[styles.inlineInputs, { marginTop: 8 }]}>
+        <ThemedText
+          style={[styles.sectionDescription, { color: colors.textSecondary }]}
+        >
+          Show after-NI earnings in pay breakdown.
+        </ThemedText>
+        <View style={[styles.inlineInputs, { marginTop: 8, flexWrap: "wrap" }]}>
           <TextInput
-            placeholder="NI %"
+            placeholder="NI rate (%)"
             placeholderTextColor={colors.textSecondary}
-            keyboardType="decimal-pad"
-            value={String(settings?.payRules?.ni?.percentage ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
+            editable={
+              !!(
+                settings?.payRules?.ni?.percentage ||
+                settings?.payRules?.ni?.percentage === 0
+              )
+            }
+            value={niPctText}
+            onChangeText={setNiPctText}
+            onEndEditing={() => {
+              const n = parseFloat(niPctText || "");
               updatePayRules({
                 ni: {
                   ...(settings?.payRules?.ni || {}),
@@ -474,28 +658,13 @@ export function SettingsPage() {
               { color: colors.text, borderColor: colors.border },
             ]}
           />
-          <TextInput
-            placeholder="NI threshold"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="decimal-pad"
-            value={String(settings?.payRules?.ni?.threshold ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
-              updatePayRules({
-                ni: {
-                  ...(settings?.payRules?.ni || {}),
-                  threshold: Number.isNaN(n) ? undefined : n,
-                  type: "flat",
-                },
-              });
-            }}
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-          />
         </View>
+        <ThemedText
+          style={[styles.sectionDescription, { color: colors.textSecondary }]}
+        >
+          UK NI rates: 12% on earnings between £12,570–£50,270, 2% above
+          £50,270. This will show after-NI earnings.
+        </ThemedText>
 
         {/* Weekend Uplift */}
         <ThemedText
@@ -559,9 +728,10 @@ export function SettingsPage() {
             placeholder="Value"
             placeholderTextColor={colors.textSecondary}
             keyboardType="decimal-pad"
-            value={String(settings?.payRules?.weekend?.value ?? "")}
-            onChangeText={(t) => {
-              const n = parseFloat(t || "0");
+            value={weekendValueText}
+            onChangeText={setWeekendValueText}
+            onEndEditing={() => {
+              const n = parseFloat(weekendValueText || "");
               updatePayRules({
                 weekend: {
                   ...(settings?.payRules?.weekend || {}),
@@ -750,9 +920,10 @@ export function SettingsPage() {
               placeholder="Start date (1-31)"
               placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
-              value={String(settings?.payRules?.payPeriod?.startDate ?? "")}
-              onChangeText={(t) => {
-                const n = parseInt(t || "0", 10);
+              value={payPeriodStartDateText}
+              onChangeText={setPayPeriodStartDateText}
+              onEndEditing={() => {
+                const n = parseInt(payPeriodStartDateText || "", 10);
                 updatePayRules({
                   payPeriod: {
                     ...(settings?.payRules?.payPeriod || { cycle: "monthly" }),
@@ -860,9 +1031,10 @@ export function SettingsPage() {
         >
           Preferences
         </ThemedText>
-        <View style={styles.inlineInputs}>
+        <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
           <Dropdown
-            label="Currency"
+            compact
+            placeholder="Currency"
             value={settings?.preferences?.currency || "GBP"}
             onChange={(v) => updatePreferences({ currency: v as any })}
             items={[
@@ -872,7 +1044,8 @@ export function SettingsPage() {
             ]}
           />
           <Dropdown
-            label="Time format"
+            compact
+            placeholder="Time format"
             value={settings?.preferences?.timeFormat || "24h"}
             onChange={(v) => updatePreferences({ timeFormat: v as any })}
             items={[
@@ -906,9 +1079,10 @@ export function SettingsPage() {
                 placeholder={`${currencySymbol}`}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
-                value={String(settings?.preferences?.weeklyGoal ?? "")}
-                onChangeText={async (t) => {
-                  const n = parseFloat(t || "0");
+                value={weeklyGoalText}
+                onChangeText={setWeeklyGoalText}
+                onEndEditing={async () => {
+                  const n = parseFloat(weeklyGoalText || "");
                   const next = await settingsService.setPreferences({
                     weeklyGoal: Number.isNaN(n) ? undefined : n,
                   });
@@ -930,9 +1104,10 @@ export function SettingsPage() {
                 placeholder={`${currencySymbol}`}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
-                value={String(settings?.preferences?.monthlyGoal ?? "")}
-                onChangeText={async (t) => {
-                  const n = parseFloat(t || "0");
+                value={monthlyGoalText}
+                onChangeText={setMonthlyGoalText}
+                onEndEditing={async () => {
+                  const n = parseFloat(monthlyGoalText || "");
                   const next = await settingsService.setPreferences({
                     monthlyGoal: Number.isNaN(n) ? undefined : n,
                   });
@@ -1045,6 +1220,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     fontStyle: "italic",
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
   },
   themeOptions: {
     flexDirection: "row",

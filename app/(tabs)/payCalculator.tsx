@@ -1,4 +1,5 @@
 import { DateSelector } from "@/components/DateSelector";
+import { Dropdown } from "@/components/Dropdown";
 import { SegmentedSwitcher } from "@/components/SegmentedSwitcher";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -9,12 +10,13 @@ import {
   PayBreakdown,
   PayCalculationEntry,
   PayCalculationInput,
-  PayRate,
 } from "@/types/settings";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -38,6 +40,9 @@ export default function PayCalculatorScreen() {
   const [date, setDate] = useState<string>(getCurrentDateString());
   const [hourlyRateId, setHourlyRateId] = useState<string | null>(null);
   const [overtimeRateId, setOvertimeRateId] = useState<string | null>(null);
+  const [manualBaseRateText, setManualBaseRateText] = useState<string>("");
+  const [manualOvertimeRateText, setManualOvertimeRateText] =
+    useState<string>("");
   const [hoursWorked, setHoursWorked] = useState<HoursAndMinutes>({
     hours: 0,
     minutes: 0,
@@ -46,11 +51,23 @@ export default function PayCalculatorScreen() {
     hours: 0,
     minutes: 0,
   });
+  // Local text state for numeric hour/minute fields to prevent iOS flicker
+  const [workedHoursText, setWorkedHoursText] = useState<string>("");
+  const [workedMinutesText, setWorkedMinutesText] = useState<string>("");
+  const [otHoursText, setOtHoursText] = useState<string>("");
+  const [otMinutesText, setOtMinutesText] = useState<string>("");
   const [breakdown, setBreakdown] = useState<PayBreakdown | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [payHistory, setPayHistory] = useState<PayCalculationEntry[]>([]);
   const [period, setPeriod] = useState<PeriodFilter>("week");
+  const [settingsVersion, setSettingsVersion] = useState<string>("");
+  const [currentVersion, setCurrentVersion] = useState<string>("");
+  const [pendingUndo, setPendingUndo] = useState<{
+    ids: string[];
+    prev: PayCalculationEntry[];
+  } | null>(null);
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
 
   const currencySymbol = useMemo(
     () =>
@@ -64,6 +81,7 @@ export default function PayCalculatorScreen() {
 
   useEffect(() => {
     const load = async () => {
+      if (!isFocused) return;
       const s = await settingsService.getSettings();
       setSettings(s);
       const base = s.payRates.find((r) => r.type === "base");
@@ -89,19 +107,28 @@ export default function PayCalculatorScreen() {
       setOvertimeRateId((prev) =>
         next.payRates.some((r) => r.id === prev) ? prev : ot?.id ?? null
       );
+      // Update current version so history can immediately reflect staleness
+      try {
+        setCurrentVersion(settingsService.computeSettingsVersion(next));
+      } catch {}
     });
     return () => unsub();
-  }, [mode, date]);
+  }, [mode, date, isFocused]);
 
   // Load pay history when History tab is active
   useEffect(() => {
     const loadHistory = async () => {
-      if (topTab !== "history") return;
+      if (topTab !== "history" || !isFocused) return;
       const list = await settingsService.getPayHistory();
       setPayHistory(list);
+      const v = await settingsService.getHistorySettingsVersion();
+      setCurrentVersion(v);
+      // Determine the latest version seen in history items (fallback "")
+      const seen = list.find((e) => e.settingsVersion)?.settingsVersion || "";
+      setSettingsVersion(seen);
     };
     void loadHistory();
-  }, [topTab]);
+  }, [topTab, isFocused]);
 
   const recalc = async () => {
     if (!settings) return;
@@ -113,7 +140,61 @@ export default function PayCalculatorScreen() {
       hoursWorked,
       overtimeWorked,
     };
-    const result = settingsService.computePay(input, settings);
+    let result = settingsService.computePay(input, settings);
+    // Manual override if needed: if a saved base or overtime rate is missing,
+    // use the manual text fields for the missing pieces (no toggle required)
+    const savedBase = resolveRateValue(hourlyRateId);
+    const savedOt = resolveRateValue(overtimeRateId) ?? savedBase;
+    const manualBase = parseFloat(manualBaseRateText || "");
+    const manualOt = parseFloat(manualOvertimeRateText || "");
+    const needManual =
+      !Number.isFinite(savedBase as number) ||
+      !Number.isFinite(savedOt as number);
+    if (needManual) {
+      const safeBase = Number.isFinite(savedBase as number)
+        ? (savedBase as number)
+        : Number.isFinite(manualBase)
+        ? manualBase
+        : 0;
+      const safeOt = Number.isFinite(savedOt as number)
+        ? (savedOt as number)
+        : Number.isFinite(manualOt)
+        ? manualOt
+        : safeBase;
+      const baseHours = Math.max(
+        0,
+        (hoursWorked.hours || 0) + (hoursWorked.minutes || 0) / 60
+      );
+      const otHours = Math.max(
+        0,
+        (overtimeWorked.hours || 0) + (overtimeWorked.minutes || 0) / 60
+      );
+      const basePay = safeBase * baseHours;
+      const otPay = safeOt * otHours;
+      const gross = basePay + otPay; // ignore uplifts/allowances in manual path
+      const taxPct =
+        typeof settings?.payRules?.tax?.percentage === "number"
+          ? settings.payRules.tax.percentage
+          : 0;
+      const niPct =
+        typeof settings?.payRules?.ni?.percentage === "number"
+          ? settings.payRules.ni.percentage
+          : 0;
+      const tax = (taxPct / 100) * gross;
+      const ni = (niPct / 100) * gross;
+      const total = gross - tax - ni;
+      result = {
+        base: Math.round(basePay * 100) / 100,
+        overtime: Math.round(otPay * 100) / 100,
+        uplifts: 0,
+        allowances: 0,
+        gross: Math.round(gross * 100) / 100,
+        tax: Math.round(tax * 100) / 100,
+        ni: Math.round(ni * 100) / 100,
+        total: Math.round(total * 100) / 100,
+      };
+    }
+    // else keep computed result
     setBreakdown(result);
   };
 
@@ -127,7 +208,25 @@ export default function PayCalculatorScreen() {
     overtimeRateId,
     hoursWorked,
     overtimeWorked,
+    isFocused,
+    manualBaseRateText,
+    manualOvertimeRateText,
   ]);
+
+  // Sync text inputs when numeric hour/minute state changes externally
+  useEffect(() => {
+    const h = Math.max(0, hoursWorked.hours ?? 0);
+    const m = Math.max(0, hoursWorked.minutes ?? 0);
+    setWorkedHoursText(h === 0 ? "" : String(h));
+    setWorkedMinutesText(m === 0 ? "" : String(m));
+  }, [hoursWorked]);
+
+  useEffect(() => {
+    const h = Math.max(0, overtimeWorked.hours ?? 0);
+    const m = Math.max(0, overtimeWorked.minutes ?? 0);
+    setOtHoursText(h === 0 ? "" : String(h));
+    setOtMinutesText(m === 0 ? "" : String(m));
+  }, [overtimeWorked]);
 
   const handleSave = async () => {
     if (!breakdown) return;
@@ -151,6 +250,16 @@ export default function PayCalculatorScreen() {
           overtimeWorked,
         },
         calculatedPay: breakdown,
+        settingsVersion: settingsService.computeSettingsVersion(
+          settings as AppSettings
+        ),
+        rateSnapshot:
+          (settings?.payRates || []).length === 0
+            ? {
+                base: parseFloat(manualBaseRateText || ""),
+                overtime: parseFloat(manualOvertimeRateText || ""),
+              }
+            : undefined,
         createdAt: Date.now(),
       };
       await settingsService.savePayCalculation(entry);
@@ -176,6 +285,11 @@ export default function PayCalculatorScreen() {
     return Number.isNaN(n) ? 0 : Math.max(0, n);
   };
 
+  const clampMinutes = (n: number) => {
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(59, Math.floor(n)));
+  };
+
   const baseRates = (settings?.payRates || []).filter(
     (r) => r.type === "base" || r.type === "premium"
   );
@@ -183,12 +297,7 @@ export default function PayCalculatorScreen() {
     (r) => r.type === "overtime" || r.type === "premium"
   );
 
-  const cycleRate = (currentId: string | null, list: PayRate[]) => {
-    if (!list || list.length === 0) return null;
-    const idx = list.findIndex((r) => r.id === currentId);
-    const next = list[(idx + 1 + list.length) % list.length];
-    return next?.id ?? null;
-  };
+  // Removed tap-to-cycle helper; Dropdowns used instead
 
   const resolveRateLabel = (id: string | null | undefined) => {
     if (!id) return undefined;
@@ -319,6 +428,73 @@ export default function PayCalculatorScreen() {
     return sorted;
   }, [filteredHistory]);
 
+  const hasStaleEntry = (entry: PayCalculationEntry) =>
+    // If an entry has a version and it differs from current, it's stale
+    (!!entry.settingsVersion &&
+      !!currentVersion &&
+      entry.settingsVersion !== currentVersion) ||
+    // If there is a current version but the entry predates versioning
+    (!entry.settingsVersion && !!currentVersion);
+
+  const getStaleCounts = (entries: PayCalculationEntry[]) => {
+    let stale = 0;
+    for (const e of entries) if (hasStaleEntry(e)) stale++;
+    return { stale, total: entries.length };
+  };
+
+  const handleRecalcEntry = async (entry: PayCalculationEntry) => {
+    const before = entry;
+    const next = await settingsService.recomputeEntry(entry);
+    await settingsService.updateHistoryEntry(next);
+    // Reload from storage to avoid any local state drift
+    const fresh = await settingsService.getPayHistory();
+    setPayHistory(fresh);
+    try {
+      const v = await settingsService.getHistorySettingsVersion();
+      setCurrentVersion(v);
+    } catch {}
+    setPendingUndo({ ids: [entry.id], prev: [before] });
+    Toast.show({
+      type: "success",
+      text1: "Recalculated",
+      text2: "Entry updated • Undo available",
+      position: "bottom",
+    });
+  };
+
+  const handleRecalcBulk = async (ids: string[]) => {
+    const snapshot = payHistory.filter((e) => ids.includes(e.id));
+    const updated = await settingsService.recomputeMany(ids);
+    // Reload from storage to avoid any local state drift
+    const fresh = await settingsService.getPayHistory();
+    setPayHistory(fresh);
+    try {
+      const v = await settingsService.getHistorySettingsVersion();
+      setCurrentVersion(v);
+    } catch {}
+    setPendingUndo({ ids, prev: snapshot });
+    Toast.show({
+      type: "success",
+      text1: "Recalculated",
+      text2: `${updated.length} entr${
+        updated.length === 1 ? "y" : "ies"
+      } updated • Undo available`,
+      position: "bottom",
+    });
+  };
+
+  const handleUndo = async () => {
+    if (!pendingUndo) return;
+    const { prev } = pendingUndo;
+    for (const entry of prev) {
+      await settingsService.updateHistoryEntry(entry);
+    }
+    const fresh = await settingsService.getPayHistory();
+    setPayHistory(fresh);
+    setPendingUndo(null);
+    Toast.show({ type: "info", text1: "Undone", position: "bottom" });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
@@ -382,32 +558,86 @@ export default function PayCalculatorScreen() {
                 <ThemedText type="subtitle" style={styles.cardTitle}>
                   Rates
                 </ThemedText>
-                <View style={styles.inline}>
-                  <TouchableOpacity
-                    style={styles.selectLike}
-                    onPress={() =>
-                      setHourlyRateId((prev) => cycleRate(prev, baseRates))
-                    }
-                  >
-                    <ThemedText>
-                      {baseRates.find((r) => r.id === hourlyRateId)?.label ||
-                        "Tap to cycle base rates"}
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.selectLike}
-                    onPress={() =>
-                      setOvertimeRateId((prev) =>
-                        cycleRate(prev, overtimeRates)
-                      )
-                    }
-                  >
-                    <ThemedText>
-                      {overtimeRates.find((r) => r.id === overtimeRateId)
-                        ?.label || "Tap to cycle overtime rates"}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
+                {baseRates.length > 0 || overtimeRates.length > 0 ? (
+                  <View style={styles.rateInputs}>
+                    {baseRates.length > 0 ? (
+                      <View style={{ flex: 1 }}>
+                        <Dropdown
+                          compact
+                          placeholder="Select base rate"
+                          value={hourlyRateId}
+                          onChange={setHourlyRateId as (v: string) => void}
+                          items={baseRates.map((r) => ({
+                            value: r.id,
+                            label: r.label,
+                          }))}
+                        />
+                      </View>
+                    ) : (
+                      <TextInput
+                        style={[styles.rateInput, { flex: 1 }]}
+                        keyboardType={
+                          Platform.OS === "web" ? "default" : "decimal-pad"
+                        }
+                        placeholder={`${currencySymbol} base / hr`}
+                        placeholderTextColor="#6B7280"
+                        selectionColor="#007AFF"
+                        value={manualBaseRateText}
+                        onChangeText={setManualBaseRateText}
+                      />
+                    )}
+
+                    {overtimeRates.length > 0 ? (
+                      <View style={{ flex: 1 }}>
+                        <Dropdown
+                          compact
+                          placeholder="Select overtime rate"
+                          value={overtimeRateId}
+                          onChange={setOvertimeRateId as (v: string) => void}
+                          items={overtimeRates.map((r) => ({
+                            value: r.id,
+                            label: r.label,
+                          }))}
+                        />
+                      </View>
+                    ) : (
+                      <TextInput
+                        style={[styles.rateInput, { flex: 1 }]}
+                        keyboardType={
+                          Platform.OS === "web" ? "default" : "decimal-pad"
+                        }
+                        placeholder={`${currencySymbol} overtime / hr (optional)`}
+                        placeholderTextColor="#6B7280"
+                        selectionColor="#007AFF"
+                        value={manualOvertimeRateText}
+                        onChangeText={setManualOvertimeRateText}
+                      />
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.rateInputs}>
+                    <TextInput
+                      style={[styles.rateInput, { flex: 1 }]}
+                      keyboardType={
+                        Platform.OS === "web" ? "default" : "decimal-pad"
+                      }
+                      placeholder={`${currencySymbol} base / hr`}
+                      placeholderTextColor="#6B7280"
+                      value={manualBaseRateText}
+                      onChangeText={setManualBaseRateText}
+                    />
+                    <TextInput
+                      style={[styles.rateInput, { flex: 1 }]}
+                      keyboardType={
+                        Platform.OS === "web" ? "default" : "decimal-pad"
+                      }
+                      placeholder={`${currencySymbol} overtime / hr (optional)`}
+                      placeholderTextColor="#6B7280"
+                      value={manualOvertimeRateText}
+                      onChangeText={setManualOvertimeRateText}
+                    />
+                  </View>
+                )}
               </View>
 
               {/* Hours */}
@@ -421,20 +651,29 @@ export default function PayCalculatorScreen() {
                     <TextInput
                       style={styles.numInput}
                       keyboardType="number-pad"
-                      value={String(hoursWorked.hours)}
-                      onChangeText={(t) =>
-                        setHoursWorked((p) => ({ ...p, hours: parseNumber(t) }))
+                      placeholder="0"
+                      placeholderTextColor="#6B7280"
+                      value={workedHoursText}
+                      onChangeText={setWorkedHoursText}
+                      onEndEditing={() =>
+                        setHoursWorked((p) => ({
+                          ...p,
+                          hours: parseNumber(workedHoursText),
+                        }))
                       }
                     />
                     <ThemedText>h</ThemedText>
                     <TextInput
                       style={styles.numInput}
                       keyboardType="number-pad"
-                      value={String(hoursWorked.minutes)}
-                      onChangeText={(t) =>
+                      placeholder="0"
+                      placeholderTextColor="#6B7280"
+                      value={workedMinutesText}
+                      onChangeText={setWorkedMinutesText}
+                      onEndEditing={() =>
                         setHoursWorked((p) => ({
                           ...p,
-                          minutes: parseNumber(t),
+                          minutes: clampMinutes(parseNumber(workedMinutesText)),
                         }))
                       }
                     />
@@ -447,11 +686,14 @@ export default function PayCalculatorScreen() {
                     <TextInput
                       style={styles.numInput}
                       keyboardType="number-pad"
-                      value={String(overtimeWorked.hours)}
-                      onChangeText={(t) =>
+                      placeholder="0"
+                      placeholderTextColor="#6B7280"
+                      value={otHoursText}
+                      onChangeText={setOtHoursText}
+                      onEndEditing={() =>
                         setOvertimeWorked((p) => ({
                           ...p,
-                          hours: parseNumber(t),
+                          hours: parseNumber(otHoursText),
                         }))
                       }
                     />
@@ -459,11 +701,14 @@ export default function PayCalculatorScreen() {
                     <TextInput
                       style={styles.numInput}
                       keyboardType="number-pad"
-                      value={String(overtimeWorked.minutes)}
-                      onChangeText={(t) =>
+                      placeholder="0"
+                      placeholderTextColor="#6B7280"
+                      value={otMinutesText}
+                      onChangeText={setOtMinutesText}
+                      onEndEditing={() =>
                         setOvertimeWorked((p) => ({
                           ...p,
-                          minutes: parseNumber(t),
+                          minutes: clampMinutes(parseNumber(otMinutesText)),
                         }))
                       }
                     />
@@ -568,6 +813,38 @@ export default function PayCalculatorScreen() {
                     This Week
                   </ThemedText>
                 </TouchableOpacity>
+                {(() => {
+                  const staleCount =
+                    filteredHistory.filter(hasStaleEntry).length;
+                  if (!staleCount) return null;
+                  return (
+                    <View style={{ marginTop: 8 }}>
+                      <ThemedText style={{ color: "#8E8E93" }}>
+                        {staleCount} entr{staleCount === 1 ? "y is" : "ies are"}{" "}
+                        out of date with current settings
+                      </ThemedText>
+                      <TouchableOpacity
+                        style={styles.recalcAllBtn}
+                        onPress={() =>
+                          handleRecalcBulk(
+                            filteredHistory
+                              .filter(hasStaleEntry)
+                              .map((e) => e.id)
+                          )
+                        }
+                      >
+                        <ThemedText style={styles.recalcAllBtnText}>
+                          Recalculate all in view
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })()}
+                {pendingUndo ? (
+                  <TouchableOpacity style={styles.undoBtn} onPress={handleUndo}>
+                    <ThemedText style={styles.undoBtnText}>Undo</ThemedText>
+                  </TouchableOpacity>
+                ) : null}
               </View>
 
               {/* Summary Card */}
@@ -815,9 +1092,64 @@ export default function PayCalculatorScreen() {
                             </ThemedText>
 
                             <View style={styles.actionsRow}>
-                              <TouchableOpacity style={styles.actionsBtn}>
+                              {hasStaleEntry(entry) ? (
+                                <View style={{ marginBottom: 8 }}>
+                                  <ThemedText style={{ color: "#8E8E93" }}>
+                                    Updated tax settings available
+                                  </ThemedText>
+                                  <TouchableOpacity
+                                    style={styles.recalcBtn}
+                                    onPress={() => handleRecalcEntry(entry)}
+                                  >
+                                    <ThemedText style={styles.recalcBtnText}>
+                                      Recalculate with current settings
+                                    </ThemedText>
+                                  </TouchableOpacity>
+                                </View>
+                              ) : null}
+                              <TouchableOpacity
+                                style={styles.actionsBtn}
+                                onPress={async () => {
+                                  if (Platform.OS === "web") {
+                                    const ok =
+                                      typeof window !== "undefined" &&
+                                      window.confirm(
+                                        "Remove this saved calculation?"
+                                      );
+                                    if (!ok) return;
+                                    await settingsService.deletePayCalculation(
+                                      entry.id
+                                    );
+                                    setPayHistory((prev) =>
+                                      prev.filter((e) => e.id !== entry.id)
+                                    );
+                                    return;
+                                  }
+                                  Alert.alert(
+                                    "Delete entry",
+                                    "Remove this saved calculation?",
+                                    [
+                                      { text: "Cancel", style: "cancel" },
+                                      {
+                                        text: "Delete",
+                                        style: "destructive",
+                                        onPress: async () => {
+                                          await settingsService.deletePayCalculation(
+                                            entry.id
+                                          );
+                                          setPayHistory((prev) =>
+                                            prev.filter(
+                                              (e) => e.id !== entry.id
+                                            )
+                                          );
+                                        },
+                                      },
+                                    ]
+                                  );
+                                }}
+                              >
                                 <ThemedText style={styles.actionsBtnText}>
-                                  Actions
+                                  Delete
                                 </ThemedText>
                               </TouchableOpacity>
                             </View>
@@ -893,6 +1225,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  rateInputs: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   selectLike: {
     flex: 1,
     borderWidth: 1,
@@ -919,6 +1256,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 10,
     textAlign: "center",
+  },
+  rateInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   helperText: {
     marginTop: 8,
@@ -1088,6 +1433,45 @@ const styles = StyleSheet.create({
   },
   actionsBtnText: {
     color: "#007AFF",
+    fontWeight: "600",
+  },
+  recalcBtn: {
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#007AFF",
+    alignSelf: "flex-start",
+  },
+  recalcBtnText: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  recalcAllBtn: {
+    marginTop: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#007AFF",
+  },
+  recalcAllBtnText: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  undoBtn: {
+    marginTop: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#8E8E93",
+  },
+  undoBtnText: {
+    color: "#8E8E93",
     fontWeight: "600",
   },
   progressBarTrack: {
