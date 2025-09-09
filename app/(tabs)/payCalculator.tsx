@@ -43,14 +43,18 @@ export default function PayCalculatorScreen() {
   const [manualBaseRateText, setManualBaseRateText] = useState<string>("");
   const [manualOvertimeRateText, setManualOvertimeRateText] =
     useState<string>("");
-  const [hoursWorked, setHoursWorked] = useState<HoursAndMinutes>({
+  // Separate hours state per mode to avoid bleed when switching
+  const [trackerHoursWorked, setTrackerHoursWorked] = useState<HoursAndMinutes>(
+    { hours: 0, minutes: 0 }
+  );
+  const [trackerOvertimeWorked, setTrackerOvertimeWorked] =
+    useState<HoursAndMinutes>({ hours: 0, minutes: 0 });
+  const [manualHoursWorked, setManualHoursWorked] = useState<HoursAndMinutes>({
     hours: 0,
     minutes: 0,
   });
-  const [overtimeWorked, setOvertimeWorked] = useState<HoursAndMinutes>({
-    hours: 0,
-    minutes: 0,
-  });
+  const [manualOvertimeWorked, setManualOvertimeWorked] =
+    useState<HoursAndMinutes>({ hours: 0, minutes: 0 });
   // Local text state for numeric hour/minute fields to prevent iOS flicker
   const [workedHoursText, setWorkedHoursText] = useState<string>("");
   const [workedMinutesText, setWorkedMinutesText] = useState<string>("");
@@ -90,8 +94,8 @@ export default function PayCalculatorScreen() {
       setOvertimeRateId(ot?.id ?? null);
       if (mode === "tracker") {
         const hm = await settingsService.deriveTrackerHoursForDate(date);
-        setHoursWorked(hm);
-        setOvertimeWorked({ hours: 0, minutes: 0 });
+        setTrackerHoursWorked(hm);
+        // preserve previously entered tracker overtime; do not reset
       }
     };
     load();
@@ -137,8 +141,9 @@ export default function PayCalculatorScreen() {
       date,
       hourlyRateId,
       overtimeRateId,
-      hoursWorked,
-      overtimeWorked,
+      hoursWorked: mode === "tracker" ? trackerHoursWorked : manualHoursWorked,
+      overtimeWorked:
+        mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked,
     };
     let result = settingsService.computePay(input, settings);
     // Manual override if needed: if a saved base or overtime rate is missing,
@@ -163,11 +168,23 @@ export default function PayCalculatorScreen() {
         : safeBase;
       const baseHours = Math.max(
         0,
-        (hoursWorked.hours || 0) + (hoursWorked.minutes || 0) / 60
+        ((mode === "tracker"
+          ? trackerHoursWorked.hours
+          : manualHoursWorked.hours) || 0) +
+          ((mode === "tracker"
+            ? trackerHoursWorked.minutes
+            : manualHoursWorked.minutes) || 0) /
+            60
       );
       const otHours = Math.max(
         0,
-        (overtimeWorked.hours || 0) + (overtimeWorked.minutes || 0) / 60
+        ((mode === "tracker"
+          ? trackerOvertimeWorked.hours
+          : manualOvertimeWorked.hours) || 0) +
+          ((mode === "tracker"
+            ? trackerOvertimeWorked.minutes
+            : manualOvertimeWorked.minutes) || 0) /
+            60
       );
       const basePay = safeBase * baseHours;
       const otPay = safeOt * otHours;
@@ -206,34 +223,39 @@ export default function PayCalculatorScreen() {
     date,
     hourlyRateId,
     overtimeRateId,
-    hoursWorked,
-    overtimeWorked,
+    trackerHoursWorked,
+    trackerOvertimeWorked,
+    manualHoursWorked,
+    manualOvertimeWorked,
     isFocused,
     manualBaseRateText,
     manualOvertimeRateText,
   ]);
 
-  // Sync text inputs when numeric hour/minute state changes externally
+  // Sync text inputs when the active mode's numeric hour state changes
   useEffect(() => {
-    const h = Math.max(0, hoursWorked.hours ?? 0);
-    const m = Math.max(0, hoursWorked.minutes ?? 0);
+    const current = mode === "tracker" ? trackerHoursWorked : manualHoursWorked;
+    const h = Math.max(0, current.hours ?? 0);
+    const m = Math.max(0, current.minutes ?? 0);
     setWorkedHoursText(h === 0 ? "" : String(h));
     setWorkedMinutesText(m === 0 ? "" : String(m));
-  }, [hoursWorked]);
+  }, [mode, trackerHoursWorked, manualHoursWorked]);
 
   useEffect(() => {
-    const h = Math.max(0, overtimeWorked.hours ?? 0);
-    const m = Math.max(0, overtimeWorked.minutes ?? 0);
+    const current =
+      mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked;
+    const h = Math.max(0, current.hours ?? 0);
+    const m = Math.max(0, current.minutes ?? 0);
     setOtHoursText(h === 0 ? "" : String(h));
     setOtMinutesText(m === 0 ? "" : String(m));
-  }, [overtimeWorked]);
+  }, [mode, trackerOvertimeWorked, manualOvertimeWorked]);
 
   const handleSave = async () => {
     if (!breakdown) return;
-    if (!hourlyRateId) {
+    if (!hourlyRateId && !manualBaseRateText) {
       Alert.alert(
         "Rate required",
-        "Please select at least one base rate in Settings."
+        "Please select a base rate in Settings or enter a manual base rate."
       );
       return;
     }
@@ -246,8 +268,10 @@ export default function PayCalculatorScreen() {
           date,
           hourlyRateId,
           overtimeRateId,
-          hoursWorked,
-          overtimeWorked,
+          hoursWorked:
+            mode === "tracker" ? trackerHoursWorked : manualHoursWorked,
+          overtimeWorked:
+            mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked,
         },
         calculatedPay: breakdown,
         settingsVersion: settingsService.computeSettingsVersion(
@@ -656,7 +680,9 @@ export default function PayCalculatorScreen() {
                       value={workedHoursText}
                       onChangeText={setWorkedHoursText}
                       onEndEditing={() =>
-                        setHoursWorked((p) => ({
+                        (mode === "tracker"
+                          ? setTrackerHoursWorked
+                          : setManualHoursWorked)((p) => ({
                           ...p,
                           hours: parseNumber(workedHoursText),
                         }))
@@ -671,7 +697,9 @@ export default function PayCalculatorScreen() {
                       value={workedMinutesText}
                       onChangeText={setWorkedMinutesText}
                       onEndEditing={() =>
-                        setHoursWorked((p) => ({
+                        (mode === "tracker"
+                          ? setTrackerHoursWorked
+                          : setManualHoursWorked)((p) => ({
                           ...p,
                           minutes: clampMinutes(parseNumber(workedMinutesText)),
                         }))
@@ -691,7 +719,9 @@ export default function PayCalculatorScreen() {
                       value={otHoursText}
                       onChangeText={setOtHoursText}
                       onEndEditing={() =>
-                        setOvertimeWorked((p) => ({
+                        (mode === "tracker"
+                          ? setTrackerOvertimeWorked
+                          : setManualOvertimeWorked)((p) => ({
                           ...p,
                           hours: parseNumber(otHoursText),
                         }))
@@ -706,7 +736,9 @@ export default function PayCalculatorScreen() {
                       value={otMinutesText}
                       onChangeText={setOtMinutesText}
                       onEndEditing={() =>
-                        setOvertimeWorked((p) => ({
+                        (mode === "tracker"
+                          ? setTrackerOvertimeWorked
+                          : setManualOvertimeWorked)((p) => ({
                           ...p,
                           minutes: clampMinutes(parseNumber(otMinutesText)),
                         }))
