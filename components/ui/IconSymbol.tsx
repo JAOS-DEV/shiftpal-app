@@ -20,6 +20,7 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   calculator: "calculate",
   // Map SF Symbol fallback names to Material Icons for non-iOS
+  "gearshape.fill": "settings",
   "sterlingsign.circle.fill": "currency-pound",
 } as IconMapping;
 

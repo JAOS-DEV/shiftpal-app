@@ -72,6 +72,7 @@ export default function PayCalculatorScreen() {
   } | null>(null);
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const currencySymbol = useMemo(
     () =>
@@ -451,6 +452,15 @@ export default function PayCalculatorScreen() {
     );
     return sorted;
   }, [filteredHistory]);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const hasStaleEntry = (entry: PayCalculationEntry) =>
     // If an entry has a version and it differs from current, it's stale
@@ -1071,129 +1081,155 @@ export default function PayCalculatorScreen() {
                             entry.calculatedPay.overtime +
                             entry.calculatedPay.uplifts +
                             entry.calculatedPay.allowances;
+                        const isExpanded = expandedIds.has(entry.id);
+                        const totalMinutes = baseMinutes + overtimeMinutes;
                         return (
                           <View key={entry.id} style={styles.entryContainer}>
-                            <ThemedText style={styles.entrySubmittedAt}>
-                              Submitted at: {formatTimeOfDay(entry.createdAt)}
-                            </ThemedText>
-                            <ThemedText style={styles.entryTotalBefore}>
-                              Total (before deductions): {currencySymbol}
-                              {totalBeforeDeductions.toFixed(2)}
-                            </ThemedText>
-
-                            <View style={styles.lineItemRow}>
-                              <ThemedText style={styles.lineItemLabel}>
-                                Standard:
+                            <TouchableOpacity
+                              style={styles.entryHeader}
+                              onPress={() => toggleExpanded(entry.id)}
+                              accessibilityLabel="Toggle entry details"
+                            >
+                              <View style={{ flex: 1 }}>
+                                <ThemedText style={styles.entrySubmittedAt}>
+                                  Submitted at:{" "}
+                                  {formatTimeOfDay(entry.createdAt)}
+                                </ThemedText>
+                                <ThemedText style={styles.finalTotalText}>
+                                  Final Total: {currencySymbol}
+                                  {entry.calculatedPay.total.toFixed(2)}
+                                </ThemedText>
+                                <ThemedText style={styles.entryCollapsedMeta}>
+                                  Hours: {minutesToHMText(totalMinutes)}
+                                </ThemedText>
+                              </View>
+                              <ThemedText style={styles.expandIconSmall}>
+                                {isExpanded ? "▼" : "▶"}
                               </ThemedText>
-                              <ThemedText style={styles.lineItemValue}>
-                                {formatHMClock(entry.input.hoursWorked)} @{" "}
-                                {currencySymbol}
-                                {baseRateVal.toFixed(2)}
-                              </ThemedText>
-                            </View>
-                            <ThemedText style={styles.lineItemAmount}>
-                              {currencySymbol}
-                              {baseAmount.toFixed(2)}
-                            </ThemedText>
+                            </TouchableOpacity>
 
-                            {overtimeMinutes > 0 ? (
+                            {isExpanded ? (
                               <>
+                                <ThemedText style={styles.entryTotalBefore}>
+                                  Total (before deductions): {currencySymbol}
+                                  {totalBeforeDeductions.toFixed(2)}
+                                </ThemedText>
+
                                 <View style={styles.lineItemRow}>
                                   <ThemedText style={styles.lineItemLabel}>
-                                    Overtime:
+                                    Standard:
                                   </ThemedText>
                                   <ThemedText style={styles.lineItemValue}>
-                                    {formatHMClock(entry.input.overtimeWorked)}{" "}
-                                    @ {currencySymbol}
-                                    {overtimeRateVal.toFixed(2)}
+                                    {formatHMClock(entry.input.hoursWorked)} @{" "}
+                                    {currencySymbol}
+                                    {baseRateVal.toFixed(2)}
                                   </ThemedText>
                                 </View>
                                 <ThemedText style={styles.lineItemAmount}>
                                   {currencySymbol}
-                                  {overtimeAmount.toFixed(2)}
+                                  {baseAmount.toFixed(2)}
                                 </ThemedText>
-                              </>
-                            ) : null}
 
-                            <ThemedText style={styles.deductionText}>
-                              Tax: {currencySymbol}
-                              {Number(
-                                (entry.calculatedPay as any).tax ?? 0
-                              ).toFixed(2)}
-                            </ThemedText>
-                            <ThemedText style={styles.deductionText}>
-                              NI: {currencySymbol}
-                              {Number(
-                                (entry.calculatedPay as any).ni ?? 0
-                              ).toFixed(2)}
-                            </ThemedText>
-                            <ThemedText style={styles.finalTotalText}>
-                              Final Total: {currencySymbol}
-                              {entry.calculatedPay.total.toFixed(2)}
-                            </ThemedText>
+                                {overtimeMinutes > 0 ? (
+                                  <>
+                                    <View style={styles.lineItemRow}>
+                                      <ThemedText style={styles.lineItemLabel}>
+                                        Overtime:
+                                      </ThemedText>
+                                      <ThemedText style={styles.lineItemValue}>
+                                        {formatHMClock(
+                                          entry.input.overtimeWorked
+                                        )}{" "}
+                                        @ {currencySymbol}
+                                        {overtimeRateVal.toFixed(2)}
+                                      </ThemedText>
+                                    </View>
+                                    <ThemedText style={styles.lineItemAmount}>
+                                      {currencySymbol}
+                                      {overtimeAmount.toFixed(2)}
+                                    </ThemedText>
+                                  </>
+                                ) : null}
 
-                            <View style={styles.actionsRow}>
-                              {hasStaleEntry(entry) ? (
-                                <View style={{ marginBottom: 8 }}>
-                                  <ThemedText style={{ color: "#8E8E93" }}>
-                                    Updated tax settings available
-                                  </ThemedText>
+                                <ThemedText style={styles.deductionText}>
+                                  Tax: {currencySymbol}
+                                  {Number(
+                                    (entry.calculatedPay as any).tax ?? 0
+                                  ).toFixed(2)}
+                                </ThemedText>
+                                <ThemedText style={styles.deductionText}>
+                                  NI: {currencySymbol}
+                                  {Number(
+                                    (entry.calculatedPay as any).ni ?? 0
+                                  ).toFixed(2)}
+                                </ThemedText>
+
+                                <View style={styles.actionsRow}>
+                                  {hasStaleEntry(entry) ? (
+                                    <View style={{ marginBottom: 8 }}>
+                                      <ThemedText style={{ color: "#8E8E93" }}>
+                                        Updated tax settings available
+                                      </ThemedText>
+                                      <TouchableOpacity
+                                        style={styles.recalcBtn}
+                                        onPress={() => handleRecalcEntry(entry)}
+                                      >
+                                        <ThemedText
+                                          style={styles.recalcBtnText}
+                                        >
+                                          Recalculate with current settings
+                                        </ThemedText>
+                                      </TouchableOpacity>
+                                    </View>
+                                  ) : null}
                                   <TouchableOpacity
-                                    style={styles.recalcBtn}
-                                    onPress={() => handleRecalcEntry(entry)}
+                                    style={styles.actionsBtn}
+                                    onPress={async () => {
+                                      if (Platform.OS === "web") {
+                                        const ok =
+                                          typeof window !== "undefined" &&
+                                          window.confirm(
+                                            "Remove this saved calculation?"
+                                          );
+                                        if (!ok) return;
+                                        await settingsService.deletePayCalculation(
+                                          entry.id
+                                        );
+                                        setPayHistory((prev) =>
+                                          prev.filter((e) => e.id !== entry.id)
+                                        );
+                                        return;
+                                      }
+                                      Alert.alert(
+                                        "Delete entry",
+                                        "Remove this saved calculation?",
+                                        [
+                                          { text: "Cancel", style: "cancel" },
+                                          {
+                                            text: "Delete",
+                                            style: "destructive",
+                                            onPress: async () => {
+                                              await settingsService.deletePayCalculation(
+                                                entry.id
+                                              );
+                                              setPayHistory((prev) =>
+                                                prev.filter(
+                                                  (e) => e.id !== entry.id
+                                                )
+                                              );
+                                            },
+                                          },
+                                        ]
+                                      );
+                                    }}
                                   >
-                                    <ThemedText style={styles.recalcBtnText}>
-                                      Recalculate with current settings
+                                    <ThemedText style={styles.actionsBtnText}>
+                                      Delete
                                     </ThemedText>
                                   </TouchableOpacity>
                                 </View>
-                              ) : null}
-                              <TouchableOpacity
-                                style={styles.actionsBtn}
-                                onPress={async () => {
-                                  if (Platform.OS === "web") {
-                                    const ok =
-                                      typeof window !== "undefined" &&
-                                      window.confirm(
-                                        "Remove this saved calculation?"
-                                      );
-                                    if (!ok) return;
-                                    await settingsService.deletePayCalculation(
-                                      entry.id
-                                    );
-                                    setPayHistory((prev) =>
-                                      prev.filter((e) => e.id !== entry.id)
-                                    );
-                                    return;
-                                  }
-                                  Alert.alert(
-                                    "Delete entry",
-                                    "Remove this saved calculation?",
-                                    [
-                                      { text: "Cancel", style: "cancel" },
-                                      {
-                                        text: "Delete",
-                                        style: "destructive",
-                                        onPress: async () => {
-                                          await settingsService.deletePayCalculation(
-                                            entry.id
-                                          );
-                                          setPayHistory((prev) =>
-                                            prev.filter(
-                                              (e) => e.id !== entry.id
-                                            )
-                                          );
-                                        },
-                                      },
-                                    ]
-                                  );
-                                }}
-                              >
-                                <ThemedText style={styles.actionsBtnText}>
-                                  Delete
-                                </ThemedText>
-                              </TouchableOpacity>
-                            </View>
+                              </>
+                            ) : null}
                           </View>
                         );
                       })}
@@ -1430,12 +1466,24 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     marginTop: 8,
   },
+  entryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
   entrySubmittedAt: {
+    opacity: 0.8,
+  },
+  entryCollapsedMeta: {
     opacity: 0.8,
   },
   entryTotalBefore: {
     marginTop: 6,
     fontWeight: "600",
+  },
+  expandIconSmall: {
+    opacity: 0.6,
   },
   lineItemRow: {
     marginTop: 8,
