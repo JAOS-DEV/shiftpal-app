@@ -684,16 +684,32 @@ export function SettingsPage() {
                   key={day}
                   style={[styles.chip, on && styles.chipActive]}
                   onPress={() => {
-                    const days = new Set(
+                    const current = new Set(
                       settings?.payRules?.weekend?.days || []
                     );
-                    on ? days.delete(day) : days.add(day);
+                    on ? current.delete(day) : current.add(day);
+                    const nextDays = Array.from(current) as any;
+                    // Optimistic local update to avoid flicker
+                    setSettings((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            payRules: {
+                              ...prev.payRules,
+                              weekend: {
+                                ...(prev.payRules?.weekend || {}),
+                                days: nextDays,
+                              },
+                            },
+                          }
+                        : prev
+                    );
                     updatePayRules({
                       weekend: {
                         ...(settings?.payRules?.weekend || {}),
-                        days: Array.from(days) as any,
+                        days: nextDays,
                       },
-                    });
+                    }).catch(() => {});
                   }}
                 >
                   <ThemedText
