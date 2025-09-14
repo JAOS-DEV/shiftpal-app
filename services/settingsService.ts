@@ -34,8 +34,10 @@ function defaultSettings(): AppSettings {
   return {
     payRates: [],
     payRules: {
-      overtime: { dailyThreshold: 8, dailyMultiplier: 1.5 },
-      weekend: { days: ["Sat", "Sun"], type: "fixed", value: 0 },
+      // Leave overtime values empty by default; user opts-in
+      overtime: {},
+      // Default weekend days, but no uplift/multiplier by default
+      weekend: { days: ["Sat", "Sun"] },
       allowances: [],
       payPeriod: { cycle: "weekly", startDay: "Monday" },
     },
@@ -60,6 +62,8 @@ class SettingsService {
   // Simple in-memory listeners so other screens can react immediately to changes
   private settingsListeners = new Set<(s: AppSettings) => void>();
   private versionListeners = new Set<(v: string) => void>();
+  // In-memory cache to avoid async races across rapid updates (especially on iOS)
+  private cachedSettings: AppSettings | null = null;
 
   subscribe(listener: (s: AppSettings) => void): () => void {
     this.settingsListeners.add(listener);
@@ -86,6 +90,8 @@ class SettingsService {
     }
   }
   async getSettings(): Promise<AppSettings> {
+    // Serve from cache if present
+    if (this.cachedSettings) return this.cachedSettings;
     // Try Firebase first
     try {
       const userId = getUserId();
@@ -97,7 +103,9 @@ class SettingsService {
         if (snap.exists()) {
           const data = snap.data() as AppSettings;
           await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
-          return this.normalizeSettings(data);
+          const norm = this.normalizeSettings(data);
+          this.cachedSettings = norm;
+          return norm;
         }
       }
     } catch {}
@@ -105,10 +113,13 @@ class SettingsService {
     // Fallback to local
     const local = await AsyncStorage.getItem(SETTINGS_KEY);
     if (local) {
-      return this.normalizeSettings(JSON.parse(local));
+      const norm = this.normalizeSettings(JSON.parse(local));
+      this.cachedSettings = norm;
+      return norm;
     }
     const defaults = defaultSettings();
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(defaults));
+    this.cachedSettings = defaults;
     return defaults;
   }
 
@@ -131,6 +142,97 @@ class SettingsService {
       preferences: { ...base.preferences, ...(input?.preferences || {}) },
       notifications: { ...base.notifications, ...(input?.notifications || {}) },
     };
+    // Migrate legacy overtime fields to new nested structure (non-destructive)
+    try {
+      const ot = (merged.payRules?.overtime || {}) as PayRules["overtime"];
+      const nextOvertime: any = { ...ot };
+      if (typeof nextOvertime.enabled !== "boolean")
+        nextOvertime.enabled = false;
+      // Daily
+      if (!nextOvertime.daily) {
+        const legacyDailyThreshold = (ot as any)?.dailyThreshold;
+        const legacyDailyMultiplier = (ot as any)?.dailyMultiplier;
+        if (
+          typeof legacyDailyThreshold === "number" ||
+          typeof legacyDailyMultiplier === "number"
+        ) {
+          nextOvertime.daily = {
+            threshold:
+              typeof legacyDailyThreshold === "number"
+                ? legacyDailyThreshold
+                : undefined,
+            mode:
+              typeof legacyDailyMultiplier === "number"
+                ? ("multiplier" as const)
+                : undefined,
+            multiplier:
+              typeof legacyDailyMultiplier === "number"
+                ? legacyDailyMultiplier
+                : undefined,
+          };
+        }
+      }
+      // Weekly
+      if (!nextOvertime.weekly) {
+        const legacyWeeklyThreshold = (ot as any)?.weeklyThreshold;
+        const legacyWeeklyMultiplier = (ot as any)?.weeklyMultiplier;
+        if (
+          typeof legacyWeeklyThreshold === "number" ||
+          typeof legacyWeeklyMultiplier === "number"
+        ) {
+          nextOvertime.weekly = {
+            threshold:
+              typeof legacyWeeklyThreshold === "number"
+                ? legacyWeeklyThreshold
+                : undefined,
+            mode:
+              typeof legacyWeeklyMultiplier === "number"
+                ? ("multiplier" as const)
+                : undefined,
+            multiplier:
+              typeof legacyWeeklyMultiplier === "number"
+                ? legacyWeeklyMultiplier
+                : undefined,
+          };
+        }
+      }
+      merged.payRules = {
+        ...merged.payRules,
+        overtime: nextOvertime,
+      } as PayRules;
+    } catch {}
+
+    // Migrate legacy weekend fields (type/value) to new mode/multiplier/uplift
+    try {
+      const wk = (merged.payRules?.weekend || {}) as PayRules["weekend"] & {
+        type?: "percentage" | "fixed";
+        value?: number;
+      };
+      const nextWeekend: any = { ...wk };
+      if (typeof nextWeekend.enabled !== "boolean") nextWeekend.enabled = false;
+      if (!nextWeekend.mode && (wk.type || typeof wk.value === "number")) {
+        if (wk.type === "percentage") {
+          nextWeekend.mode = "multiplier" as const;
+          nextWeekend.multiplier =
+            typeof wk.value === "number" ? 1 + wk.value / 100 : undefined;
+        } else if (wk.type === "fixed") {
+          nextWeekend.mode = "fixed" as const;
+          nextWeekend.uplift =
+            typeof wk.value === "number" ? wk.value : undefined;
+        }
+      }
+      merged.payRules = {
+        ...merged.payRules,
+        weekend: nextWeekend,
+      } as PayRules;
+    } catch {}
+    // Night default enabled=false unless configured
+    try {
+      const night = (merged.payRules?.night || {}) as PayRules["night"];
+      const nextNight: any = { ...night };
+      if (typeof nextNight.enabled !== "boolean") nextNight.enabled = false;
+      merged.payRules = { ...merged.payRules, night: nextNight } as PayRules;
+    } catch {}
     return merged;
   }
 
@@ -164,6 +266,8 @@ class SettingsService {
       ...current,
       ...partial,
     });
+    // Update cache immediately to avoid toggle race conditions
+    this.cachedSettings = next;
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
     // Best-effort sync
     try {
@@ -273,6 +377,7 @@ class SettingsService {
   computePay(input: PayCalculationInput, settings: AppSettings): PayBreakdown {
     const prefs = settings.preferences;
     const overtimeRules = settings.payRules?.overtime;
+    const weekendRules = settings.payRules?.weekend as any;
 
     // Resolve rates
     const baseRate = settings.payRates.find(
@@ -285,6 +390,12 @@ class SettingsService {
 
     const baseHoursRaw = this.toHours(input.hoursWorked);
     const overtimeHoursRaw = this.toHours(input.overtimeWorked);
+    const nightBaseRaw = this.toHours(
+      input.nightBaseHours || { hours: 0, minutes: 0 }
+    );
+    const nightOtRaw = this.toHours(
+      input.nightOvertimeHours || { hours: 0, minutes: 0 }
+    );
 
     // Derive overtime for tracker mode using daily threshold, if provided and overtime input looks zero
     let baseHours = baseHoursRaw;
@@ -299,12 +410,124 @@ class SettingsService {
 
     baseHours = this.roundHours(baseHours, prefs.roundingRule);
     overtimeHours = this.roundHours(overtimeHours, prefs.roundingRule);
+    const nightBaseHours = this.roundHours(nightBaseRaw, prefs.roundingRule);
+    const nightOvertimeHours = this.roundHours(nightOtRaw, prefs.roundingRule);
 
-    const basePay = (baseRate?.value ?? 0) * baseHours;
-    const overtimePay = (overtimeRate?.value ?? 0) * overtimeHours;
+    // Determine per-hour rates considering overtime model and weekend uplift
+    const basePerHour = this.applyWeekendToRate(
+      baseRate?.value ?? 0,
+      input.date,
+      weekendRules,
+      /* stackingWithOther */ false
+    );
+
+    // Choose overtime tier by explicit basis when set; else preserve legacy preference
+    const activeBasis = (overtimeRules as any)?.active as
+      | "daily"
+      | "weekly"
+      | undefined;
+    const hasDailyRule = Boolean((overtimeRules as any)?.daily?.mode);
+    const hasWeeklyRule = Boolean((overtimeRules as any)?.weekly?.mode);
+    let selectedTier: any = undefined;
+    if ((overtimeRules as any)?.enabled === false) {
+      selectedTier = undefined;
+    } else if (activeBasis === "daily" && hasDailyRule) {
+      selectedTier = (overtimeRules as any)?.daily;
+    } else if (activeBasis === "weekly" && hasWeeklyRule) {
+      selectedTier = (overtimeRules as any)?.weekly;
+    } else {
+      // Legacy heuristic: prefer daily if we trimmed base via daily threshold, otherwise weekly
+      const useDailyRule =
+        hasDailyRule && baseHoursRaw > 0 && baseHours < baseHoursRaw;
+      selectedTier = useDailyRule
+        ? (overtimeRules as any)?.daily
+        : (overtimeRules as any)?.weekly;
+    }
+
+    let overtimePerHourBase = overtimeRate?.value ?? baseRate?.value ?? 0;
+    if (
+      selectedTier?.mode === "multiplier" &&
+      typeof selectedTier?.multiplier === "number"
+    ) {
+      overtimePerHourBase = (baseRate?.value ?? 0) * selectedTier.multiplier;
+    } else if (
+      selectedTier?.mode === "fixed" &&
+      typeof selectedTier?.uplift === "number"
+    ) {
+      overtimePerHourBase = (baseRate?.value ?? 0) + selectedTier.uplift;
+    }
+
+    // Apply weekend stacking vs highestOnly
+    const stacking = prefs.stackingRule || "stack";
+    const weekendAppliedToBase = this.applyWeekendToRate(
+      baseRate?.value ?? 0,
+      input.date,
+      weekendRules,
+      false
+    );
+    const overtimeOnlyRate = overtimePerHourBase;
+    const weekendOnlyRate = weekendAppliedToBase;
+    let overtimePerHour = overtimeOnlyRate;
+    if (this.isWeekendDate(input.date, weekendRules)) {
+      if (stacking === "stack") {
+        overtimePerHour = this.applyWeekendToRate(
+          overtimeOnlyRate,
+          input.date,
+          weekendRules,
+          true
+        );
+      } else {
+        overtimePerHour = Math.max(overtimeOnlyRate, weekendOnlyRate);
+      }
+    }
+
+    let basePay = basePerHour * baseHours;
+    let overtimePay = overtimePerHour * overtimeHours;
+
+    // Night uplift (calculator/manual mode only for now): allocate night hours
+    const nightRules = settings.payRules?.night;
+    let nightUplift = 0;
+    if (
+      input.mode === "manual" &&
+      nightRules &&
+      (nightRules as any)?.enabled !== false &&
+      (nightBaseHours > 0 || nightOvertimeHours > 0)
+    ) {
+      // Compute night uplift per-hour relative to base rate
+      const nightUpliftPerHour = (() => {
+        if (
+          nightRules.type === "percentage" &&
+          typeof nightRules.value === "number"
+        ) {
+          return (baseRate?.value ?? 0) * (nightRules.value / 100);
+        }
+        if (
+          nightRules.type === "fixed" &&
+          typeof nightRules.value === "number"
+        ) {
+          return nightRules.value;
+        }
+        return 0;
+      })();
+      if (nightUpliftPerHour > 0) {
+        const stacking = prefs.stackingRule || "stack";
+        // For base night hours, add as uplift component
+        nightUplift += nightUpliftPerHour * nightBaseHours;
+        // For overtime night hours, obey stackingRule vs weekend already processed into overtimePerHour
+        if (stacking === "stack") {
+          nightUplift += nightUpliftPerHour * nightOvertimeHours;
+        } else {
+          // highestOnly: compare (OT with weekend) vs (base+night). Since OT already chosen, compare per-hour
+          const basePlusNight = (baseRate?.value ?? 0) + nightUpliftPerHour;
+          const betterPerHour = Math.max(overtimePerHour, basePlusNight);
+          const delta = (betterPerHour - overtimePerHour) * nightOvertimeHours;
+          if (delta > 0) nightUplift += delta;
+        }
+      }
+    }
 
     // Uplifts (night/weekend) and allowances — placeholder totals (0) for now
-    const uplifts = 0;
+    const uplifts = nightUplift;
     const allowances = this.computeAllowances(
       settings.payRules?.allowances || [],
       baseHours + overtimeHours
@@ -343,6 +566,54 @@ class SettingsService {
       ni: this.toMoney(ni),
       total: this.toMoney(total),
     };
+  }
+
+  private isWeekendDate(date: string, weekendRules: any): boolean {
+    try {
+      const d = new Date(date + "T00:00:00");
+      const day = d.getDay(); // 0=Sun,6=Sat
+      const days: string[] = Array.isArray(weekendRules?.days)
+        ? weekendRules.days
+        : ["Sat", "Sun"];
+      const map: Record<number, string> = { 0: "Sun", 6: "Sat" };
+      return days.includes(map[day]);
+    } catch {
+      return false;
+    }
+  }
+
+  private applyWeekendToRate(
+    rate: number,
+    date: string,
+    weekendRules: any,
+    stackingWithOther: boolean
+  ): number {
+    if (!rate) return 0;
+    if (!this.isWeekendDate(date, weekendRules)) return rate;
+    if (!weekendRules) return rate;
+    const mode = weekendRules?.mode as "multiplier" | "fixed" | undefined;
+    const multiplier = weekendRules?.multiplier;
+    const uplift = weekendRules?.uplift;
+    if (mode === "multiplier" && typeof multiplier === "number") {
+      return rate * multiplier;
+    }
+    if (mode === "fixed" && typeof uplift === "number") {
+      return rate + uplift;
+    }
+    // Legacy support: type/value
+    if (
+      weekendRules?.type === "percentage" &&
+      typeof weekendRules?.value === "number"
+    ) {
+      return rate * (1 + weekendRules.value / 100);
+    }
+    if (
+      weekendRules?.type === "fixed" &&
+      typeof weekendRules?.value === "number"
+    ) {
+      return rate + weekendRules.value;
+    }
+    return rate;
   }
 
   private computeAllowances(
@@ -477,6 +748,164 @@ class SettingsService {
     } catch {}
     const totalMinutes = Math.max(0, (unsubmitted || 0) + (submitted || 0));
     return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
+  }
+
+  /**
+   * Derive night allocation for a date in tracker mode using recorded shifts
+   * Night minutes are proportionally split between base and overtime according to the active overtime basis
+   */
+  async deriveTrackerNightAllocationForDate(
+    date: string,
+    settings: AppSettings
+  ): Promise<{ nightBase: HoursAndMinutes; nightOvertime: HoursAndMinutes }> {
+    const night = settings?.payRules?.night;
+    if (!night || (!night.start && !night.end)) {
+      return {
+        nightBase: { hours: 0, minutes: 0 },
+        nightOvertime: { hours: 0, minutes: 0 },
+      };
+    }
+
+    // Collect all shifts for the date: unsubmitted + submitted
+    const unsubmitted = await shiftService.getShiftsForDate(date);
+    let submittedShifts: any[] = [];
+    try {
+      const days = await shiftService.getSubmittedDays({ type: "all" });
+      const day = days.find((d) => d.date === date);
+      if (day?.submissions?.length) {
+        for (const s of day.submissions) {
+          submittedShifts.push(...(s.shifts || []));
+        }
+      }
+    } catch {}
+    const allShifts: Array<{
+      start: string;
+      end: string;
+      durationMinutes?: number;
+    }> = [...unsubmitted, ...submittedShifts] as any;
+
+    const totalMinutes = allShifts.reduce(
+      (sum, sh) => sum + (sh.durationMinutes ?? 0),
+      0
+    );
+    if (totalMinutes <= 0) {
+      return {
+        nightBase: { hours: 0, minutes: 0 },
+        nightOvertime: { hours: 0, minutes: 0 },
+      };
+    }
+
+    // Compute night window minutes overlapped by shifts
+    const ns = typeof night.start === "string" ? timeToMinutes(night.start) : 0;
+    const ne = typeof night.end === "string" ? timeToMinutes(night.end) : 0;
+    const nightMinutes = allShifts.reduce(
+      (sum, sh) => sum + this.overlapWithNight(sh.start, sh.end, ns, ne),
+      0
+    );
+
+    // Determine base vs overtime minutes for the date according to active basis
+    const ot = settings?.payRules?.overtime as any;
+    const active = ot?.active as "daily" | "weekly" | undefined;
+    let baseMinutes = totalMinutes;
+    let otMinutes = 0;
+    if (active === "daily" && typeof ot?.daily?.threshold === "number") {
+      const thresholdMin = Math.max(0, ot.daily.threshold * 60);
+      baseMinutes = Math.min(totalMinutes, thresholdMin);
+      otMinutes = Math.max(0, totalMinutes - baseMinutes);
+    } else if (
+      active === "weekly" &&
+      typeof ot?.weekly?.threshold === "number"
+    ) {
+      // Compute previous minutes in the pay week before this date
+      const thresholdMin = Math.max(0, ot.weekly.threshold * 60);
+      const startDay = settings?.payRules?.payPeriod?.startDay || "Monday";
+      const weekInfo = await this.getWeekRange(date, startDay);
+      // Sum minutes before the given date
+      let prevMinutes = 0;
+      try {
+        const days = await shiftService.getSubmittedDays({ type: "all" });
+        for (const d of days) {
+          if (d.date >= weekInfo.start && d.date < date) {
+            prevMinutes += Math.max(0, d.totalMinutes || 0);
+          }
+        }
+      } catch {}
+      // Add unsubmitted for previous days? unavailable offline; we ignore
+      if (prevMinutes >= thresholdMin) {
+        baseMinutes = 0;
+        otMinutes = totalMinutes;
+      } else if (prevMinutes + totalMinutes <= thresholdMin) {
+        baseMinutes = totalMinutes;
+        otMinutes = 0;
+      } else {
+        baseMinutes = thresholdMin - prevMinutes;
+        otMinutes = Math.max(0, totalMinutes - baseMinutes);
+      }
+    }
+
+    if (nightMinutes <= 0) {
+      return {
+        nightBase: { hours: 0, minutes: 0 },
+        nightOvertime: { hours: 0, minutes: 0 },
+      };
+    }
+    const nightBase = Math.round((nightMinutes * baseMinutes) / totalMinutes);
+    const nightOt = Math.max(0, nightMinutes - nightBase);
+    return {
+      nightBase: { hours: Math.floor(nightBase / 60), minutes: nightBase % 60 },
+      nightOvertime: { hours: Math.floor(nightOt / 60), minutes: nightOt % 60 },
+    };
+  }
+
+  private overlapWithNight(
+    start: string,
+    end: string,
+    nStart: number,
+    nEnd: number
+  ): number {
+    const s = timeToMinutes(start);
+    let e = timeToMinutes(end);
+    if (e <= s) e += 1440; // overnight shift
+    const intervals: Array<[number, number]> = [];
+    if (nEnd > nStart) {
+      intervals.push([nStart, nEnd], [nStart + 1440, nEnd + 1440]);
+    } else {
+      intervals.push([nStart, nEnd + 1440]);
+    }
+    let total = 0;
+    for (const [a, b] of intervals) {
+      const overlap = Math.max(0, Math.min(e, b) - Math.max(s, a));
+      total += overlap;
+    }
+    return total;
+  }
+
+  private async getWeekRange(
+    date: string,
+    startDay: string
+  ): Promise<{ start: string; end: string }> {
+    const d = new Date(date + "T00:00:00");
+    const dayIdx = d.getDay(); // 0 Sun .. 6 Sat
+    const map: Record<string, number> = {
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
+    };
+    const startIdx = map[startDay] ?? 1;
+    const diff = (dayIdx - startIdx + 7) % 7;
+    const startDate = new Date(d);
+    startDate.setDate(d.getDate() - diff);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    const fmt = (x: Date) =>
+      `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(
+        x.getDate()
+      ).padStart(2, "0")}`;
+    return { start: fmt(startDate), end: fmt(endDate) };
   }
 }
 

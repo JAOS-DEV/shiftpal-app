@@ -57,11 +57,24 @@ export default function PayCalculatorScreen() {
   });
   const [manualOvertimeWorked, setManualOvertimeWorked] =
     useState<HoursAndMinutes>({ hours: 0, minutes: 0 });
+  // Manual night allocation (optional)
+  const [manualNightBase, setManualNightBase] = useState<HoursAndMinutes>({
+    hours: 0,
+    minutes: 0,
+  });
+  const [manualNightOt, setManualNightOt] = useState<HoursAndMinutes>({
+    hours: 0,
+    minutes: 0,
+  });
   // Local text state for numeric hour/minute fields to prevent iOS flicker
   const [workedHoursText, setWorkedHoursText] = useState<string>("");
   const [workedMinutesText, setWorkedMinutesText] = useState<string>("");
   const [otHoursText, setOtHoursText] = useState<string>("");
   const [otMinutesText, setOtMinutesText] = useState<string>("");
+  const [nightBaseHoursText, setNightBaseHoursText] = useState<string>("");
+  const [nightBaseMinutesText, setNightBaseMinutesText] = useState<string>("");
+  const [nightOtHoursText, setNightOtHoursText] = useState<string>("");
+  const [nightOtMinutesText, setNightOtMinutesText] = useState<string>("");
   const [breakdown, setBreakdown] = useState<PayBreakdown | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [payHistory, setPayHistory] = useState<PayCalculationEntry[]>([]);
@@ -139,6 +152,23 @@ export default function PayCalculatorScreen() {
 
   const recalc = async () => {
     if (!settings) return;
+    // Derive night allocation per mode
+    let nightBaseHours: HoursAndMinutes | undefined;
+    let nightOvertimeHours: HoursAndMinutes | undefined;
+    if (mode === "tracker") {
+      try {
+        const alloc = await settingsService.deriveTrackerNightAllocationForDate(
+          date,
+          settings
+        );
+        nightBaseHours = alloc.nightBase;
+        nightOvertimeHours = alloc.nightOvertime;
+      } catch {}
+    } else {
+      nightBaseHours = manualNightBase;
+      nightOvertimeHours = manualNightOt;
+    }
+
     const input: PayCalculationInput = {
       mode,
       date,
@@ -147,6 +177,8 @@ export default function PayCalculatorScreen() {
       hoursWorked: mode === "tracker" ? trackerHoursWorked : manualHoursWorked,
       overtimeWorked:
         mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked,
+      nightBaseHours,
+      nightOvertimeHours,
     };
     let result = settingsService.computePay(input, settings);
     // Manual override if needed: if a saved base or overtime rate is missing,
@@ -773,6 +805,88 @@ export default function PayCalculatorScreen() {
                       <ThemedText>m</ThemedText>
                     </View>
                   </View>
+                  {Boolean((settings?.payRules?.night as any)?.enabled) ? (
+                    <>
+                      <View style={styles.row}>
+                        <ThemedText style={styles.rowLabel}>
+                          Night (base)
+                        </ThemedText>
+                        <View style={styles.inline}>
+                          <TextInput
+                            style={styles.numInput}
+                            keyboardType="number-pad"
+                            placeholder="0"
+                            placeholderTextColor="#6B7280"
+                            value={nightBaseHoursText}
+                            onChangeText={setNightBaseHoursText}
+                            onEndEditing={() =>
+                              setManualNightBase((p) => ({
+                                ...p,
+                                hours: parseNumber(nightBaseHoursText),
+                              }))
+                            }
+                          />
+                          <ThemedText>h</ThemedText>
+                          <TextInput
+                            style={styles.numInput}
+                            keyboardType="number-pad"
+                            placeholder="0"
+                            placeholderTextColor="#6B7280"
+                            value={nightBaseMinutesText}
+                            onChangeText={setNightBaseMinutesText}
+                            onEndEditing={() =>
+                              setManualNightBase((p) => ({
+                                ...p,
+                                minutes: clampMinutes(
+                                  parseNumber(nightBaseMinutesText)
+                                ),
+                              }))
+                            }
+                          />
+                          <ThemedText>m</ThemedText>
+                        </View>
+                      </View>
+                      <View style={styles.row}>
+                        <ThemedText style={styles.rowLabel}>
+                          Night (OT)
+                        </ThemedText>
+                        <View style={styles.inline}>
+                          <TextInput
+                            style={styles.numInput}
+                            keyboardType="number-pad"
+                            placeholder="0"
+                            placeholderTextColor="#6B7280"
+                            value={nightOtHoursText}
+                            onChangeText={setNightOtHoursText}
+                            onEndEditing={() =>
+                              setManualNightOt((p) => ({
+                                ...p,
+                                hours: parseNumber(nightOtHoursText),
+                              }))
+                            }
+                          />
+                          <ThemedText>h</ThemedText>
+                          <TextInput
+                            style={styles.numInput}
+                            keyboardType="number-pad"
+                            placeholder="0"
+                            placeholderTextColor="#6B7280"
+                            value={nightOtMinutesText}
+                            onChangeText={setNightOtMinutesText}
+                            onEndEditing={() =>
+                              setManualNightOt((p) => ({
+                                ...p,
+                                minutes: clampMinutes(
+                                  parseNumber(nightOtMinutesText)
+                                ),
+                              }))
+                            }
+                          />
+                          <ThemedText>m</ThemedText>
+                        </View>
+                      </View>
+                    </>
+                  ) : null}
                   {mode === "tracker" && (
                     <ThemedText style={styles.helperText}>
                       Auto-fills from your shifts for the selected date when

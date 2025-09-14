@@ -9,7 +9,22 @@ export interface PayRate {
   updatedAt: number;
 }
 
+// New tier-based overtime model (backward-compatible with legacy flat fields below)
+export interface OvertimeTierRule {
+  threshold?: number; // hours
+  mode?: "multiplier" | "fixed"; // how to apply overtime pay
+  multiplier?: number; // e.g., 1.5 (Base × 1.5)
+  uplift?: number; // e.g., 0.5 (Base + £0.50/h)
+}
+
 export interface OvertimeRules {
+  enabled?: boolean;
+  // Only one basis applies at a time
+  active?: "daily" | "weekly";
+  // New nested structure (preferred)
+  daily?: OvertimeTierRule;
+  weekly?: OvertimeTierRule;
+  // Legacy flat fields (still read for compatibility and migrated at load time)
   dailyThreshold?: number; // hours
   dailyMultiplier?: number; // e.g., 1.5
   weeklyThreshold?: number; // hours
@@ -17,14 +32,22 @@ export interface OvertimeRules {
 }
 
 export interface NightRules {
+  enabled?: boolean;
   start?: string; // "HH:MM"
   end?: string; // "HH:MM"
+  // Legacy shape retained; future: align to mode/multiplier/uplift if needed
   type?: "percentage" | "fixed";
   value?: number; // percentage or fixed uplift per hour
 }
 
 export interface WeekendRules {
+  enabled?: boolean;
   days?: Array<"Sat" | "Sun">;
+  // New unified shape
+  mode?: "multiplier" | "fixed";
+  multiplier?: number; // e.g., 1.5 for +50%
+  uplift?: number; // e.g., 0.5 for +£0.50/h
+  // Legacy shape (percentage or fixed value)
   type?: "percentage" | "fixed";
   value?: number;
 }
@@ -110,6 +133,9 @@ export interface PayCalculationInput {
   overtimeRateId: string | null;
   hoursWorked: HoursAndMinutes; // base hours
   overtimeWorked: HoursAndMinutes; // overtime hours (manual) or derived
+  // Calculator mode: optional explicit night allocation
+  nightBaseHours?: HoursAndMinutes;
+  nightOvertimeHours?: HoursAndMinutes;
 }
 
 export interface PayCalculationEntry {
