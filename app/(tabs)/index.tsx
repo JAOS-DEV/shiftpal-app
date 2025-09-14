@@ -14,7 +14,7 @@ import { Day, HistoryFilter, Shift } from "@/types/shift";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -225,51 +225,58 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
-        <SegmentedSwitcher
-          items={[
-            { id: "tracker", label: "Tracker", showDot: timerRunning },
-            { id: "history", label: "History" },
-          ]}
-          activeId={activeTab}
-          onChange={(id) => handleTabChange(id as Tab)}
-        />
+        <View style={Platform.OS === "web" ? styles.webMaxWidth : undefined}>
+          <SegmentedSwitcher
+            items={[
+              { id: "tracker", label: "Tracker", showDot: timerRunning },
+              { id: "history", label: "History" },
+            ]}
+            activeId={activeTab}
+            onChange={(id) => handleTabChange(id as Tab)}
+          />
+        </View>
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }} // Tab bar height + safe area
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 60, // Tab bar height + safe area
+            ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
+          }}
           showsVerticalScrollIndicator={false}
         >
-          {activeTab === "tracker" ? (
-            <>
-              <DateSelector
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
+          <View style={Platform.OS === "web" ? styles.webMaxWidth : undefined}>
+            {activeTab === "tracker" ? (
+              <>
+                <DateSelector
+                  selectedDate={selectedDate}
+                  onDateChange={setSelectedDate}
+                />
+                {/* Timer banner removed; status shown inline in Shift input header. */}
+                <ShiftInputSection
+                  onAddShift={handleAddShift}
+                  onShiftListRefresh={() => loadShiftsForDate(selectedDate)}
+                />
+                <ShiftEntriesList
+                  shifts={shifts}
+                  onRemoveShift={handleRemoveShift}
+                />
+                <DailyTotals shifts={shifts} />
+                <SubmitButton
+                  shifts={shifts}
+                  onSubmit={handleSubmitDay}
+                  isSubmitting={isSubmitting}
+                />
+              </>
+            ) : (
+              <HistoryList
+                days={submittedDays}
+                filter={historyFilter}
+                onFilterChange={handleHistoryFilterChange}
+                onDeleteDay={handleDeleteDay}
+                onDeleteSubmission={handleDeleteSubmission}
               />
-              {/* Timer banner removed; status shown inline in Shift input header. */}
-              <ShiftInputSection
-                onAddShift={handleAddShift}
-                onShiftListRefresh={() => loadShiftsForDate(selectedDate)}
-              />
-              <ShiftEntriesList
-                shifts={shifts}
-                onRemoveShift={handleRemoveShift}
-              />
-              <DailyTotals shifts={shifts} />
-              <SubmitButton
-                shifts={shifts}
-                onSubmit={handleSubmitDay}
-                isSubmitting={isSubmitting}
-              />
-            </>
-          ) : (
-            <HistoryList
-              days={submittedDays}
-              filter={historyFilter}
-              onFilterChange={handleHistoryFilterChange}
-              onDeleteDay={handleDeleteDay}
-              onDeleteSubmission={handleDeleteSubmission}
-            />
-          )}
+            )}
+          </View>
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -285,6 +292,12 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  webMaxWidth: {
+    width: "100%",
+    maxWidth: 1200,
+    alignSelf: "center",
+    paddingHorizontal: 16,
   },
   timerBanner: {
     marginHorizontal: 16,

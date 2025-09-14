@@ -1,5 +1,6 @@
 import { SettingsPage } from "@/components/SettingsPage";
-import { ScrollView } from "react-native";
+import { ThemedView } from "@/components/ThemedView";
+import { Platform, ScrollView, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -10,12 +11,31 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 60 }} // Tab bar height + safe area
-      >
-        <SettingsPage />
-      </ScrollView>
+      <ThemedView style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 60, // Tab bar height + safe area
+            ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={
+              Platform.OS === "web"
+                ? {
+                    width: "100%",
+                    maxWidth: 1200,
+                    alignSelf: "center",
+                    paddingHorizontal: 16,
+                  }
+                : undefined
+            }
+          >
+            <SettingsPage />
+          </View>
+        </ScrollView>
+      </ThemedView>
     </SafeAreaView>
   );
 }

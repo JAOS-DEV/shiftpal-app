@@ -203,9 +203,7 @@ export function SettingsPage() {
   ];
 
   return (
-    <ThemedView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
+    <ThemedView style={styles.container}>
       <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
         Settings
       </ThemedText>

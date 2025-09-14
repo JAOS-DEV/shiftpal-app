@@ -3,6 +3,7 @@ import { Dropdown } from "@/components/Dropdown";
 import { SegmentedSwitcher } from "@/components/SegmentedSwitcher";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import {
   AppSettings,
@@ -34,6 +35,7 @@ type TopTab = "calculator" | "history";
 type PeriodFilter = "week" | "month" | "all";
 
 export default function PayCalculatorScreen() {
+  const { colors } = useTheme();
   const [topTab, setTopTab] = useState<TopTab>("calculator");
   const [mode, setMode] = useState<Mode>("tracker");
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -533,81 +535,135 @@ export default function PayCalculatorScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
         {/* Top tab: Calculator | History */}
-        <SegmentedSwitcher
-          items={[
-            { id: "calculator", label: "Calculator" },
-            { id: "history", label: "History" },
-          ]}
-          activeId={topTab}
-          onChange={(id) => setTopTab(id as TopTab)}
-        />
+        <View style={Platform.OS === "web" ? styles.webMaxWidth : undefined}>
+          <SegmentedSwitcher
+            items={[
+              { id: "calculator", label: "Calculator" },
+              { id: "history", label: "History" },
+            ]}
+            activeId={topTab}
+            onChange={(id) => setTopTab(id as TopTab)}
+          />
+        </View>
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 60,
+            ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
+          }}
           showsVerticalScrollIndicator={false}
         >
-          {topTab === "calculator" ? (
-            <>
-              <DateSelector selectedDate={date} onDateChange={setDate} />
+          <View style={Platform.OS === "web" ? styles.webMaxWidth : undefined}>
+            {topTab === "calculator" ? (
+              <>
+                <DateSelector selectedDate={date} onDateChange={setDate} />
 
-              {/* Inner mode toggle: Tracker | Manual (match Home style) */}
-              <View style={styles.modeRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.modeButton,
-                    mode === "tracker" && styles.modeButtonActive,
-                  ]}
-                  onPress={() => setMode("tracker")}
-                >
-                  <ThemedText
+                {/* Inner mode toggle: Tracker | Manual (match Home style) */}
+                <View style={styles.modeRow}>
+                  <TouchableOpacity
                     style={[
-                      styles.modeText,
-                      mode === "tracker" && styles.modeTextActive,
+                      styles.modeButton,
+                      Platform.OS === "web"
+                        ? ({ cursor: "pointer" } as any)
+                        : null,
+                      mode === "tracker" && styles.modeButtonActive,
                     ]}
+                    onPress={() => setMode("tracker")}
                   >
-                    Tracker
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modeButton,
-                    mode === "manual" && styles.modeButtonActive,
-                  ]}
-                  onPress={() => setMode("manual")}
-                >
-                  <ThemedText
+                    <ThemedText
+                      style={[
+                        styles.modeText,
+                        mode === "tracker" && styles.modeTextActive,
+                      ]}
+                    >
+                      Tracker
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
-                      styles.modeText,
-                      mode === "manual" && styles.modeTextActive,
+                      styles.modeButton,
+                      Platform.OS === "web"
+                        ? ({ cursor: "pointer" } as any)
+                        : null,
+                      mode === "manual" && styles.modeButtonActive,
                     ]}
+                    onPress={() => setMode("manual")}
                   >
-                    Manual
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
+                    <ThemedText
+                      style={[
+                        styles.modeText,
+                        mode === "manual" && styles.modeTextActive,
+                      ]}
+                    >
+                      Manual
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
 
-              {/* Rates */}
-              <View style={styles.card}>
-                <ThemedText type="subtitle" style={styles.cardTitle}>
-                  Rates
-                </ThemedText>
-                {baseRates.length > 0 || overtimeRates.length > 0 ? (
-                  <View style={styles.rateInputs}>
-                    {baseRates.length > 0 ? (
-                      <View style={{ flex: 1 }}>
-                        <Dropdown
-                          compact
-                          placeholder="Select base rate"
-                          value={hourlyRateId}
-                          onChange={setHourlyRateId as (v: string) => void}
-                          items={baseRates.map((r) => ({
-                            value: r.id,
-                            label: r.label,
-                          }))}
+                {/* Rates */}
+                <View style={styles.card}>
+                  <ThemedText type="subtitle" style={styles.cardTitle}>
+                    Rates
+                  </ThemedText>
+                  {baseRates.length > 0 || overtimeRates.length > 0 ? (
+                    <View style={styles.rateInputs}>
+                      {baseRates.length > 0 ? (
+                        <View style={{ flex: 1 }}>
+                          <Dropdown
+                            compact
+                            placeholder="Select base rate"
+                            value={hourlyRateId}
+                            onChange={setHourlyRateId as (v: string) => void}
+                            items={baseRates.map((r) => ({
+                              value: r.id,
+                              label: r.label,
+                            }))}
+                          />
+                        </View>
+                      ) : (
+                        <TextInput
+                          style={[styles.rateInput, { flex: 1 }]}
+                          keyboardType={
+                            Platform.OS === "web" ? "default" : "decimal-pad"
+                          }
+                          placeholder={`${currencySymbol} base / hr`}
+                          placeholderTextColor="#6B7280"
+                          selectionColor="#007AFF"
+                          value={manualBaseRateText}
+                          onChangeText={setManualBaseRateText}
                         />
-                      </View>
-                    ) : (
+                      )}
+
+                      {overtimeRates.length > 0 ? (
+                        <View style={{ flex: 1 }}>
+                          <Dropdown
+                            compact
+                            placeholder="Select overtime rate"
+                            value={overtimeRateId}
+                            onChange={setOvertimeRateId as (v: string) => void}
+                            items={overtimeRates.map((r) => ({
+                              value: r.id,
+                              label: r.label,
+                            }))}
+                          />
+                        </View>
+                      ) : (
+                        <TextInput
+                          style={[styles.rateInput, { flex: 1 }]}
+                          keyboardType={
+                            Platform.OS === "web" ? "default" : "decimal-pad"
+                          }
+                          placeholder={`${currencySymbol} overtime / hr (optional)`}
+                          placeholderTextColor="#6B7280"
+                          selectionColor="#007AFF"
+                          value={manualOvertimeRateText}
+                          onChangeText={setManualOvertimeRateText}
+                        />
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.rateInputs}>
                       <TextInput
                         style={[styles.rateInput, { flex: 1 }]}
                         keyboardType={
@@ -615,26 +671,9 @@ export default function PayCalculatorScreen() {
                         }
                         placeholder={`${currencySymbol} base / hr`}
                         placeholderTextColor="#6B7280"
-                        selectionColor="#007AFF"
                         value={manualBaseRateText}
                         onChangeText={setManualBaseRateText}
                       />
-                    )}
-
-                    {overtimeRates.length > 0 ? (
-                      <View style={{ flex: 1 }}>
-                        <Dropdown
-                          compact
-                          placeholder="Select overtime rate"
-                          value={overtimeRateId}
-                          onChange={setOvertimeRateId as (v: string) => void}
-                          items={overtimeRates.map((r) => ({
-                            value: r.id,
-                            label: r.label,
-                          }))}
-                        />
-                      </View>
-                    ) : (
                       <TextInput
                         style={[styles.rateInput, { flex: 1 }]}
                         keyboardType={
@@ -642,603 +681,633 @@ export default function PayCalculatorScreen() {
                         }
                         placeholder={`${currencySymbol} overtime / hr (optional)`}
                         placeholderTextColor="#6B7280"
-                        selectionColor="#007AFF"
                         value={manualOvertimeRateText}
                         onChangeText={setManualOvertimeRateText}
                       />
-                    )}
-                  </View>
-                ) : (
-                  <View style={styles.rateInputs}>
-                    <TextInput
-                      style={[styles.rateInput, { flex: 1 }]}
-                      keyboardType={
-                        Platform.OS === "web" ? "default" : "decimal-pad"
-                      }
-                      placeholder={`${currencySymbol} base / hr`}
-                      placeholderTextColor="#6B7280"
-                      value={manualBaseRateText}
-                      onChangeText={setManualBaseRateText}
-                    />
-                    <TextInput
-                      style={[styles.rateInput, { flex: 1 }]}
-                      keyboardType={
-                        Platform.OS === "web" ? "default" : "decimal-pad"
-                      }
-                      placeholder={`${currencySymbol} overtime / hr (optional)`}
-                      placeholderTextColor="#6B7280"
-                      value={manualOvertimeRateText}
-                      onChangeText={setManualOvertimeRateText}
-                    />
-                  </View>
-                )}
-              </View>
-
-              {/* Hours */}
-              <View style={styles.card}>
-                <ThemedText type="subtitle" style={styles.cardTitle}>
-                  Hours
-                </ThemedText>
-                <View style={styles.row}>
-                  <ThemedText style={styles.rowLabel}>Worked</ThemedText>
-                  <View style={styles.inline}>
-                    <TextInput
-                      style={styles.numInput}
-                      keyboardType="number-pad"
-                      placeholder="0"
-                      placeholderTextColor="#6B7280"
-                      value={workedHoursText}
-                      onChangeText={setWorkedHoursText}
-                      onEndEditing={() =>
-                        (mode === "tracker"
-                          ? setTrackerHoursWorked
-                          : setManualHoursWorked)((p) => ({
-                          ...p,
-                          hours: parseNumber(workedHoursText),
-                        }))
-                      }
-                    />
-                    <ThemedText>h</ThemedText>
-                    <TextInput
-                      style={styles.numInput}
-                      keyboardType="number-pad"
-                      placeholder="0"
-                      placeholderTextColor="#6B7280"
-                      value={workedMinutesText}
-                      onChangeText={setWorkedMinutesText}
-                      onEndEditing={() =>
-                        (mode === "tracker"
-                          ? setTrackerHoursWorked
-                          : setManualHoursWorked)((p) => ({
-                          ...p,
-                          minutes: clampMinutes(parseNumber(workedMinutesText)),
-                        }))
-                      }
-                    />
-                    <ThemedText>m</ThemedText>
-                  </View>
-                </View>
-                <View style={styles.row}>
-                  <ThemedText style={styles.rowLabel}>Overtime</ThemedText>
-                  <View style={styles.inline}>
-                    <TextInput
-                      style={styles.numInput}
-                      keyboardType="number-pad"
-                      placeholder="0"
-                      placeholderTextColor="#6B7280"
-                      value={otHoursText}
-                      onChangeText={setOtHoursText}
-                      onEndEditing={() =>
-                        (mode === "tracker"
-                          ? setTrackerOvertimeWorked
-                          : setManualOvertimeWorked)((p) => ({
-                          ...p,
-                          hours: parseNumber(otHoursText),
-                        }))
-                      }
-                    />
-                    <ThemedText>h</ThemedText>
-                    <TextInput
-                      style={styles.numInput}
-                      keyboardType="number-pad"
-                      placeholder="0"
-                      placeholderTextColor="#6B7280"
-                      value={otMinutesText}
-                      onChangeText={setOtMinutesText}
-                      onEndEditing={() =>
-                        (mode === "tracker"
-                          ? setTrackerOvertimeWorked
-                          : setManualOvertimeWorked)((p) => ({
-                          ...p,
-                          minutes: clampMinutes(parseNumber(otMinutesText)),
-                        }))
-                      }
-                    />
-                    <ThemedText>m</ThemedText>
-                  </View>
-                </View>
-                {mode === "tracker" && (
-                  <ThemedText style={styles.helperText}>
-                    Auto-fills from your shifts for the selected date when
-                    available.
-                  </ThemedText>
-                )}
-              </View>
-
-              {/* Total */}
-              <View style={styles.card}>
-                <ThemedText type="subtitle" style={styles.cardTitle}>
-                  Total Pay
-                </ThemedText>
-                <ThemedText style={styles.totalText}>
-                  {currencySymbol}
-                  {(breakdown?.total ?? 0).toFixed(2)}
-                </ThemedText>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Base</ThemedText>
-                  <ThemedText>
-                    {currencySymbol}
-                    {(breakdown?.base ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Overtime</ThemedText>
-                  <ThemedText>
-                    {currencySymbol}
-                    {(breakdown?.overtime ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Uplifts</ThemedText>
-                  <ThemedText>
-                    {currencySymbol}
-                    {(breakdown?.uplifts ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Allowances</ThemedText>
-                  <ThemedText>
-                    {currencySymbol}
-                    {(breakdown?.allowances ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Gross</ThemedText>
-                  <ThemedText>
-                    {currencySymbol}
-                    {(breakdown?.gross ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Tax</ThemedText>
-                  <ThemedText style={{ color: "#FF3B30" }}>
-                    -{currencySymbol}
-                    {(breakdown?.tax ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>NI</ThemedText>
-                  <ThemedText style={{ color: "#FF3B30" }}>
-                    -{currencySymbol}
-                    {(breakdown?.ni ?? 0).toFixed(2)}
-                  </ThemedText>
-                </View>
-                <TouchableOpacity
-                  style={styles.saveBtn}
-                  onPress={handleSave}
-                  disabled={isSaving}
-                >
-                  <ThemedText style={styles.saveBtnText}>
-                    {isSaving ? "Saving..." : "Save Pay"}
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <>
-              {/* Period Filter */}
-              <View style={styles.periodHeader}>
-                <SegmentedSwitcher
-                  items={[
-                    { id: "week", label: "Week" },
-                    { id: "month", label: "Month" },
-                    { id: "all", label: "All" },
-                  ]}
-                  activeId={period}
-                  onChange={(id) => setPeriod(id as PeriodFilter)}
-                />
-                <TouchableOpacity
-                  style={styles.thisWeekBtn}
-                  onPress={() => setPeriod("week")}
-                >
-                  <ThemedText style={styles.thisWeekBtnText}>
-                    This Week
-                  </ThemedText>
-                </TouchableOpacity>
-                {(() => {
-                  const staleCount =
-                    filteredHistory.filter(hasStaleEntry).length;
-                  if (!staleCount) return null;
-                  return (
-                    <View style={{ marginTop: 8 }}>
-                      <ThemedText style={{ color: "#8E8E93" }}>
-                        {staleCount} entr{staleCount === 1 ? "y is" : "ies are"}{" "}
-                        out of date with current settings
-                      </ThemedText>
-                      <TouchableOpacity
-                        style={styles.recalcAllBtn}
-                        onPress={() =>
-                          handleRecalcBulk(
-                            filteredHistory
-                              .filter(hasStaleEntry)
-                              .map((e) => e.id)
-                          )
-                        }
-                      >
-                        <ThemedText style={styles.recalcAllBtnText}>
-                          Recalculate all in view
-                        </ThemedText>
-                      </TouchableOpacity>
                     </View>
-                  );
-                })()}
-                {pendingUndo ? (
-                  <TouchableOpacity style={styles.undoBtn} onPress={handleUndo}>
-                    <ThemedText style={styles.undoBtnText}>Undo</ThemedText>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
+                  )}
+                </View>
 
-              {/* Summary Card */}
-              <View style={styles.card}>
-                {/* Goal progress (Week only) */}
-                {(period === "week" || period === "month") && (
-                  <View style={{ marginBottom: 12 }}>
-                    {(() => {
-                      const goal =
-                        period === "week"
-                          ? settings?.preferences?.weeklyGoal || 0
-                          : settings?.preferences?.monthlyGoal || 0;
-                      const achieved = summary.total || 0;
-                      if (!goal || goal <= 0) {
-                        return (
-                          <ThemedText style={styles.goalHintText}>
-                            Set a {period === "week" ? "weekly" : "monthly"}{" "}
-                            goal in Settings → Preferences to track progress.
+                {/* Hours */}
+                <View style={styles.card}>
+                  <ThemedText type="subtitle" style={styles.cardTitle}>
+                    Hours
+                  </ThemedText>
+                  <View style={styles.row}>
+                    <ThemedText style={styles.rowLabel}>Worked</ThemedText>
+                    <View style={styles.inline}>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#6B7280"
+                        value={workedHoursText}
+                        onChangeText={setWorkedHoursText}
+                        onEndEditing={() =>
+                          (mode === "tracker"
+                            ? setTrackerHoursWorked
+                            : setManualHoursWorked)((p) => ({
+                            ...p,
+                            hours: parseNumber(workedHoursText),
+                          }))
+                        }
+                      />
+                      <ThemedText>h</ThemedText>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#6B7280"
+                        value={workedMinutesText}
+                        onChangeText={setWorkedMinutesText}
+                        onEndEditing={() =>
+                          (mode === "tracker"
+                            ? setTrackerHoursWorked
+                            : setManualHoursWorked)((p) => ({
+                            ...p,
+                            minutes: clampMinutes(
+                              parseNumber(workedMinutesText)
+                            ),
+                          }))
+                        }
+                      />
+                      <ThemedText>m</ThemedText>
+                    </View>
+                  </View>
+                  <View style={styles.row}>
+                    <ThemedText style={styles.rowLabel}>Overtime</ThemedText>
+                    <View style={styles.inline}>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#6B7280"
+                        value={otHoursText}
+                        onChangeText={setOtHoursText}
+                        onEndEditing={() =>
+                          (mode === "tracker"
+                            ? setTrackerOvertimeWorked
+                            : setManualOvertimeWorked)((p) => ({
+                            ...p,
+                            hours: parseNumber(otHoursText),
+                          }))
+                        }
+                      />
+                      <ThemedText>h</ThemedText>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor="#6B7280"
+                        value={otMinutesText}
+                        onChangeText={setOtMinutesText}
+                        onEndEditing={() =>
+                          (mode === "tracker"
+                            ? setTrackerOvertimeWorked
+                            : setManualOvertimeWorked)((p) => ({
+                            ...p,
+                            minutes: clampMinutes(parseNumber(otMinutesText)),
+                          }))
+                        }
+                      />
+                      <ThemedText>m</ThemedText>
+                    </View>
+                  </View>
+                  {mode === "tracker" && (
+                    <ThemedText style={styles.helperText}>
+                      Auto-fills from your shifts for the selected date when
+                      available.
+                    </ThemedText>
+                  )}
+                </View>
+
+                {/* Total */}
+                <View style={styles.card}>
+                  <ThemedText type="subtitle" style={styles.cardTitle}>
+                    Total Pay
+                  </ThemedText>
+                  <ThemedText style={styles.totalText}>
+                    {currencySymbol}
+                    {(breakdown?.total ?? 0).toFixed(2)}
+                  </ThemedText>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Base</ThemedText>
+                    <ThemedText>
+                      {currencySymbol}
+                      {(breakdown?.base ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Overtime</ThemedText>
+                    <ThemedText>
+                      {currencySymbol}
+                      {(breakdown?.overtime ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Uplifts</ThemedText>
+                    <ThemedText>
+                      {currencySymbol}
+                      {(breakdown?.uplifts ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Allowances</ThemedText>
+                    <ThemedText>
+                      {currencySymbol}
+                      {(breakdown?.allowances ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Gross</ThemedText>
+                    <ThemedText>
+                      {currencySymbol}
+                      {(breakdown?.gross ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Tax</ThemedText>
+                    <ThemedText style={{ color: "#FF3B30" }}>
+                      -{currencySymbol}
+                      {(breakdown?.tax ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>NI</ThemedText>
+                    <ThemedText style={{ color: "#FF3B30" }}>
+                      -{currencySymbol}
+                      {(breakdown?.ni ?? 0).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.saveBtn,
+                      Platform.OS === "web"
+                        ? ({ cursor: "pointer" } as any)
+                        : null,
+                    ]}
+                    onPress={handleSave}
+                    disabled={isSaving}
+                  >
+                    <ThemedText style={styles.saveBtnText}>
+                      {isSaving ? "Saving..." : "Save Pay"}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                {/* Period Filter */}
+                <View style={styles.periodHeader}>
+                  <SegmentedSwitcher
+                    items={[
+                      { id: "week", label: "Week" },
+                      { id: "month", label: "Month" },
+                      { id: "all", label: "All" },
+                    ]}
+                    activeId={period}
+                    onChange={(id) => setPeriod(id as PeriodFilter)}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.thisWeekBtn,
+                      Platform.OS === "web"
+                        ? ({ cursor: "pointer" } as any)
+                        : null,
+                    ]}
+                    onPress={() => setPeriod("week")}
+                  >
+                    <ThemedText style={styles.thisWeekBtnText}>
+                      This Week
+                    </ThemedText>
+                  </TouchableOpacity>
+                  {(() => {
+                    const staleCount =
+                      filteredHistory.filter(hasStaleEntry).length;
+                    if (!staleCount) return null;
+                    return (
+                      <View style={{ marginTop: 8 }}>
+                        <ThemedText style={{ color: "#8E8E93" }}>
+                          {staleCount} entr
+                          {staleCount === 1 ? "y is" : "ies are"} out of date
+                          with current settings
+                        </ThemedText>
+                        <TouchableOpacity
+                          style={[
+                            styles.recalcAllBtn,
+                            Platform.OS === "web"
+                              ? ({ cursor: "pointer" } as any)
+                              : null,
+                          ]}
+                          onPress={() =>
+                            handleRecalcBulk(
+                              filteredHistory
+                                .filter(hasStaleEntry)
+                                .map((e) => e.id)
+                            )
+                          }
+                        >
+                          <ThemedText style={styles.recalcAllBtnText}>
+                            Recalculate all in view
                           </ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })()}
+                  {pendingUndo ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.undoBtn,
+                        Platform.OS === "web"
+                          ? ({ cursor: "pointer" } as any)
+                          : null,
+                      ]}
+                      onPress={handleUndo}
+                    >
+                      <ThemedText style={styles.undoBtnText}>Undo</ThemedText>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {/* Summary Card */}
+                <View style={styles.card}>
+                  {/* Goal progress (Week only) */}
+                  {(period === "week" || period === "month") && (
+                    <View style={{ marginBottom: 12 }}>
+                      {(() => {
+                        const goal =
+                          period === "week"
+                            ? settings?.preferences?.weeklyGoal || 0
+                            : settings?.preferences?.monthlyGoal || 0;
+                        const achieved = summary.total || 0;
+                        if (!goal || goal <= 0) {
+                          return (
+                            <ThemedText style={styles.goalHintText}>
+                              Set a {period === "week" ? "weekly" : "monthly"}{" "}
+                              goal in Settings → Preferences to track progress.
+                            </ThemedText>
+                          );
+                        }
+                        const percent = Math.max(
+                          0,
+                          Math.min(200, (achieved / goal) * 100)
                         );
-                      }
-                      const percent = Math.max(
-                        0,
-                        Math.min(200, (achieved / goal) * 100)
-                      );
-                      const fillColor = percent >= 100 ? "#28A745" : "#007AFF";
-                      const remaining = Math.max(0, goal - achieved);
-                      return (
-                        <>
-                          <View style={styles.goalHeaderRow}>
-                            <ThemedText style={styles.goalTitle}>
-                              {period === "week"
-                                ? "Weekly Goal"
-                                : "Monthly Goal"}
-                            </ThemedText>
-                            <ThemedText style={styles.goalAmounts}>
-                              {currencySymbol}
-                              {achieved.toFixed(2)} / {currencySymbol}
-                              {goal.toFixed(2)}
-                            </ThemedText>
-                          </View>
-                          <View style={styles.progressBarTrack}>
-                            <View
-                              style={[
-                                styles.progressBarFill,
-                                {
-                                  width: `${Math.round(
-                                    Math.min(100, percent)
-                                  )}%`,
-                                  backgroundColor: fillColor,
-                                },
-                              ]}
-                            />
-                          </View>
-                          <View style={styles.goalMetaRow}>
-                            <View style={styles.percentBadge}>
-                              <ThemedText style={styles.percentBadgeText}>
-                                {Math.round(percent)}%
+                        const fillColor =
+                          percent >= 100 ? "#28A745" : "#007AFF";
+                        const remaining = Math.max(0, goal - achieved);
+                        return (
+                          <>
+                            <View style={styles.goalHeaderRow}>
+                              <ThemedText style={styles.goalTitle}>
+                                {period === "week"
+                                  ? "Weekly Goal"
+                                  : "Monthly Goal"}
+                              </ThemedText>
+                              <ThemedText style={styles.goalAmounts}>
+                                {currencySymbol}
+                                {achieved.toFixed(2)} / {currencySymbol}
+                                {goal.toFixed(2)}
                               </ThemedText>
                             </View>
-                            <ThemedText style={styles.remainingText}>
-                              {remaining > 0
-                                ? `${currencySymbol}${remaining.toFixed(
-                                    2
-                                  )} to go`
-                                : `+${currencySymbol}${(
-                                    achieved - goal
-                                  ).toFixed(2)} over goal`}
-                            </ThemedText>
-                          </View>
-                        </>
-                      );
-                    })()}
-                  </View>
-                )}
-
-                <View style={styles.summaryGrid}>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Total Standard Pay
-                    </ThemedText>
-                    <ThemedText style={styles.summaryValue}>
-                      {currencySymbol}
-                      {summary.base.toFixed(2)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Total Overtime Pay
-                    </ThemedText>
-                    <ThemedText style={styles.summaryValue}>
-                      {currencySymbol}
-                      {summary.overtime.toFixed(2)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Total Tax
-                    </ThemedText>
-                    <ThemedText style={styles.summaryNegValue}>
-                      {currencySymbol}
-                      {summary.tax.toFixed(2)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Total NI
-                    </ThemedText>
-                    <ThemedText style={styles.summaryNegValue}>
-                      {currencySymbol}
-                      {summary.ni.toFixed(2)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Total Hours
-                    </ThemedText>
-                    <ThemedText style={styles.summaryValue}>
-                      {minutesToHMText(summary.minutes)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Gross Total
-                    </ThemedText>
-                    <ThemedText style={styles.summaryPositive}>
-                      {currencySymbol}
-                      {summary.gross.toFixed(2)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <ThemedText style={styles.summaryLabel}>
-                      Final Total
-                    </ThemedText>
-                    <ThemedText style={styles.summaryPositive}>
-                      {currencySymbol}
-                      {summary.total.toFixed(2)}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-
-              {/* Grouped daily list */}
-              {groupedByDate.length === 0 ? (
-                <View style={[styles.card, { marginTop: 12 }]}>
-                  <ThemedText>No saved pay calculations yet</ThemedText>
-                </View>
-              ) : (
-                groupedByDate.map(([dateKey, entries]) => {
-                  return (
-                    <View
-                      key={dateKey}
-                      style={[styles.card, { marginTop: 12 }]}
-                    >
-                      <View style={styles.dayHeader}>
-                        <ThemedText type="subtitle" style={styles.dayTitle}>
-                          {formatDateDisplay(dateKey)}
-                        </ThemedText>
-                        <ThemedText style={styles.submissionsCount}>
-                          {entries.length}{" "}
-                          {entries.length === 1 ? "submission" : "submissions"}
-                        </ThemedText>
-                      </View>
-
-                      {entries.map((entry) => {
-                        const savedBaseVal = resolveRateValue(
-                          entry.input.hourlyRateId
-                        );
-                        const baseRateVal =
-                          (typeof savedBaseVal === "number"
-                            ? savedBaseVal
-                            : entry.rateSnapshot?.base) ?? 0;
-                        const savedOtVal = resolveRateValue(
-                          entry.input.overtimeRateId
-                        );
-                        const overtimeRateVal =
-                          (typeof savedOtVal === "number"
-                            ? savedOtVal
-                            : entry.rateSnapshot?.overtime) ?? baseRateVal;
-                        const baseMinutes = hmToMinutes(
-                          entry.input.hoursWorked
-                        );
-                        const overtimeMinutes = hmToMinutes(
-                          entry.input.overtimeWorked
-                        );
-                        const baseAmount = baseRateVal * (baseMinutes / 60);
-                        const overtimeAmount =
-                          overtimeRateVal * (overtimeMinutes / 60);
-                        const totalBeforeDeductions =
-                          (entry.calculatedPay as any).gross ??
-                          entry.calculatedPay.base +
-                            entry.calculatedPay.overtime +
-                            entry.calculatedPay.uplifts +
-                            entry.calculatedPay.allowances;
-                        const isExpanded = expandedIds.has(entry.id);
-                        const totalMinutes = baseMinutes + overtimeMinutes;
-                        return (
-                          <View key={entry.id} style={styles.entryContainer}>
-                            <TouchableOpacity
-                              style={styles.entryHeader}
-                              onPress={() => toggleExpanded(entry.id)}
-                              accessibilityLabel="Toggle entry details"
-                            >
-                              <View style={{ flex: 1 }}>
-                                <ThemedText style={styles.entrySubmittedAt}>
-                                  Submitted at:{" "}
-                                  {formatTimeOfDay(entry.createdAt)}
-                                </ThemedText>
-                                <ThemedText style={styles.finalTotalText}>
-                                  Final Total: {currencySymbol}
-                                  {entry.calculatedPay.total.toFixed(2)}
-                                </ThemedText>
-                                <ThemedText style={styles.entryCollapsedMeta}>
-                                  Hours: {minutesToHMText(totalMinutes)}
+                            <View style={styles.progressBarTrack}>
+                              <View
+                                style={[
+                                  styles.progressBarFill,
+                                  {
+                                    width: `${Math.round(
+                                      Math.min(100, percent)
+                                    )}%`,
+                                    backgroundColor: fillColor,
+                                  },
+                                ]}
+                              />
+                            </View>
+                            <View style={styles.goalMetaRow}>
+                              <View style={styles.percentBadge}>
+                                <ThemedText style={styles.percentBadgeText}>
+                                  {Math.round(percent)}%
                                 </ThemedText>
                               </View>
-                              <ThemedText style={styles.expandIconSmall}>
-                                {isExpanded ? "▼" : "▶"}
+                              <ThemedText style={styles.remainingText}>
+                                {remaining > 0
+                                  ? `${currencySymbol}${remaining.toFixed(
+                                      2
+                                    )} to go`
+                                  : `+${currencySymbol}${(
+                                      achieved - goal
+                                    ).toFixed(2)} over goal`}
                               </ThemedText>
-                            </TouchableOpacity>
-
-                            {isExpanded ? (
-                              <>
-                                <ThemedText style={styles.entryTotalBefore}>
-                                  Total (before deductions): {currencySymbol}
-                                  {totalBeforeDeductions.toFixed(2)}
-                                </ThemedText>
-
-                                <View style={styles.lineItemRow}>
-                                  <ThemedText style={styles.lineItemLabel}>
-                                    Standard:
-                                  </ThemedText>
-                                  <ThemedText style={styles.lineItemValue}>
-                                    {formatHMClock(entry.input.hoursWorked)} @{" "}
-                                    {currencySymbol}
-                                    {baseRateVal.toFixed(2)}
-                                  </ThemedText>
-                                </View>
-                                <ThemedText style={styles.lineItemAmount}>
-                                  {currencySymbol}
-                                  {baseAmount.toFixed(2)}
-                                </ThemedText>
-
-                                {overtimeMinutes > 0 ? (
-                                  <>
-                                    <View style={styles.lineItemRow}>
-                                      <ThemedText style={styles.lineItemLabel}>
-                                        Overtime:
-                                      </ThemedText>
-                                      <ThemedText style={styles.lineItemValue}>
-                                        {formatHMClock(
-                                          entry.input.overtimeWorked
-                                        )}{" "}
-                                        @ {currencySymbol}
-                                        {overtimeRateVal.toFixed(2)}
-                                      </ThemedText>
-                                    </View>
-                                    <ThemedText style={styles.lineItemAmount}>
-                                      {currencySymbol}
-                                      {overtimeAmount.toFixed(2)}
-                                    </ThemedText>
-                                  </>
-                                ) : null}
-
-                                <ThemedText style={styles.deductionText}>
-                                  Tax: {currencySymbol}
-                                  {Number(
-                                    (entry.calculatedPay as any).tax ?? 0
-                                  ).toFixed(2)}
-                                </ThemedText>
-                                <ThemedText style={styles.deductionText}>
-                                  NI: {currencySymbol}
-                                  {Number(
-                                    (entry.calculatedPay as any).ni ?? 0
-                                  ).toFixed(2)}
-                                </ThemedText>
-
-                                <View style={styles.actionsRow}>
-                                  {hasStaleEntry(entry) ? (
-                                    <View style={{ marginBottom: 8 }}>
-                                      <ThemedText style={{ color: "#8E8E93" }}>
-                                        Updated tax settings available
-                                      </ThemedText>
-                                      <TouchableOpacity
-                                        style={styles.recalcBtn}
-                                        onPress={() => handleRecalcEntry(entry)}
-                                      >
-                                        <ThemedText
-                                          style={styles.recalcBtnText}
-                                        >
-                                          Recalculate with current settings
-                                        </ThemedText>
-                                      </TouchableOpacity>
-                                    </View>
-                                  ) : null}
-                                  <TouchableOpacity
-                                    style={styles.actionsBtn}
-                                    onPress={async () => {
-                                      if (Platform.OS === "web") {
-                                        const ok =
-                                          typeof window !== "undefined" &&
-                                          window.confirm(
-                                            "Remove this saved calculation?"
-                                          );
-                                        if (!ok) return;
-                                        await settingsService.deletePayCalculation(
-                                          entry.id
-                                        );
-                                        setPayHistory((prev) =>
-                                          prev.filter((e) => e.id !== entry.id)
-                                        );
-                                        return;
-                                      }
-                                      Alert.alert(
-                                        "Delete entry",
-                                        "Remove this saved calculation?",
-                                        [
-                                          { text: "Cancel", style: "cancel" },
-                                          {
-                                            text: "Delete",
-                                            style: "destructive",
-                                            onPress: async () => {
-                                              await settingsService.deletePayCalculation(
-                                                entry.id
-                                              );
-                                              setPayHistory((prev) =>
-                                                prev.filter(
-                                                  (e) => e.id !== entry.id
-                                                )
-                                              );
-                                            },
-                                          },
-                                        ]
-                                      );
-                                    }}
-                                  >
-                                    <ThemedText style={styles.actionsBtnText}>
-                                      Delete
-                                    </ThemedText>
-                                  </TouchableOpacity>
-                                </View>
-                              </>
-                            ) : null}
-                          </View>
+                            </View>
+                          </>
                         );
-                      })}
+                      })()}
                     </View>
-                  );
-                })
-              )}
-            </>
-          )}
+                  )}
+
+                  <View style={styles.summaryGrid}>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Total Standard Pay
+                      </ThemedText>
+                      <ThemedText style={styles.summaryValue}>
+                        {currencySymbol}
+                        {summary.base.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Total Overtime Pay
+                      </ThemedText>
+                      <ThemedText style={styles.summaryValue}>
+                        {currencySymbol}
+                        {summary.overtime.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Total Tax
+                      </ThemedText>
+                      <ThemedText style={styles.summaryNegValue}>
+                        {currencySymbol}
+                        {summary.tax.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Total NI
+                      </ThemedText>
+                      <ThemedText style={styles.summaryNegValue}>
+                        {currencySymbol}
+                        {summary.ni.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Total Hours
+                      </ThemedText>
+                      <ThemedText style={styles.summaryValue}>
+                        {minutesToHMText(summary.minutes)}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Gross Total
+                      </ThemedText>
+                      <ThemedText style={styles.summaryPositive}>
+                        {currencySymbol}
+                        {summary.gross.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.summaryCell}>
+                      <ThemedText style={styles.summaryLabel}>
+                        Final Total
+                      </ThemedText>
+                      <ThemedText style={styles.summaryPositive}>
+                        {currencySymbol}
+                        {summary.total.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Grouped daily list */}
+                {groupedByDate.length === 0 ? (
+                  <View style={[styles.card, { marginTop: 12 }]}>
+                    <ThemedText>No saved pay calculations yet</ThemedText>
+                  </View>
+                ) : (
+                  groupedByDate.map(([dateKey, entries]) => {
+                    return (
+                      <View
+                        key={dateKey}
+                        style={[styles.card, { marginTop: 12 }]}
+                      >
+                        <View style={styles.dayHeader}>
+                          <ThemedText type="subtitle" style={styles.dayTitle}>
+                            {formatDateDisplay(dateKey)}
+                          </ThemedText>
+                          <ThemedText style={styles.submissionsCount}>
+                            {entries.length}{" "}
+                            {entries.length === 1
+                              ? "submission"
+                              : "submissions"}
+                          </ThemedText>
+                        </View>
+
+                        {entries.map((entry) => {
+                          const savedBaseVal = resolveRateValue(
+                            entry.input.hourlyRateId
+                          );
+                          const baseRateVal =
+                            (typeof savedBaseVal === "number"
+                              ? savedBaseVal
+                              : entry.rateSnapshot?.base) ?? 0;
+                          const savedOtVal = resolveRateValue(
+                            entry.input.overtimeRateId
+                          );
+                          const overtimeRateVal =
+                            (typeof savedOtVal === "number"
+                              ? savedOtVal
+                              : entry.rateSnapshot?.overtime) ?? baseRateVal;
+                          const baseMinutes = hmToMinutes(
+                            entry.input.hoursWorked
+                          );
+                          const overtimeMinutes = hmToMinutes(
+                            entry.input.overtimeWorked
+                          );
+                          const baseAmount = baseRateVal * (baseMinutes / 60);
+                          const overtimeAmount =
+                            overtimeRateVal * (overtimeMinutes / 60);
+                          const totalBeforeDeductions =
+                            (entry.calculatedPay as any).gross ??
+                            entry.calculatedPay.base +
+                              entry.calculatedPay.overtime +
+                              entry.calculatedPay.uplifts +
+                              entry.calculatedPay.allowances;
+                          const isExpanded = expandedIds.has(entry.id);
+                          const totalMinutes = baseMinutes + overtimeMinutes;
+                          return (
+                            <View key={entry.id} style={styles.entryContainer}>
+                              <TouchableOpacity
+                                style={[
+                                  styles.entryHeader,
+                                  Platform.OS === "web"
+                                    ? ({ cursor: "pointer" } as any)
+                                    : null,
+                                ]}
+                                onPress={() => toggleExpanded(entry.id)}
+                                accessibilityLabel="Toggle entry details"
+                              >
+                                <View style={{ flex: 1 }}>
+                                  <ThemedText style={styles.entrySubmittedAt}>
+                                    Submitted at:{" "}
+                                    {formatTimeOfDay(entry.createdAt)}
+                                  </ThemedText>
+                                  <ThemedText style={styles.finalTotalText}>
+                                    Final Total: {currencySymbol}
+                                    {entry.calculatedPay.total.toFixed(2)}
+                                  </ThemedText>
+                                  <ThemedText style={styles.entryCollapsedMeta}>
+                                    Hours: {minutesToHMText(totalMinutes)}
+                                  </ThemedText>
+                                </View>
+                                <ThemedText style={styles.expandIconSmall}>
+                                  {isExpanded ? "▼" : "▶"}
+                                </ThemedText>
+                              </TouchableOpacity>
+
+                              {isExpanded ? (
+                                <>
+                                  <ThemedText style={styles.entryTotalBefore}>
+                                    Total (before deductions): {currencySymbol}
+                                    {totalBeforeDeductions.toFixed(2)}
+                                  </ThemedText>
+
+                                  <View style={styles.lineItemRow}>
+                                    <ThemedText style={styles.lineItemLabel}>
+                                      Standard:
+                                    </ThemedText>
+                                    <ThemedText style={styles.lineItemValue}>
+                                      {formatHMClock(entry.input.hoursWorked)} @{" "}
+                                      {currencySymbol}
+                                      {baseRateVal.toFixed(2)}
+                                    </ThemedText>
+                                  </View>
+                                  <ThemedText style={styles.lineItemAmount}>
+                                    {currencySymbol}
+                                    {baseAmount.toFixed(2)}
+                                  </ThemedText>
+
+                                  {overtimeMinutes > 0 ? (
+                                    <>
+                                      <View style={styles.lineItemRow}>
+                                        <ThemedText
+                                          style={styles.lineItemLabel}
+                                        >
+                                          Overtime:
+                                        </ThemedText>
+                                        <ThemedText
+                                          style={styles.lineItemValue}
+                                        >
+                                          {formatHMClock(
+                                            entry.input.overtimeWorked
+                                          )}{" "}
+                                          @ {currencySymbol}
+                                          {overtimeRateVal.toFixed(2)}
+                                        </ThemedText>
+                                      </View>
+                                      <ThemedText style={styles.lineItemAmount}>
+                                        {currencySymbol}
+                                        {overtimeAmount.toFixed(2)}
+                                      </ThemedText>
+                                    </>
+                                  ) : null}
+
+                                  <ThemedText style={styles.deductionText}>
+                                    Tax: {currencySymbol}
+                                    {Number(
+                                      (entry.calculatedPay as any).tax ?? 0
+                                    ).toFixed(2)}
+                                  </ThemedText>
+                                  <ThemedText style={styles.deductionText}>
+                                    NI: {currencySymbol}
+                                    {Number(
+                                      (entry.calculatedPay as any).ni ?? 0
+                                    ).toFixed(2)}
+                                  </ThemedText>
+
+                                  <View style={styles.actionsRow}>
+                                    {hasStaleEntry(entry) ? (
+                                      <View style={{ marginBottom: 8 }}>
+                                        <ThemedText
+                                          style={{ color: "#8E8E93" }}
+                                        >
+                                          Updated tax settings available
+                                        </ThemedText>
+                                        <TouchableOpacity
+                                          style={[
+                                            styles.recalcBtn,
+                                            Platform.OS === "web"
+                                              ? ({ cursor: "pointer" } as any)
+                                              : null,
+                                          ]}
+                                          onPress={() =>
+                                            handleRecalcEntry(entry)
+                                          }
+                                        >
+                                          <ThemedText
+                                            style={styles.recalcBtnText}
+                                          >
+                                            Recalculate with current settings
+                                          </ThemedText>
+                                        </TouchableOpacity>
+                                      </View>
+                                    ) : null}
+                                    <TouchableOpacity
+                                      style={[
+                                        styles.actionsBtn,
+                                        Platform.OS === "web"
+                                          ? ({ cursor: "pointer" } as any)
+                                          : null,
+                                      ]}
+                                      onPress={async () => {
+                                        if (Platform.OS === "web") {
+                                          const ok =
+                                            typeof window !== "undefined" &&
+                                            window.confirm(
+                                              "Remove this saved calculation?"
+                                            );
+                                          if (!ok) return;
+                                          await settingsService.deletePayCalculation(
+                                            entry.id
+                                          );
+                                          setPayHistory((prev) =>
+                                            prev.filter(
+                                              (e) => e.id !== entry.id
+                                            )
+                                          );
+                                          return;
+                                        }
+                                        Alert.alert(
+                                          "Delete entry",
+                                          "Remove this saved calculation?",
+                                          [
+                                            { text: "Cancel", style: "cancel" },
+                                            {
+                                              text: "Delete",
+                                              style: "destructive",
+                                              onPress: async () => {
+                                                await settingsService.deletePayCalculation(
+                                                  entry.id
+                                                );
+                                                setPayHistory((prev) =>
+                                                  prev.filter(
+                                                    (e) => e.id !== entry.id
+                                                  )
+                                                );
+                                              },
+                                            },
+                                          ]
+                                        );
+                                      }}
+                                    >
+                                      <ThemedText style={styles.actionsBtnText}>
+                                        Delete
+                                      </ThemedText>
+                                    </TouchableOpacity>
+                                  </View>
+                                </>
+                              ) : null}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  })
+                )}
+              </>
+            )}
+          </View>
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -1254,6 +1323,12 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  webMaxWidth: {
+    width: "100%",
+    maxWidth: 1200,
+    alignSelf: "center",
+    paddingHorizontal: 16,
   },
   headerRow: {
     paddingHorizontal: 0,
@@ -1574,4 +1649,5 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#007AFF",
   },
+  webPointer: Platform.select({ web: { cursor: "pointer" } as any }),
 });
