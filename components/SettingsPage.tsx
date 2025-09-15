@@ -9,6 +9,7 @@ import {
   PayRules,
   Preferences,
 } from "@/types/settings";
+// Native time picker removed; using dropdowns universally for 24h control
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -80,6 +81,60 @@ export function SettingsPage() {
   const openHelp = (title: string, body: string) =>
     setHelpModal({ visible: true, title, body });
   const closeHelp = () => setHelpModal({ visible: false, title: "", body: "" });
+
+  // 24h time picker options for Night (HH:MM)
+  const hoursOptions = useMemo(
+    () =>
+      Array.from({ length: 24 }, (_, i) => {
+        const s = String(i).padStart(2, "0");
+        return { value: s, label: s };
+      }),
+    []
+  );
+  const minutesOptions = useMemo(
+    () =>
+      Array.from({ length: 60 }, (_, i) => {
+        const s = String(i).padStart(2, "0");
+        return { value: s, label: s };
+      }),
+    []
+  );
+  const splitTime = (t?: string | null) => {
+    const def = { h: "00", m: "00" };
+    if (!t || typeof t !== "string" || !t.includes(":")) return def;
+    const [h, m] = t.split(":");
+    const hh = String(
+      Math.min(23, Math.max(0, parseInt(h || "0", 10) || 0))
+    ).padStart(2, "0");
+    const mm = String(
+      Math.min(59, Math.max(0, parseInt(m || "0", 10) || 0))
+    ).padStart(2, "0");
+    return { h: hh, m: mm };
+  };
+  const joinTime = (h: string, m: string) =>
+    `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+
+  const [activePicker, setActivePicker] = useState<null | "start" | "end">(
+    null
+  );
+  const toDateFromHM = (hm?: string | null) => {
+    const { h, m } = splitTime(hm);
+    const d = new Date();
+    d.setHours(parseInt(h, 10) || 0, parseInt(m, 10) || 0, 0, 0);
+    return d;
+  };
+  const onPickTime = (key: "start" | "end") => (_: any, date?: Date) => {
+    if (Platform.OS !== "ios") setActivePicker(null);
+    if (!date) return;
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    updatePayRules({
+      night: {
+        ...(settings?.payRules?.night || {}),
+        [key]: `${hh}:${mm}`,
+      },
+    });
+  };
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -717,72 +772,138 @@ export function SettingsPage() {
             }}
           />
         </View>
-        <View style={[styles.inlineInputs, { marginTop: 4, flexWrap: "wrap" }]}>
-          <TextInput
-            placeholder="Start (HH:MM)"
-            placeholderTextColor={colors.textSecondary}
-            value={String(settings?.payRules?.night?.start ?? "")}
-            onChangeText={(t) =>
-              updatePayRules({
-                night: { ...(settings?.payRules?.night || {}), start: t },
-              })
-            }
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-          />
-          <TextInput
-            placeholder="End (HH:MM)"
-            placeholderTextColor={colors.textSecondary}
-            value={String(settings?.payRules?.night?.end ?? "")}
-            onChangeText={(t) =>
-              updatePayRules({
-                night: { ...(settings?.payRules?.night || {}), end: t },
-              })
-            }
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-          />
-          <Dropdown
-            compact
-            placeholder="Type"
-            value={settings?.payRules?.night?.type || "percentage"}
-            onChange={(v) =>
-              updatePayRules({
-                night: { ...(settings?.payRules?.night || {}), type: v as any },
-              })
-            }
-            items={[
-              { value: "percentage", label: "Percentage" },
-              { value: "fixed", label: "Fixed" },
-            ]}
-          />
-          <TextInput
-            placeholder="Value"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="decimal-pad"
-            value={nightValueText}
-            onChangeText={setNightValueText}
-            onEndEditing={() => {
-              const n = parseFloat(nightValueText || "");
-              updatePayRules({
-                night: {
-                  ...(settings?.payRules?.night || {}),
-                  value: Number.isNaN(n) ? undefined : n,
-                },
-              });
-            }}
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-          />
+        <View style={{ marginTop: 4 }}>
+          {(() => {
+            const start = splitTime(settings?.payRules?.night?.start);
+            const end = splitTime(settings?.payRules?.night?.end);
+            return (
+              <>
+                <View style={{ marginTop: 6 }}>
+                  <ThemedText
+                    style={{ color: colors.textSecondary, marginBottom: 4 }}
+                  >
+                    Start
+                  </ThemedText>
+                  <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
+                    <Dropdown
+                      compact
+                      placeholder="HH"
+                      value={start.h}
+                      onChange={(v) =>
+                        updatePayRules({
+                          night: {
+                            ...(settings?.payRules?.night || {}),
+                            start: joinTime(String(v), start.m),
+                          },
+                        })
+                      }
+                      items={hoursOptions}
+                    />
+                    <ThemedText style={{ opacity: 0.6 }}>:</ThemedText>
+                    <Dropdown
+                      compact
+                      placeholder="MM"
+                      value={start.m}
+                      onChange={(v) =>
+                        updatePayRules({
+                          night: {
+                            ...(settings?.payRules?.night || {}),
+                            start: joinTime(start.h, String(v)),
+                          },
+                        })
+                      }
+                      items={minutesOptions}
+                    />
+                  </View>
+                </View>
+                <View style={{ marginTop: 10 }}>
+                  <ThemedText
+                    style={{ color: colors.textSecondary, marginBottom: 4 }}
+                  >
+                    End
+                  </ThemedText>
+                  <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
+                    <Dropdown
+                      compact
+                      placeholder="HH"
+                      value={end.h}
+                      onChange={(v) =>
+                        updatePayRules({
+                          night: {
+                            ...(settings?.payRules?.night || {}),
+                            end: joinTime(String(v), end.m),
+                          },
+                        })
+                      }
+                      items={hoursOptions}
+                    />
+                    <ThemedText style={{ opacity: 0.6 }}>:</ThemedText>
+                    <Dropdown
+                      compact
+                      placeholder="MM"
+                      value={end.m}
+                      onChange={(v) =>
+                        updatePayRules({
+                          night: {
+                            ...(settings?.payRules?.night || {}),
+                            end: joinTime(end.h, String(v)),
+                          },
+                        })
+                      }
+                      items={minutesOptions}
+                    />
+                  </View>
+                </View>
+                <View style={{ marginTop: 10 }}>
+                  <ThemedText
+                    style={{ color: colors.textSecondary, marginBottom: 4 }}
+                  >
+                    Type
+                  </ThemedText>
+                  <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
+                    <Dropdown
+                      compact
+                      placeholder="Type"
+                      value={settings?.payRules?.night?.type || "percentage"}
+                      onChange={(v) =>
+                        updatePayRules({
+                          night: {
+                            ...(settings?.payRules?.night || {}),
+                            type: v as any,
+                          },
+                        })
+                      }
+                      items={[
+                        { value: "percentage", label: "Percentage" },
+                        { value: "fixed", label: "Fixed" },
+                      ]}
+                    />
+                    <TextInput
+                      placeholder="Value"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="decimal-pad"
+                      value={nightValueText}
+                      onChangeText={setNightValueText}
+                      onEndEditing={() => {
+                        const n = parseFloat(nightValueText || "");
+                        updatePayRules({
+                          night: {
+                            ...(settings?.payRules?.night || {}),
+                            value: Number.isNaN(n) ? undefined : n,
+                          },
+                        });
+                      }}
+                      style={[
+                        styles.input,
+                        styles.flex1,
+                        { color: colors.text, borderColor: colors.border },
+                      ]}
+                    />
+                  </View>
+                </View>
+              </>
+            );
+          })()}
           <TouchableOpacity
             onPress={() =>
               openHelp(

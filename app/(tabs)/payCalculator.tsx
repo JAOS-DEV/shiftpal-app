@@ -349,6 +349,11 @@ export default function PayCalculatorScreen() {
     return Math.max(0, Math.min(59, Math.floor(n)));
   };
 
+  const clampHours = (n: number) => {
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(24, Math.floor(n)));
+  };
+
   const baseRates = (settings?.payRates || []).filter(
     (r) => r.type === "base" || r.type === "premium"
   );
@@ -740,7 +745,7 @@ export default function PayCalculatorScreen() {
                             ? setTrackerHoursWorked
                             : setManualHoursWorked)((p) => ({
                             ...p,
-                            hours: parseNumber(workedHoursText),
+                            hours: clampHours(parseNumber(workedHoursText)),
                           }))
                         }
                       />
@@ -781,7 +786,7 @@ export default function PayCalculatorScreen() {
                             ? setTrackerOvertimeWorked
                             : setManualOvertimeWorked)((p) => ({
                             ...p,
-                            hours: parseNumber(otHoursText),
+                            hours: clampHours(parseNumber(otHoursText)),
                           }))
                         }
                       />
@@ -822,7 +827,9 @@ export default function PayCalculatorScreen() {
                             onEndEditing={() =>
                               setManualNightBase((p) => ({
                                 ...p,
-                                hours: parseNumber(nightBaseHoursText),
+                                hours: clampHours(
+                                  parseNumber(nightBaseHoursText)
+                                ),
                               }))
                             }
                           />
@@ -861,7 +868,9 @@ export default function PayCalculatorScreen() {
                             onEndEditing={() =>
                               setManualNightOt((p) => ({
                                 ...p,
-                                hours: parseNumber(nightOtHoursText),
+                                hours: clampHours(
+                                  parseNumber(nightOtHoursText)
+                                ),
                               }))
                             }
                           />
