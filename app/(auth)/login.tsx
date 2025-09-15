@@ -2,6 +2,7 @@ import ShiftPalLogo from "@/assets/images/shiftpal.svg";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/providers/AuthProvider";
+import { notify } from "@/utils/notify";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -25,14 +26,17 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isLoading = loading;
 
   async function onSubmit() {
     setError(null);
     setLoading(true);
     try {
       await signInWithEmail(email, password);
+      notify.success("Logged in");
     } catch (e: any) {
       setError(e?.message ?? "Failed to sign in");
+      notify.error("Login failed", e?.message ?? undefined);
     } finally {
       setLoading(false);
     }
@@ -51,6 +55,31 @@ export default function LoginScreen() {
           <View style={styles.logoWrap}>
             <ShiftPalLogo width={72} height={72} />
           </View>
+          {isLoading ? (
+            <View style={{ gap: 10 }}>
+              <View
+                style={{
+                  height: 16,
+                  backgroundColor: "#EDEDED",
+                  borderRadius: 8,
+                }}
+              />
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: "#F3F3F3",
+                  borderRadius: 12,
+                }}
+              />
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: "#F3F3F3",
+                  borderRadius: 12,
+                }}
+              />
+            </View>
+          ) : null}
           {!!error && <Text style={styles.error}>{error}</Text>}
           <TextInput
             style={styles.input}

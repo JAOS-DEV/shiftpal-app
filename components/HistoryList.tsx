@@ -1,6 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { Day, HistoryFilter, Submission } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
+import * as Haptics from "expo-haptics";
 import React, { useRef, useState } from "react";
 import {
   Alert,
@@ -21,6 +22,9 @@ interface HistoryListProps {
   onFilterChange: (filter: HistoryFilter) => void;
   onDeleteDay: (date: string) => void;
   onDeleteSubmission?: (date: string, submissionId: string) => void;
+  loading?: boolean;
+  errorMessage?: string | null;
+  onRetry?: () => void;
 }
 
 export function HistoryList({
@@ -29,11 +33,19 @@ export function HistoryList({
   onFilterChange,
   onDeleteDay,
   onDeleteSubmission,
+  loading = false,
+  errorMessage = null,
+  onRetry,
 }: HistoryListProps) {
   const { colors } = useTheme();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
   const toggleDayExpansion = (dayId: string) => {
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.selectionAsync().catch(() => {});
+      }
+    } catch {}
     const newExpanded = new Set(expandedDays);
     if (newExpanded.has(dayId)) {
       newExpanded.delete(dayId);
@@ -55,6 +67,11 @@ export function HistoryList({
 
     if (Platform.OS === "web") {
       if (confirm(message)) {
+        try {
+          Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Warning
+          ).catch(() => {});
+        } catch {}
         onDeleteDay(date);
       }
     } else {
@@ -63,7 +80,14 @@ export function HistoryList({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => onDeleteDay(date),
+          onPress: () => {
+            try {
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              ).catch(() => {});
+            } catch {}
+            onDeleteDay(date);
+          },
         },
       ]);
     }
@@ -86,6 +110,55 @@ export function HistoryList({
       { color: "white" },
     ],
   ];
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="subtitle" style={styles.title}>
+          History
+        </ThemedText>
+        <View style={styles.skeletonList}>
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={[styles.skeletonRow, { borderColor: colors.border }]}
+            >
+              <View style={[styles.skeletonBlock, { width: "60%" }]} />
+              <View style={[styles.skeletonBlock, { width: 80 }]} />
+            </View>
+          ))}
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="subtitle" style={styles.title}>
+          History
+        </ThemedText>
+        <View style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyText}>
+            Failed to load history
+          </ThemedText>
+          <ThemedText style={styles.emptySubtext}>
+            {String(errorMessage)}
+          </ThemedText>
+          {onRetry ? (
+            <TouchableOpacity
+              style={[styles.filterButton, { borderColor: colors.primary }]}
+              onPress={onRetry}
+            >
+              <ThemedText style={{ color: colors.primary, fontWeight: "600" }}>
+                Retry
+              </ThemedText>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </ThemedView>
+    );
+  }
 
   if (days.length === 0) {
     return (
@@ -453,14 +526,28 @@ function SubmissionBlock({
 
     const message = `Delete this submission from ${formatDateDisplay(date)}?`;
     if (Platform.OS === "web") {
-      if (confirm(message)) onDeleteSubmission(date, submission.id);
+      if (confirm(message)) {
+        try {
+          Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Warning
+          ).catch(() => {});
+        } catch {}
+        onDeleteSubmission(date, submission.id);
+      }
     } else {
       Alert.alert("Delete Submission", message, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => onDeleteSubmission(date, submission.id),
+          onPress: () => {
+            try {
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              ).catch(() => {});
+            } catch {}
+            onDeleteSubmission(date, submission.id);
+          },
         },
       ]);
     }
@@ -712,6 +799,22 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     opacity: 0.4,
+  },
+  skeletonList: {
+    gap: 8,
+  },
+  skeletonRow: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  skeletonBlock: {
+    height: 14,
+    backgroundColor: "#EDEDED",
+    borderRadius: 8,
   },
   filtersContainer: {
     flexDirection: "row",

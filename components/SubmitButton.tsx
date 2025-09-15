@@ -1,7 +1,8 @@
 import { Shift } from "@/types/shift";
+import { notify } from "@/utils/notify";
+import * as Haptics from "expo-haptics";
 import React from "react";
 import { Alert, Platform, StyleSheet, TouchableOpacity } from "react-native";
-import Toast from "react-native-toast-message";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
@@ -28,6 +29,11 @@ export function SubmitButton({
   );
 
   const handleSubmit = () => {
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }
+    } catch {}
     console.log("SubmitButton: handleSubmit called");
     console.log("SubmitButton: Platform =", Platform.OS);
     console.log("SubmitButton: shifts.length =", shifts.length);
@@ -49,15 +55,13 @@ export function SubmitButton({
     onSubmit();
 
     // Optional: lightweight feedback on press
-    Toast.show({
-      type: "info",
-      text1: "Submitting",
-      text2: `Saving ${shifts.length} shift${
+    notify.info(
+      "Submitting",
+      `Saving ${shifts.length} shift${
         shifts.length > 1 ? "s" : ""
       } to history...`,
-      position: "bottom",
-      visibilityTime: 1500,
-    });
+      { visibilityTime: 1500 }
+    );
   };
 
   return (

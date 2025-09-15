@@ -12,6 +12,7 @@ import {
   PayCalculationEntry,
   PayCalculationInput,
 } from "@/types/settings";
+import { notify } from "@/utils/notify";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
@@ -28,7 +29,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 type Mode = "tracker" | "manual";
 type TopTab = "calculator" | "history";
@@ -78,6 +78,8 @@ export default function PayCalculatorScreen() {
   const [breakdown, setBreakdown] = useState<PayBreakdown | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [payHistory, setPayHistory] = useState<PayCalculationEntry[]>([]);
+  const [loadingSettings, setLoadingSettings] = useState<boolean>(true);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [period, setPeriod] = useState<PeriodFilter>("week");
   const [settingsVersion, setSettingsVersion] = useState<string>("");
   const [currentVersion, setCurrentVersion] = useState<string>("");
@@ -102,6 +104,7 @@ export default function PayCalculatorScreen() {
   useEffect(() => {
     const load = async () => {
       if (!isFocused) return;
+      setLoadingSettings(true);
       const s = await settingsService.getSettings();
       setSettings(s);
       const base = s.payRates.find((r) => r.type === "base");
@@ -113,6 +116,7 @@ export default function PayCalculatorScreen() {
         setTrackerHoursWorked(hm);
         // preserve previously entered tracker overtime; do not reset
       }
+      setLoadingSettings(false);
     };
     load();
     // Subscribe to live settings changes (e.g., when modified in Settings screen)
@@ -139,6 +143,7 @@ export default function PayCalculatorScreen() {
   useEffect(() => {
     const loadHistory = async () => {
       if (topTab !== "history" || !isFocused) return;
+      setLoadingHistory(true);
       const list = await settingsService.getPayHistory();
       setPayHistory(list);
       const v = await settingsService.getHistorySettingsVersion();
@@ -146,6 +151,7 @@ export default function PayCalculatorScreen() {
       // Determine the latest version seen in history items (fallback "")
       const seen = list.find((e) => e.settingsVersion)?.settingsVersion || "";
       setSettingsVersion(seen);
+      setLoadingHistory(false);
     };
     void loadHistory();
   }, [topTab, isFocused]);
@@ -324,14 +330,12 @@ export default function PayCalculatorScreen() {
       await settingsService.savePayCalculation(entry);
       // Optimistically prepend to local history so History tab reflects immediately
       setPayHistory((prev) => [entry, ...prev]);
-      Toast.show({
-        type: "success",
-        text1: "Saved",
-        text2: `${formatDateDisplay(
+      notify.success(
+        "Saved",
+        `${formatDateDisplay(
           date
-        )} • Total ${currencySymbol}${breakdown.total.toFixed(2)}`,
-        position: "bottom",
-      });
+        )} • Total ${currencySymbol}${breakdown.total.toFixed(2)}`
+      );
     } catch (e) {
       Alert.alert("Error", "Failed to save pay calculation");
     } finally {
@@ -527,12 +531,7 @@ export default function PayCalculatorScreen() {
       setCurrentVersion(v);
     } catch {}
     setPendingUndo({ ids: [entry.id], prev: [before] });
-    Toast.show({
-      type: "success",
-      text1: "Recalculated",
-      text2: "Entry updated • Undo available",
-      position: "bottom",
-    });
+    notify.success("Recalculated", "Entry updated • Undo available");
   };
 
   const handleRecalcBulk = async (ids: string[]) => {
@@ -546,14 +545,12 @@ export default function PayCalculatorScreen() {
       setCurrentVersion(v);
     } catch {}
     setPendingUndo({ ids, prev: snapshot });
-    Toast.show({
-      type: "success",
-      text1: "Recalculated",
-      text2: `${updated.length} entr${
+    notify.success(
+      "Recalculated",
+      `${updated.length} entr${
         updated.length === 1 ? "y" : "ies"
-      } updated • Undo available`,
-      position: "bottom",
-    });
+      } updated • Undo available`
+    );
   };
 
   const handleUndo = async () => {
@@ -565,7 +562,7 @@ export default function PayCalculatorScreen() {
     const fresh = await settingsService.getPayHistory();
     setPayHistory(fresh);
     setPendingUndo(null);
-    Toast.show({ type: "info", text1: "Undone", position: "bottom" });
+    notify.info("Undone");
   };
 
   return (
@@ -594,6 +591,40 @@ export default function PayCalculatorScreen() {
           <View style={Platform.OS === "web" ? styles.webMaxWidth : undefined}>
             {topTab === "calculator" ? (
               <>
+                {/* Loading skeleton for settings-dependent UI */}
+                {loadingSettings ? (
+                  <View style={styles.card}>
+                    <ThemedText type="subtitle" style={styles.cardTitle}>
+                      Loading…
+                    </ThemedText>
+                    <View style={{ gap: 8 }}>
+                      <View
+                        style={{
+                          height: 14,
+                          backgroundColor: "#EDEDED",
+                          borderRadius: 8,
+                        }}
+                      />
+                      <View
+                        style={{
+                          height: 14,
+                          backgroundColor: "#EDEDED",
+                          borderRadius: 8,
+                          width: "70%",
+                        }}
+                      />
+                      <View
+                        style={{
+                          height: 120,
+                          backgroundColor: "#F3F3F3",
+                          borderRadius: 12,
+                          marginTop: 8,
+                        }}
+                      />
+                    </View>
+                  </View>
+                ) : null}
+
                 <DateSelector selectedDate={date} onDateChange={setDate} />
 
                 {/* Inner mode toggle: Tracker | Manual (match Home style) */}
@@ -980,6 +1011,26 @@ export default function PayCalculatorScreen() {
               </>
             ) : (
               <>
+                {/* Loading skeleton for history list */}
+                {loadingHistory ? (
+                  <View style={styles.card}>
+                    <ThemedText type="subtitle" style={styles.cardTitle}>
+                      History
+                    </ThemedText>
+                    <View style={{ gap: 8 }}>
+                      {[0, 1, 2].map((i) => (
+                        <View
+                          key={i}
+                          style={{
+                            height: 52,
+                            backgroundColor: "#F3F3F3",
+                            borderRadius: 12,
+                          }}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
                 {/* Period Filter */}
                 <View style={styles.periodHeader}>
                   <SegmentedSwitcher

@@ -1,6 +1,13 @@
 import { Shift } from "@/types/shift";
-import React from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import {
+  Alert,
+  FlatList,
+  ListRenderItemInfo,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
@@ -44,24 +51,38 @@ export function ShiftEntriesList({
     );
   }
 
+  const data = useMemo(() => shifts, [shifts]);
+  const keyExtractor = useCallback((item: Shift) => item.id, []);
+  const renderItem = useCallback(
+    ({ item, index }: ListRenderItemInfo<Shift>) => (
+      <ShiftRow
+        shift={item}
+        index={index}
+        onRemove={() =>
+          handleRemoveShift(item.id, `${item.start} - ${item.end}`)
+        }
+      />
+    ),
+    [handleRemoveShift]
+  );
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
         Shifts for Today ({shifts.length})
       </ThemedText>
 
-      <View style={styles.listContainer}>
-        {shifts.map((shift, index) => (
-          <ShiftRow
-            key={shift.id}
-            shift={shift}
-            index={index}
-            onRemove={() =>
-              handleRemoveShift(shift.id, `${shift.start} - ${shift.end}`)
-            }
-          />
-        ))}
-      </View>
+      <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        initialNumToRender={8}
+        windowSize={5}
+      />
     </ThemedView>
   );
 }
@@ -72,7 +93,11 @@ interface ShiftRowProps {
   onRemove: () => void;
 }
 
-function ShiftRow({ shift, index, onRemove }: ShiftRowProps) {
+const ShiftRow = React.memo(function ShiftRow({
+  shift,
+  index,
+  onRemove,
+}: ShiftRowProps) {
   return (
     <View style={styles.shiftRow}>
       <View style={styles.shiftInfo}>
@@ -111,7 +136,7 @@ function ShiftRow({ shift, index, onRemove }: ShiftRowProps) {
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

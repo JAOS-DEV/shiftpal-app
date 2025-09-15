@@ -10,6 +10,7 @@ import {
   Preferences,
 } from "@/types/settings";
 // Native time picker removed; using dropdowns universally for 24h control
+import { notify } from "@/utils/notify";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -259,7 +260,7 @@ export function SettingsPage() {
 
   const addRate = async () => {
     if (!newRate.label || !newRate.value) return;
-    const valueNum = parseFloat(newRate.value);
+    const valueNum = parseFloat(newRate.value.replace(/[^0-9.\-]/g, ""));
     if (Number.isNaN(valueNum)) return;
     const created = await settingsService.addPayRate({
       label: newRate.label,
@@ -284,11 +285,13 @@ export function SettingsPage() {
   const updatePreferences = async (updates: Partial<Preferences>) => {
     const next = await settingsService.setPreferences(updates);
     setSettings(next);
+    notify.success("Saved");
   };
 
   const updatePayRules = async (updates: Partial<PayRules>) => {
     const next = await settingsService.setPayRules(updates);
     setSettings(next);
+    notify.success("Saved");
   };
 
   const cycle = <T,>(current: T, options: T[]): T => {
@@ -543,15 +546,21 @@ export function SettingsPage() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               value={overtimeDailyThresholdText}
-              onChangeText={setOvertimeDailyThresholdText}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/[^0-9]/g, "");
+                setOvertimeDailyThresholdText(cleaned);
+              }}
               onEndEditing={() => {
-                const n = parseFloat(overtimeDailyThresholdText || "");
+                let n = parseFloat(overtimeDailyThresholdText || "");
+                if (Number.isNaN(n)) n = 0;
+                n = Math.max(0, n);
+                setOvertimeDailyThresholdText(String(n));
                 updatePayRules({
                   overtime: {
                     ...(settings?.payRules?.overtime || {}),
                     daily: {
                       ...((settings?.payRules?.overtime as any)?.daily || {}),
-                      threshold: Number.isNaN(n) ? undefined : n,
+                      threshold: n,
                     },
                   } as any,
                 });
@@ -592,10 +601,23 @@ export function SettingsPage() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={overtimeDailyValueText}
-              onChangeText={setOvertimeDailyValueText}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/[^0-9.\-]/g, "");
+                setOvertimeDailyValueText(cleaned);
+              }}
               onEndEditing={() => {
-                const n = parseFloat(overtimeDailyValueText || "");
-                const value = Number.isNaN(n) ? undefined : n;
+                let n = parseFloat(overtimeDailyValueText || "");
+                if (Number.isNaN(n)) n = 0;
+                if (
+                  (overtimeDailyMode ||
+                    (settings?.payRules?.overtime as any)?.daily?.mode) ===
+                  "multiplier"
+                ) {
+                  n = Math.max(0.01, Math.min(5, n));
+                } else {
+                  n = Math.max(0, n);
+                }
+                const value = n;
                 const dailyPrev =
                   (settings?.payRules?.overtime as any)?.daily || {};
                 updatePayRules({
@@ -615,6 +637,7 @@ export function SettingsPage() {
                     },
                   } as any,
                 });
+                setOvertimeDailyValueText(String(value));
               }}
               style={[
                 styles.input,
@@ -643,15 +666,21 @@ export function SettingsPage() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               value={overtimeWeeklyThresholdText}
-              onChangeText={setOvertimeWeeklyThresholdText}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/[^0-9]/g, "");
+                setOvertimeWeeklyThresholdText(cleaned);
+              }}
               onEndEditing={() => {
-                const n = parseFloat(overtimeWeeklyThresholdText || "");
+                let n = parseFloat(overtimeWeeklyThresholdText || "");
+                if (Number.isNaN(n)) n = 0;
+                n = Math.max(0, n);
+                setOvertimeWeeklyThresholdText(String(n));
                 updatePayRules({
                   overtime: {
                     ...(settings?.payRules?.overtime || {}),
                     weekly: {
                       ...((settings?.payRules?.overtime as any)?.weekly || {}),
-                      threshold: Number.isNaN(n) ? undefined : n,
+                      threshold: n,
                     },
                   } as any,
                 });
@@ -692,10 +721,23 @@ export function SettingsPage() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={overtimeWeeklyValueText}
-              onChangeText={setOvertimeWeeklyValueText}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/[^0-9.\-]/g, "");
+                setOvertimeWeeklyValueText(cleaned);
+              }}
               onEndEditing={() => {
-                const n = parseFloat(overtimeWeeklyValueText || "");
-                const value = Number.isNaN(n) ? undefined : n;
+                let n = parseFloat(overtimeWeeklyValueText || "");
+                if (Number.isNaN(n)) n = 0;
+                if (
+                  (overtimeWeeklyMode ||
+                    (settings?.payRules?.overtime as any)?.weekly?.mode) ===
+                  "multiplier"
+                ) {
+                  n = Math.max(0.01, Math.min(5, n));
+                } else {
+                  n = Math.max(0, n);
+                }
+                const value = n;
                 const weeklyPrev =
                   (settings?.payRules?.overtime as any)?.weekly || {};
                 updatePayRules({
@@ -715,6 +757,7 @@ export function SettingsPage() {
                     },
                   } as any,
                 });
+                setOvertimeWeeklyValueText(String(value));
               }}
               style={[
                 styles.input,
@@ -883,15 +926,28 @@ export function SettingsPage() {
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="decimal-pad"
                       value={nightValueText}
-                      onChangeText={setNightValueText}
+                      onChangeText={(t) => {
+                        const cleaned = t.replace(/[^0-9.\-]/g, "");
+                        setNightValueText(cleaned);
+                      }}
                       onEndEditing={() => {
-                        const n = parseFloat(nightValueText || "");
+                        let n = parseFloat(nightValueText || "");
+                        if (Number.isNaN(n)) n = 0;
+                        if (
+                          (settings?.payRules?.night?.type || "percentage") ===
+                          "percentage"
+                        ) {
+                          n = Math.max(0, Math.min(100, n));
+                        } else {
+                          n = Math.max(0, n);
+                        }
                         updatePayRules({
                           night: {
                             ...(settings?.payRules?.night || {}),
-                            value: Number.isNaN(n) ? undefined : n,
+                            value: n,
                           },
                         });
+                        setNightValueText(String(n));
                       }}
                       style={[
                         styles.input,
@@ -978,13 +1034,19 @@ export function SettingsPage() {
               )
             }
             value={taxPctText}
-            onChangeText={setTaxPctText}
+            onChangeText={(t) => {
+              const cleaned = t.replace(/[^0-9.\-]/g, "");
+              setTaxPctText(cleaned);
+            }}
             onEndEditing={() => {
-              const n = parseFloat(taxPctText || "");
+              let n = parseFloat(taxPctText || "");
+              if (Number.isNaN(n)) n = 0;
+              n = Math.max(0, Math.min(100, n));
+              setTaxPctText(String(n));
               updatePayRules({
                 tax: {
                   ...(settings?.payRules?.tax || {}),
-                  percentage: Number.isNaN(n) ? undefined : n,
+                  percentage: n,
                   type: "flat",
                 },
               });
@@ -1064,13 +1126,19 @@ export function SettingsPage() {
               )
             }
             value={niPctText}
-            onChangeText={setNiPctText}
+            onChangeText={(t) => {
+              const cleaned = t.replace(/[^0-9.\-]/g, "");
+              setNiPctText(cleaned);
+            }}
             onEndEditing={() => {
-              const n = parseFloat(niPctText || "");
+              let n = parseFloat(niPctText || "");
+              if (Number.isNaN(n)) n = 0;
+              n = Math.max(0, Math.min(100, n));
+              setNiPctText(String(n));
               updatePayRules({
                 ni: {
                   ...(settings?.payRules?.ni || {}),
-                  percentage: Number.isNaN(n) ? undefined : n,
+                  percentage: n,
                   type: "flat",
                 },
               });
@@ -1192,23 +1260,27 @@ export function SettingsPage() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={weekendValueText}
-              onChangeText={setWeekendValueText}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/[^0-9.\-]/g, "");
+                setWeekendValueText(cleaned);
+              }}
               onEndEditing={() => {
-                const n = parseFloat(weekendValueText || "");
+                let n = parseFloat(weekendValueText || "");
+                if (Number.isNaN(n)) n = 0;
+                if (weekendMode === "multiplier") {
+                  n = Math.max(0.01, Math.min(5, n));
+                } else {
+                  n = Math.max(0, n);
+                }
                 updatePayRules({
                   weekend: {
                     ...(settings?.payRules?.weekend || {}),
                     // store in new fields; keep legacy untouched
-                    multiplier:
-                      weekendMode === "multiplier" && !Number.isNaN(n)
-                        ? n
-                        : undefined,
-                    uplift:
-                      weekendMode === "fixed" && !Number.isNaN(n)
-                        ? n
-                        : undefined,
+                    multiplier: weekendMode === "multiplier" ? n : undefined,
+                    uplift: weekendMode === "fixed" ? n : undefined,
                   },
                 });
+                setWeekendValueText(String(n));
               }}
               style={[
                 styles.input,
@@ -1403,13 +1475,19 @@ export function SettingsPage() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               value={payPeriodStartDateText}
-              onChangeText={setPayPeriodStartDateText}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/[^0-9]/g, "");
+                setPayPeriodStartDateText(cleaned);
+              }}
               onEndEditing={() => {
-                const n = parseInt(payPeriodStartDateText || "", 10);
+                let n = parseInt(payPeriodStartDateText || "", 10);
+                if (Number.isNaN(n)) n = 1;
+                n = Math.max(1, Math.min(31, n));
+                setPayPeriodStartDateText(String(n));
                 updatePayRules({
                   payPeriod: {
                     ...(settings?.payRules?.payPeriod || { cycle: "monthly" }),
-                    startDate: Number.isNaN(n) ? undefined : n,
+                    startDate: n,
                   },
                 });
               }}
@@ -1564,9 +1642,12 @@ export function SettingsPage() {
                 value={weeklyGoalText}
                 onChangeText={setWeeklyGoalText}
                 onEndEditing={async () => {
-                  const n = parseFloat(weeklyGoalText || "");
+                  let n = parseFloat(weeklyGoalText || "");
+                  if (Number.isNaN(n)) n = 0;
+                  n = Math.max(0, n);
+                  setWeeklyGoalText(String(n));
                   const next = await settingsService.setPreferences({
-                    weeklyGoal: Number.isNaN(n) ? undefined : n,
+                    weeklyGoal: n,
                   });
                   setSettings(next);
                 }}
@@ -1589,9 +1670,12 @@ export function SettingsPage() {
                 value={monthlyGoalText}
                 onChangeText={setMonthlyGoalText}
                 onEndEditing={async () => {
-                  const n = parseFloat(monthlyGoalText || "");
+                  let n = parseFloat(monthlyGoalText || "");
+                  if (Number.isNaN(n)) n = 0;
+                  n = Math.max(0, n);
+                  setMonthlyGoalText(String(n));
                   const next = await settingsService.setPreferences({
-                    monthlyGoal: Number.isNaN(n) ? undefined : n,
+                    monthlyGoal: n,
                   });
                   setSettings(next);
                 }}

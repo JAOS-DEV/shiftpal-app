@@ -11,15 +11,16 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { shiftService } from "@/services/shiftService";
 import { Day, HistoryFilter, Shift } from "@/types/shift";
+import { notify } from "@/utils/notify";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 type Tab = "tracker" | "history";
 
@@ -164,13 +165,12 @@ export default function HomeScreen() {
         });
       } catch {}
 
-      Toast.show({
+      notify({
         type: "success",
-        text1: "Day submitted",
-        text2: `${actionText} • ${shifts.length} shift${
+        message: "Day submitted",
+        description: `${actionText} • ${shifts.length} shift${
           shifts.length > 1 ? "s" : ""
         } • ${formatDateDisplay(selectedDate)} • Total ${timeText}`,
-        position: "bottom",
       });
 
       // Refresh history if we're on that tab
@@ -192,6 +192,11 @@ export default function HomeScreen() {
   };
 
   const handleTabChange = (tab: Tab) => {
+    try {
+      if (Platform.OS !== "web") {
+        Haptics.selectionAsync().catch(() => {});
+      }
+    } catch {}
     setActiveTab(tab);
     AsyncStorage.setItem("shiftpal.ui.active_tab", tab).catch(() => {});
   };

@@ -1,4 +1,5 @@
 import { shiftService } from "@/services/shiftService";
+import { notify } from "@/utils/notify";
 import {
   calculateDuration,
   formatDurationText,
@@ -17,7 +18,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Toast from "react-native-toast-message";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 import { IconSymbol } from "./ui/IconSymbol";
@@ -175,6 +175,8 @@ export function ShiftInputSection({
 
     onAddShift(startTime, endTime);
 
+    notify.success("Shift added", `Recorded ${formatDurationText(duration)}`);
+
     // Reset inputs
     setStartTime("");
     setEndTime("");
@@ -276,12 +278,7 @@ export function ShiftInputSection({
         ? ` (breaks ${shift.breakMinutes}m included)`
         : ` (breaks ${shift.breakMinutes}m excluded)`
       : "";
-    Toast.show({
-      type: "success",
-      text1: "Shift added",
-      text2: `Recorded ${shift.durationText}${suffix}`,
-      position: "bottom",
-    });
+    notify.success("Shift added", `Recorded ${shift.durationText}${suffix}`);
   };
 
   return (
