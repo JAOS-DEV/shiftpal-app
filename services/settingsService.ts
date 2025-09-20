@@ -11,6 +11,7 @@ import {
   PayRules,
   Preferences,
 } from "@/types/settings";
+import { timeToMinutes } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { shiftService } from "./shiftService";
 
@@ -47,7 +48,7 @@ function defaultSettings(): AppSettings {
       timeFormat: "24h",
       stackingRule: "stack",
       holidayRecognition: false,
-      roundingRule: "15min",
+      roundingRule: "none",
       weeklyGoal: 1000,
       monthlyGoal: 4000,
     },
@@ -397,21 +398,13 @@ class SettingsService {
       input.nightOvertimeHours || { hours: 0, minutes: 0 }
     );
 
-    // Derive overtime for tracker mode using daily threshold, if provided and overtime input looks zero
+    // Prepare base and overtime hours; allow tracker auto-split to override later
     let baseHours = baseHoursRaw;
     let overtimeHours = overtimeHoursRaw;
-    if (input.mode === "tracker" && overtimeRules?.dailyThreshold) {
-      const threshold = overtimeRules.dailyThreshold;
-      if (baseHoursRaw > threshold && overtimeHoursRaw === 0) {
-        overtimeHours = baseHoursRaw - threshold;
-        baseHours = threshold;
-      }
-    }
 
-    baseHours = this.roundHours(baseHours, prefs.roundingRule);
-    overtimeHours = this.roundHours(overtimeHours, prefs.roundingRule);
-    const nightBaseHours = this.roundHours(nightBaseRaw, prefs.roundingRule);
-    const nightOvertimeHours = this.roundHours(nightOtRaw, prefs.roundingRule);
+    // Use minute precision: do not round hours
+    const nightBaseHours = nightBaseRaw;
+    const nightOvertimeHours = nightOtRaw;
 
     // Determine per-hour rates considering overtime model and weekend uplift
     const basePerHour = this.applyWeekendToRate(
@@ -484,11 +477,10 @@ class SettingsService {
     let basePay = basePerHour * baseHours;
     let overtimePay = overtimePerHour * overtimeHours;
 
-    // Night uplift (calculator/manual mode only for now): allocate night hours
+    // Night uplift: allocate night hours (applies in both manual and tracker modes)
     const nightRules = settings.payRules?.night;
     let nightUplift = 0;
     if (
-      input.mode === "manual" &&
       nightRules &&
       (nightRules as any)?.enabled !== false &&
       (nightBaseHours > 0 || nightOvertimeHours > 0)
@@ -565,6 +557,91 @@ class SettingsService {
       tax: this.toMoney(tax),
       ni: this.toMoney(ni),
       total: this.toMoney(total),
+    };
+  }
+
+  /**
+   * Derive base vs overtime allocation for a date in tracker mode
+   * Uses the active overtime basis (daily/weekly) and thresholds
+   */
+  async deriveTrackerOvertimeSplitForDate(
+    date: string,
+    settings: AppSettings
+  ): Promise<{ base: HoursAndMinutes; overtime: HoursAndMinutes }> {
+    // Collect all shifts for the date: unsubmitted + submitted
+    const unsubmitted = await shiftService.getShiftsForDate(date);
+    let submittedShifts: Array<{
+      start: string;
+      end: string;
+      durationMinutes?: number;
+    }> = [];
+    try {
+      const days = await shiftService.getSubmittedDays({ type: "all" });
+      const day = days.find((d) => d.date === date);
+      if (day?.submissions?.length) {
+        for (const s of day.submissions) {
+          submittedShifts.push(...((s.shifts || []) as any));
+        }
+      }
+    } catch {}
+    const allShifts: Array<{
+      start: string;
+      end: string;
+      durationMinutes?: number;
+    }> = [...unsubmitted, ...submittedShifts] as any;
+
+    const totalMinutes = allShifts.reduce(
+      (sum, sh) => sum + (sh.durationMinutes ?? 0),
+      0
+    );
+    if (totalMinutes <= 0) {
+      return {
+        base: { hours: 0, minutes: 0 },
+        overtime: { hours: 0, minutes: 0 },
+      };
+    }
+
+    // Determine base vs overtime minutes for the date according to active basis
+    const ot = (settings?.payRules?.overtime || {}) as any;
+    const active = ot?.active as "daily" | "weekly" | undefined;
+    let baseMinutes = totalMinutes;
+    let otMinutes = 0;
+    if (active === "daily" && typeof ot?.daily?.threshold === "number") {
+      const thresholdMin = Math.max(0, ot.daily.threshold * 60);
+      baseMinutes = Math.min(totalMinutes, thresholdMin);
+      otMinutes = Math.max(0, totalMinutes - baseMinutes);
+    } else if (
+      active === "weekly" &&
+      typeof ot?.weekly?.threshold === "number"
+    ) {
+      const thresholdMin = Math.max(0, ot.weekly.threshold * 60);
+      const startDay = settings?.payRules?.payPeriod?.startDay || "Monday";
+      const weekInfo = await this.getWeekRange(date, startDay);
+      // Sum minutes before the given date in the same week
+      let prevMinutes = 0;
+      try {
+        const days = await shiftService.getSubmittedDays({ type: "all" });
+        for (const d of days) {
+          if (d.date >= weekInfo.start && d.date < date) {
+            prevMinutes += Math.max(0, d.totalMinutes || 0);
+          }
+        }
+      } catch {}
+      if (prevMinutes >= thresholdMin) {
+        baseMinutes = 0;
+        otMinutes = totalMinutes;
+      } else if (prevMinutes + totalMinutes <= thresholdMin) {
+        baseMinutes = totalMinutes;
+        otMinutes = 0;
+      } else {
+        baseMinutes = thresholdMin - prevMinutes;
+        otMinutes = Math.max(0, totalMinutes - baseMinutes);
+      }
+    }
+
+    return {
+      base: { hours: Math.floor(baseMinutes / 60), minutes: baseMinutes % 60 },
+      overtime: { hours: Math.floor(otMinutes / 60), minutes: otMinutes % 60 },
     };
   }
 
@@ -752,7 +829,7 @@ class SettingsService {
 
   /**
    * Derive night allocation for a date in tracker mode using recorded shifts
-   * Night minutes are proportionally split between base and overtime according to the active overtime basis
+   * Night minutes are allocated chronologically: minutes after the base threshold count as OT night
    */
   async deriveTrackerNightAllocationForDate(
     date: string,
@@ -849,8 +926,50 @@ class SettingsService {
         nightOvertime: { hours: 0, minutes: 0 },
       };
     }
-    const nightBase = Math.round((nightMinutes * baseMinutes) / totalMinutes);
-    const nightOt = Math.max(0, nightMinutes - nightBase);
+    // Chronological allocation for daily basis: count night minutes falling after threshold as OT night
+    let nightBase = nightMinutes;
+    let nightOt = 0;
+    if (active === "daily" && typeof ot?.daily?.threshold === "number") {
+      // Build per-minute mask across the day for shifts and night window, then walk from 0..1440
+      // This avoids proportional splitting and matches real-time accumulation.
+      const thresholdMin = Math.max(0, ot.daily.threshold * 60);
+      // Create timeline occupancy for the day from recorded shifts
+      const occ: boolean[] = new Array(1440).fill(false);
+      for (const sh of allShifts) {
+        const s = timeToMinutes(sh.start);
+        let e = timeToMinutes(sh.end);
+        if (e <= s) e += 1440; // overnight
+        for (let m = s; m < e; m++) occ[m % 1440] = true;
+      }
+      // Night window minutes
+      const nightMask: boolean[] = new Array(1440).fill(false);
+      const intervals: Array<[number, number]> = [];
+      if (ne > ns) intervals.push([ns, ne]);
+      else intervals.push([ns, ne + 1440]);
+      for (const [a, b] of intervals) {
+        for (let m = a; m < b; m++) nightMask[m % 1440] = true;
+      }
+      // Walk day timeline to accumulate base vs OT minutes chronologically
+      let workedSoFar = 0;
+      let baseNight = 0;
+      let otNight = 0;
+      for (let minute = 0; minute < 1440; minute++) {
+        if (!occ[minute]) continue;
+        const isNight = nightMask[minute];
+        const isBase = workedSoFar < thresholdMin;
+        if (isNight) {
+          if (isBase) baseNight++;
+          else otNight++;
+        }
+        workedSoFar++;
+      }
+      nightBase = baseNight;
+      nightOt = otNight;
+    } else {
+      // Weekly or unspecified basis: fall back to proportional split to keep behavior reasonable across days
+      nightBase = Math.round((nightMinutes * baseMinutes) / totalMinutes);
+      nightOt = Math.max(0, nightMinutes - nightBase);
+    }
     return {
       nightBase: { hours: Math.floor(nightBase / 60), minutes: nightBase % 60 },
       nightOvertime: { hours: Math.floor(nightOt / 60), minutes: nightOt % 60 },

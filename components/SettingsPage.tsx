@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { Dropdown } from "./Dropdown";
+import { TabSwitcher } from "./TabSwitcher";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
@@ -82,6 +83,14 @@ export function SettingsPage() {
   const openHelp = (title: string, body: string) =>
     setHelpModal({ visible: true, title, body });
   const closeHelp = () => setHelpModal({ visible: false, title: "", body: "" });
+
+  // Simple edit sheets and Advanced toggle
+  const [showOvertimeSheet, setShowOvertimeSheet] = useState(false);
+  const [showNightSheet, setShowNightSheet] = useState(false);
+  const [showWeekendSheet, setShowWeekendSheet] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<
+    "pay" | "preferences" | "advanced"
+  >("pay");
 
   // 24h time picker options for Night (HH:MM)
   const hoursOptions = useMemo(
@@ -346,12 +355,25 @@ export function SettingsPage() {
       <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
         Settings
       </ThemedText>
+      <TabSwitcher
+        tabs={[
+          { key: "pay", label: "Pay" },
+          { key: "preferences", label: "Preferences" },
+          { key: "advanced", label: "Advanced" },
+        ]}
+        activeKey={activeSettingsTab}
+        onKeyChange={(k) => setActiveSettingsTab(k as any)}
+      />
 
-      {/* Saved Pay Rates */}
+      {/* Pay: Saved Rates */}
       <View
         style={[
           styles.section,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            display: activeSettingsTab === "pay" ? "flex" : "none",
+          },
         ]}
       >
         <ThemedText
@@ -444,804 +466,230 @@ export function SettingsPage() {
         </View>
       </View>
 
-      {/* Pay Rules */}
+      {/* Pay: Rules summary */}
       <View
         style={[
           styles.section,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            display: activeSettingsTab === "pay" ? "flex" : "none",
+          },
         ]}
       >
         <ThemedText
           type="subtitle"
           style={[styles.sectionTitle, { color: colors.text }]}
         >
-          Pay Rules
+          Pay Rules (Simple)
         </ThemedText>
 
-        {/* Overtime */}
-        <ThemedText
-          style={[styles.subsectionTitle, { color: colors.textSecondary }]}
-        >
-          Overtime
-        </ThemedText>
-        <View style={styles.toggleRow}>
-          <ThemedText style={{ flex: 1, color: colors.text }}>
-            Enable Overtime
-          </ThemedText>
-          <Switch
-            value={Boolean((settings?.payRules?.overtime as any)?.enabled)}
-            onValueChange={(val) => {
-              console.log("Toggle Overtime:", val);
-              setSettings((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      payRules: {
-                        ...prev.payRules,
-                        overtime: {
-                          ...(prev.payRules?.overtime as any),
-                          enabled: val,
-                        } as any,
-                      },
-                    }
-                  : prev
-              );
-              updatePayRules({
-                overtime: {
-                  ...(settings?.payRules?.overtime || {}),
-                  enabled: val,
-                } as any,
-              });
-            }}
-          />
-        </View>
-        <View
-          style={[styles.inlineInputs, { marginBottom: 8, flexWrap: "wrap" }]}
-        >
-          <Dropdown
-            compact
-            placeholder="Overtime basis"
-            value={
-              String((settings?.payRules?.overtime as any)?.active || "") ||
-              undefined
-            }
-            onChange={(v) => {
-              updatePayRules({
-                overtime: {
-                  ...(settings?.payRules?.overtime || {}),
-                  active: v as any,
-                } as any,
-              });
-            }}
-            items={[
-              { value: "daily", label: "Daily" },
-              { value: "weekly", label: "Weekly" },
-            ]}
-          />
-          <TouchableOpacity
-            onPress={() =>
-              openHelp(
-                "Overtime basis",
-                "Choose one basis:\n\n• Daily: Hours beyond a per-day threshold are overtime.\n• Weekly: Hours beyond a per-week threshold are overtime.\n\nOnly the selected basis applies (no double-count). Set overtime via Multiplier (Base × 1.5) or Fixed uplift (Base + £0.50/h)."
-              )
-            }
-          >
-            <ThemedText style={{ color: colors.primary }}>ⓘ</ThemedText>
-          </TouchableOpacity>
-        </View>
-        {!(settings?.payRules as any)?.overtime?.active && (
-          <ThemedText
-            style={[styles.sectionDescription, { color: colors.textSecondary }]}
-          >
-            Select a basis (Daily or Weekly) to configure overtime. Only one
-            basis can be active.
-          </ThemedText>
-        )}
-        {((settings?.payRules?.overtime as any)?.active || "") === "daily" && (
-          <View
-            style={[styles.inlineInputs, { marginBottom: 8, flexWrap: "wrap" }]}
-          >
-            <TextInput
-              placeholder="Daily threshold (h)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="number-pad"
-              value={overtimeDailyThresholdText}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/[^0-9]/g, "");
-                setOvertimeDailyThresholdText(cleaned);
-              }}
-              onEndEditing={() => {
-                let n = parseFloat(overtimeDailyThresholdText || "");
-                if (Number.isNaN(n)) n = 0;
-                n = Math.max(0, n);
-                setOvertimeDailyThresholdText(String(n));
-                updatePayRules({
-                  overtime: {
-                    ...(settings?.payRules?.overtime || {}),
-                    daily: {
-                      ...((settings?.payRules?.overtime as any)?.daily || {}),
-                      threshold: n,
-                    },
-                  } as any,
-                });
-              }}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-            <Dropdown
-              compact
-              placeholder="Daily mode"
-              value={overtimeDailyMode || undefined}
-              onChange={(v) => {
-                setOvertimeDailyMode(v as any);
-                updatePayRules({
-                  overtime: {
-                    ...(settings?.payRules?.overtime || {}),
-                    daily: {
-                      ...((settings?.payRules?.overtime as any)?.daily || {}),
-                      mode: v as any,
-                    },
-                  } as any,
-                });
-              }}
-              items={[
-                { value: "multiplier", label: "Multiplier" },
-                { value: "fixed", label: "Fixed uplift" },
-              ]}
-            />
-            <TextInput
-              placeholder={
-                overtimeDailyMode === "fixed"
-                  ? `Daily uplift (${currencySymbol}/h)`
-                  : "Daily multiplier (e.g., 1.5)"
-              }
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              value={overtimeDailyValueText}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/[^0-9.\-]/g, "");
-                setOvertimeDailyValueText(cleaned);
-              }}
-              onEndEditing={() => {
-                let n = parseFloat(overtimeDailyValueText || "");
-                if (Number.isNaN(n)) n = 0;
-                if (
-                  (overtimeDailyMode ||
-                    (settings?.payRules?.overtime as any)?.daily?.mode) ===
-                  "multiplier"
-                ) {
-                  n = Math.max(0.01, Math.min(5, n));
-                } else {
-                  n = Math.max(0, n);
-                }
-                const value = n;
-                const dailyPrev =
-                  (settings?.payRules?.overtime as any)?.daily || {};
-                updatePayRules({
-                  overtime: {
-                    ...(settings?.payRules?.overtime || {}),
-                    daily: {
-                      ...dailyPrev,
-                      mode: overtimeDailyMode || dailyPrev.mode,
-                      multiplier:
-                        (overtimeDailyMode || dailyPrev.mode) === "multiplier"
-                          ? value
-                          : dailyPrev.multiplier,
-                      uplift:
-                        (overtimeDailyMode || dailyPrev.mode) === "fixed"
-                          ? value
-                          : dailyPrev.uplift,
-                    },
-                  } as any,
-                });
-                setOvertimeDailyValueText(String(value));
-              }}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-            <TouchableOpacity
-              onPress={() =>
-                openHelp(
-                  "Overtime (Daily)",
-                  "Daily threshold: hours beyond this in a single day are paid at your overtime setting.\n\nModels:\n• Multiplier: Base × multiplier (e.g., 1.5 = +50%).\n• Fixed uplift: Base + amount per overtime hour (e.g., +£0.50/h)."
-                )
-              }
-            >
-              <ThemedText style={{ color: colors.primary }}>ⓘ</ThemedText>
-            </TouchableOpacity>
+        {/* Overtime row */}
+        <View style={styles.simpleRow}>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={{ fontWeight: "600" }}>Overtime</ThemedText>
+            <ThemedText style={{ color: colors.textSecondary }}>
+              {(() => {
+                const ot: any = settings?.payRules?.overtime || {};
+                const basis = ot.active || "daily";
+                const rule = basis === "weekly" ? ot.weekly : ot.daily;
+                const threshold =
+                  rule?.threshold ?? (basis === "weekly" ? 40 : 8);
+                const mode = rule?.mode || "fixed";
+                const value =
+                  mode === "multiplier"
+                    ? rule?.multiplier ?? 1.5
+                    : rule?.uplift ?? 2;
+                return `${
+                  basis === "weekly" ? "Weekly" : "Daily"
+                } threshold ${threshold}h • ${
+                  mode === "multiplier"
+                    ? `${value}×`
+                    : `+${currencySymbol}${Number(value).toFixed(2)}`
+                }`;
+              })()}
+            </ThemedText>
           </View>
-        )}
-        {((settings?.payRules?.overtime as any)?.active || "") === "weekly" && (
-          <View
-            style={[styles.inlineInputs, { marginTop: 8, flexWrap: "wrap" }]}
-          >
-            <TextInput
-              placeholder="Weekly threshold (h)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="number-pad"
-              value={overtimeWeeklyThresholdText}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/[^0-9]/g, "");
-                setOvertimeWeeklyThresholdText(cleaned);
-              }}
-              onEndEditing={() => {
-                let n = parseFloat(overtimeWeeklyThresholdText || "");
-                if (Number.isNaN(n)) n = 0;
-                n = Math.max(0, n);
-                setOvertimeWeeklyThresholdText(String(n));
-                updatePayRules({
-                  overtime: {
-                    ...(settings?.payRules?.overtime || {}),
-                    weekly: {
-                      ...((settings?.payRules?.overtime as any)?.weekly || {}),
-                      threshold: n,
-                    },
-                  } as any,
-                });
-              }}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-            <Dropdown
-              compact
-              placeholder="Weekly mode"
-              value={overtimeWeeklyMode || undefined}
-              onChange={(v) => {
-                setOvertimeWeeklyMode(v as any);
-                updatePayRules({
-                  overtime: {
-                    ...(settings?.payRules?.overtime || {}),
-                    weekly: {
-                      ...((settings?.payRules?.overtime as any)?.weekly || {}),
-                      mode: v as any,
-                    },
-                  } as any,
-                });
-              }}
-              items={[
-                { value: "multiplier", label: "Multiplier" },
-                { value: "fixed", label: "Fixed uplift" },
-              ]}
-            />
-            <TextInput
-              placeholder={
-                overtimeWeeklyMode === "fixed"
-                  ? `Weekly uplift (${currencySymbol}/h)`
-                  : "Weekly multiplier (e.g., 1.5)"
-              }
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              value={overtimeWeeklyValueText}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/[^0-9.\-]/g, "");
-                setOvertimeWeeklyValueText(cleaned);
-              }}
-              onEndEditing={() => {
-                let n = parseFloat(overtimeWeeklyValueText || "");
-                if (Number.isNaN(n)) n = 0;
-                if (
-                  (overtimeWeeklyMode ||
-                    (settings?.payRules?.overtime as any)?.weekly?.mode) ===
-                  "multiplier"
-                ) {
-                  n = Math.max(0.01, Math.min(5, n));
-                } else {
-                  n = Math.max(0, n);
-                }
-                const value = n;
-                const weeklyPrev =
-                  (settings?.payRules?.overtime as any)?.weekly || {};
-                updatePayRules({
-                  overtime: {
-                    ...(settings?.payRules?.overtime || {}),
-                    weekly: {
-                      ...weeklyPrev,
-                      mode: overtimeWeeklyMode || weeklyPrev.mode,
-                      multiplier:
-                        (overtimeWeeklyMode || weeklyPrev.mode) === "multiplier"
-                          ? value
-                          : weeklyPrev.multiplier,
-                      uplift:
-                        (overtimeWeeklyMode || weeklyPrev.mode) === "fixed"
-                          ? value
-                          : weeklyPrev.uplift,
-                    },
-                  } as any,
-                });
-                setOvertimeWeeklyValueText(String(value));
-              }}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-            <TouchableOpacity
-              onPress={() =>
-                openHelp(
-                  "Overtime (Weekly)",
-                  "Weekly threshold: hours beyond this per week are paid as overtime. With a single active basis, there is no double-counting.\n\nModels:\n• Multiplier: Base × multiplier (e.g., 1.5).\n• Fixed uplift: Base + amount per overtime hour (e.g., +£0.50/h)."
-                )
-              }
-            >
-              <ThemedText style={{ color: colors.primary }}>ⓘ</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Night Differential */}
-        <ThemedText
-          style={[
-            styles.subsectionTitle,
-            { color: colors.textSecondary, marginTop: 16 },
-          ]}
-        >
-          Night Differential
-        </ThemedText>
-        <View style={styles.toggleRow}>
-          <ThemedText style={{ flex: 1, color: colors.text }}>
-            Enable Night
-          </ThemedText>
-          <Switch
-            value={Boolean((settings?.payRules?.night as any)?.enabled)}
-            onValueChange={(val) => {
-              console.log("Toggle Night:", val);
-              setSettings((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      payRules: {
-                        ...prev.payRules,
-                        night: {
-                          ...(prev.payRules?.night as any),
-                          enabled: val,
-                        } as any,
-                      },
-                    }
-                  : prev
-              );
-              updatePayRules({
-                night: { ...(settings?.payRules?.night || {}), enabled: val },
-              });
-            }}
-          />
-        </View>
-        <View style={{ marginTop: 4 }}>
-          {(() => {
-            const start = splitTime(settings?.payRules?.night?.start);
-            const end = splitTime(settings?.payRules?.night?.end);
-            return (
-              <>
-                <View style={{ marginTop: 6 }}>
-                  <ThemedText
-                    style={{ color: colors.textSecondary, marginBottom: 4 }}
-                  >
-                    Start
-                  </ThemedText>
-                  <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
-                    <Dropdown
-                      compact
-                      placeholder="HH"
-                      value={start.h}
-                      onChange={(v) =>
-                        updatePayRules({
-                          night: {
-                            ...(settings?.payRules?.night || {}),
-                            start: joinTime(String(v), start.m),
-                          },
-                        })
-                      }
-                      items={hoursOptions}
-                    />
-                    <ThemedText style={{ opacity: 0.6 }}>:</ThemedText>
-                    <Dropdown
-                      compact
-                      placeholder="MM"
-                      value={start.m}
-                      onChange={(v) =>
-                        updatePayRules({
-                          night: {
-                            ...(settings?.payRules?.night || {}),
-                            start: joinTime(start.h, String(v)),
-                          },
-                        })
-                      }
-                      items={minutesOptions}
-                    />
-                  </View>
-                </View>
-                <View style={{ marginTop: 10 }}>
-                  <ThemedText
-                    style={{ color: colors.textSecondary, marginBottom: 4 }}
-                  >
-                    End
-                  </ThemedText>
-                  <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
-                    <Dropdown
-                      compact
-                      placeholder="HH"
-                      value={end.h}
-                      onChange={(v) =>
-                        updatePayRules({
-                          night: {
-                            ...(settings?.payRules?.night || {}),
-                            end: joinTime(String(v), end.m),
-                          },
-                        })
-                      }
-                      items={hoursOptions}
-                    />
-                    <ThemedText style={{ opacity: 0.6 }}>:</ThemedText>
-                    <Dropdown
-                      compact
-                      placeholder="MM"
-                      value={end.m}
-                      onChange={(v) =>
-                        updatePayRules({
-                          night: {
-                            ...(settings?.payRules?.night || {}),
-                            end: joinTime(end.h, String(v)),
-                          },
-                        })
-                      }
-                      items={minutesOptions}
-                    />
-                  </View>
-                </View>
-                <View style={{ marginTop: 10 }}>
-                  <ThemedText
-                    style={{ color: colors.textSecondary, marginBottom: 4 }}
-                  >
-                    Type
-                  </ThemedText>
-                  <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
-                    <Dropdown
-                      compact
-                      placeholder="Type"
-                      value={settings?.payRules?.night?.type || "percentage"}
-                      onChange={(v) =>
-                        updatePayRules({
-                          night: {
-                            ...(settings?.payRules?.night || {}),
-                            type: v as any,
-                          },
-                        })
-                      }
-                      items={[
-                        { value: "percentage", label: "Percentage" },
-                        { value: "fixed", label: "Fixed" },
-                      ]}
-                    />
-                    <TextInput
-                      placeholder="Value"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={nightValueText}
-                      onChangeText={(t) => {
-                        const cleaned = t.replace(/[^0-9.\-]/g, "");
-                        setNightValueText(cleaned);
-                      }}
-                      onEndEditing={() => {
-                        let n = parseFloat(nightValueText || "");
-                        if (Number.isNaN(n)) n = 0;
-                        if (
-                          (settings?.payRules?.night?.type || "percentage") ===
-                          "percentage"
-                        ) {
-                          n = Math.max(0, Math.min(100, n));
-                        } else {
-                          n = Math.max(0, n);
-                        }
-                        updatePayRules({
-                          night: {
-                            ...(settings?.payRules?.night || {}),
-                            value: n,
-                          },
-                        });
-                        setNightValueText(String(n));
-                      }}
-                      style={[
-                        styles.input,
-                        styles.flex1,
-                        { color: colors.text, borderColor: colors.border },
-                      ]}
-                    />
-                  </View>
-                </View>
-              </>
-            );
-          })()}
           <TouchableOpacity
-            onPress={() =>
-              openHelp(
-                "Night Differential",
-                "Pays extra for hours between Start and End.\n\nModels:\n• Percentage: Base × (1 + %) (e.g., +20%).\n• Fixed: Base + amount per night hour (e.g., +£0.50/h).\n\nStacking: With 'stack', Night adds on top of Overtime; with 'highestOnly', we use the better of (Base+Night) vs (Overtime) per hour."
-              )
-            }
+            style={[styles.actionButton, { borderColor: colors.primary }]}
+            onPress={() => setShowOvertimeSheet(true)}
           >
-            <ThemedText style={{ color: colors.primary }}>ⓘ</ThemedText>
+            <ThemedText
+              style={[styles.actionButtonText, { color: colors.primary }]}
+            >
+              Edit
+            </ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Tax Calculations */}
-        <ThemedText
-          style={[
-            styles.subsectionTitle,
-            { color: colors.textSecondary, marginTop: 16 },
-          ]}
-        >
-          Tax Calculations
-        </ThemedText>
-        <View style={styles.toggleRow}>
-          <ThemedText style={{ flex: 1, color: colors.text }}>
-            Enable Tax Calculations
-          </ThemedText>
-          <Switch
-            value={
-              !!(
-                settings?.payRules?.tax?.percentage ||
-                settings?.payRules?.tax?.percentage === 0
-              )
-            }
-            onValueChange={(val) => {
-              if (val) {
-                const current = settings?.payRules?.tax?.percentage;
-                const nextVal = typeof current === "number" ? current : 20;
-                setTaxPctText(String(nextVal));
-                updatePayRules({
-                  tax: {
-                    ...(settings?.payRules?.tax || {}),
-                    percentage: nextVal,
-                    type: "flat",
-                  },
-                });
-              } else {
-                setTaxPctText("");
-                updatePayRules({
-                  tax: {
-                    ...(settings?.payRules?.tax || {}),
-                    percentage: undefined,
-                    type: "flat",
-                  },
-                });
-              }
-            }}
-          />
-        </View>
-        <ThemedText
-          style={[styles.sectionDescription, { color: colors.textSecondary }]}
-        >
-          Show after-tax earnings in pay breakdown.
-        </ThemedText>
-        <View style={[styles.inlineInputs, { marginTop: 8, flexWrap: "wrap" }]}>
-          <TextInput
-            placeholder="Tax rate (%)"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
-            editable={
-              !!(
-                settings?.payRules?.tax?.percentage ||
-                settings?.payRules?.tax?.percentage === 0
-              )
-            }
-            value={taxPctText}
-            onChangeText={(t) => {
-              const cleaned = t.replace(/[^0-9.\-]/g, "");
-              setTaxPctText(cleaned);
-            }}
-            onEndEditing={() => {
-              let n = parseFloat(taxPctText || "");
-              if (Number.isNaN(n)) n = 0;
-              n = Math.max(0, Math.min(100, n));
-              setTaxPctText(String(n));
-              updatePayRules({
-                tax: {
-                  ...(settings?.payRules?.tax || {}),
-                  percentage: n,
-                  type: "flat",
-                },
-              });
-            }}
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-          />
-        </View>
-        <ThemedText
-          style={[styles.sectionDescription, { color: colors.textSecondary }]}
-        >
-          Standard UK tax rate is 20%. This will show after-tax earnings.
-        </ThemedText>
-
-        {/* National Insurance */}
-        <ThemedText
-          style={[
-            styles.subsectionTitle,
-            { color: colors.textSecondary, marginTop: 16 },
-          ]}
-        >
-          National Insurance
-        </ThemedText>
-        <View style={styles.toggleRow}>
-          <ThemedText style={{ flex: 1, color: colors.text }}>
-            Enable NI Calculations
-          </ThemedText>
-          <Switch
-            value={
-              !!(
-                settings?.payRules?.ni?.percentage ||
-                settings?.payRules?.ni?.percentage === 0
-              )
-            }
-            onValueChange={(val) => {
-              if (val) {
-                const current = settings?.payRules?.ni?.percentage;
-                const nextVal = typeof current === "number" ? current : 12;
-                setNiPctText(String(nextVal));
-                updatePayRules({
-                  ni: {
-                    ...(settings?.payRules?.ni || {}),
-                    percentage: nextVal,
-                    type: "flat",
-                  },
-                });
-              } else {
-                setNiPctText("");
-                updatePayRules({
-                  ni: {
-                    ...(settings?.payRules?.ni || {}),
-                    percentage: undefined,
-                    type: "flat",
-                  },
-                });
-              }
-            }}
-          />
-        </View>
-        <ThemedText
-          style={[styles.sectionDescription, { color: colors.textSecondary }]}
-        >
-          Show after-NI earnings in pay breakdown.
-        </ThemedText>
-        <View style={[styles.inlineInputs, { marginTop: 8, flexWrap: "wrap" }]}>
-          <TextInput
-            placeholder="NI rate (%)"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
-            editable={
-              !!(
-                settings?.payRules?.ni?.percentage ||
-                settings?.payRules?.ni?.percentage === 0
-              )
-            }
-            value={niPctText}
-            onChangeText={(t) => {
-              const cleaned = t.replace(/[^0-9.\-]/g, "");
-              setNiPctText(cleaned);
-            }}
-            onEndEditing={() => {
-              let n = parseFloat(niPctText || "");
-              if (Number.isNaN(n)) n = 0;
-              n = Math.max(0, Math.min(100, n));
-              setNiPctText(String(n));
-              updatePayRules({
-                ni: {
-                  ...(settings?.payRules?.ni || {}),
-                  percentage: n,
-                  type: "flat",
-                },
-              });
-            }}
-            style={[
-              styles.input,
-              styles.flex1,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-          />
-        </View>
-        <ThemedText
-          style={[styles.sectionDescription, { color: colors.textSecondary }]}
-        >
-          UK NI rates: 12% on earnings between £12,570–£50,270, 2% above
-          £50,270. This will show after-NI earnings.
-        </ThemedText>
-
-        {/* Weekend Uplift */}
-        <ThemedText
-          style={[
-            styles.subsectionTitle,
-            { color: colors.textSecondary, marginTop: 16 },
-          ]}
-        >
-          Weekend Uplift
-        </ThemedText>
-        <View style={styles.toggleRow}>
-          <ThemedText style={{ flex: 1, color: colors.text }}>
-            Enable Weekend
-          </ThemedText>
-          <Switch
-            value={Boolean((settings?.payRules?.weekend as any)?.enabled)}
-            onValueChange={(val) =>
-              updatePayRules({
-                weekend: {
-                  ...(settings?.payRules?.weekend || {}),
-                  enabled: val,
-                },
-              })
-            }
-          />
-        </View>
-        {Boolean((settings?.payRules?.weekend as any)?.enabled) && (
-          <View
-            style={[styles.inlineInputs, { marginTop: 4, flexWrap: "wrap" }]}
+        {/* Night row */}
+        <View style={styles.simpleRow}>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={{ fontWeight: "600" }}>Night</ThemedText>
+            <ThemedText style={{ color: colors.textSecondary }}>
+              {(() => {
+                const n: any = settings?.payRules?.night || {};
+                const enabled = n?.enabled !== false;
+                const start = n?.start || "22:00";
+                const end = n?.end || "06:00";
+                const type = n?.type || "fixed";
+                const value = Number(n?.value ?? 1);
+                return `${
+                  enabled
+                    ? `${start}–${end} • ${
+                        type === "percentage"
+                          ? `+${value}%`
+                          : `+${currencySymbol}${value.toFixed(2)}`
+                      }`
+                    : "Disabled"
+                }`;
+              })()}
+            </ThemedText>
+          </View>
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: colors.primary }]}
+            onPress={() => setShowNightSheet(true)}
           >
-            <View style={styles.chipGroup}>
-              {(["Sat", "Sun"] as const).map((day) => {
-                const on = settings?.payRules?.weekend?.days?.includes(day);
-                return (
-                  <TouchableOpacity
-                    key={day}
-                    style={[styles.chip, on && styles.chipActive]}
-                    onPress={() => {
-                      const current = new Set(
-                        settings?.payRules?.weekend?.days || []
-                      );
-                      on ? current.delete(day) : current.add(day);
-                      const nextDays = Array.from(current) as any;
-                      // Optimistic local update to avoid flicker
-                      setSettings((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              payRules: {
-                                ...prev.payRules,
-                                weekend: {
-                                  ...(prev.payRules?.weekend || {}),
-                                  days: nextDays,
-                                },
-                              },
-                            }
-                          : prev
-                      );
-                      updatePayRules({
-                        weekend: {
-                          ...(settings?.payRules?.weekend || {}),
-                          days: nextDays,
-                        },
-                      }).catch(() => {});
-                    }}
-                  >
-                    <ThemedText
-                      style={[styles.chipText, on && styles.chipTextActive]}
-                    >
-                      {day}
-                    </ThemedText>
-                  </TouchableOpacity>
-                );
-              })}
+            <ThemedText
+              style={[styles.actionButtonText, { color: colors.primary }]}
+            >
+              Edit
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Weekend row */}
+        <View style={styles.simpleRow}>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={{ fontWeight: "600" }}>Weekend</ThemedText>
+            <ThemedText style={{ color: colors.textSecondary }}>
+              {(() => {
+                const w: any = settings?.payRules?.weekend || {};
+                const enabled = w?.enabled === true;
+                const days = (w?.days || ["Sat", "Sun"]).join(", ");
+                const mode =
+                  w?.mode ||
+                  (w?.type === "percentage"
+                    ? "multiplier"
+                    : w?.type === "fixed"
+                    ? "fixed"
+                    : "multiplier");
+                const value =
+                  mode === "multiplier"
+                    ? Number(w?.multiplier ?? 1.25)
+                    : Number(w?.uplift ?? 0.5);
+                return `${
+                  enabled
+                    ? `${days} • ${
+                        mode === "multiplier"
+                          ? `+${Math.round((value - 1) * 100)}%`
+                          : `+${currencySymbol}${value.toFixed(2)}/h`
+                      }`
+                    : "Disabled"
+                }`;
+              })()}
+            </ThemedText>
+          </View>
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: colors.primary }]}
+            onPress={() => setShowWeekendSheet(true)}
+          >
+            <ThemedText
+              style={[styles.actionButtonText, { color: colors.primary }]}
+            >
+              Edit
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Overtime Edit Sheet */}
+      <Modal
+        transparent
+        visible={showOvertimeSheet}
+        animationType="fade"
+        onRequestClose={() => setShowOvertimeSheet(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <ThemedText
+              type="subtitle"
+              style={[styles.modalTitle, { color: colors.text }]}
+            >
+              Edit Overtime
+            </ThemedText>
+            <View style={styles.inlineInputs}>
+              <Dropdown
+                compact
+                placeholder="Basis"
+                value={(settings?.payRules?.overtime as any)?.active || "daily"}
+                onChange={(v) =>
+                  updatePayRules({
+                    overtime: {
+                      ...(settings?.payRules?.overtime as any),
+                      active: v as any,
+                    } as any,
+                  })
+                }
+                items={[
+                  { value: "daily", label: "Daily" },
+                  { value: "weekly", label: "Weekly" },
+                ]}
+              />
+              <TextInput
+                placeholder="Threshold (h)"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="number-pad"
+                value={(() => {
+                  const ot: any = settings?.payRules?.overtime || {};
+                  const rule =
+                    (ot.active || "daily") === "weekly" ? ot.weekly : ot.daily;
+                  return rule?.threshold != null ? String(rule.threshold) : "";
+                })()}
+                onChangeText={(t) => {
+                  const n = Math.max(
+                    0,
+                    parseFloat(t.replace(/[^0-9.]/g, "")) || 0
+                  );
+                  const ot: any = settings?.payRules?.overtime || {};
+                  const active = ot.active || "daily";
+                  updatePayRules({
+                    overtime: {
+                      ...ot,
+                      [active]: { ...(ot[active] || {}), threshold: n },
+                      enabled: true,
+                    } as any,
+                  });
+                }}
+                style={[
+                  styles.input,
+                  styles.flex1,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+              />
             </View>
-            <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
+            <View style={styles.inlineInputs}>
               <Dropdown
                 compact
                 placeholder="Mode"
-                value={weekendMode || undefined}
+                value={(() => {
+                  const ot: any = settings?.payRules?.overtime || {};
+                  const active = ot.active || "daily";
+                  return (ot[active] || {}).mode || "fixed";
+                })()}
                 onChange={(v) => {
-                  setWeekendMode(v as any);
+                  const ot: any = settings?.payRules?.overtime || {};
+                  const active = ot.active || "daily";
                   updatePayRules({
-                    weekend: {
-                      ...(settings?.payRules?.weekend || {}),
-                      mode: v as any,
+                    overtime: {
+                      ...ot,
+                      [active]: { ...(ot[active] || {}), mode: v as any },
+                      enabled: true,
                     } as any,
                   });
                 }}
@@ -1250,339 +698,349 @@ export function SettingsPage() {
                   { value: "multiplier", label: "Multiplier" },
                 ]}
               />
-            </View>
-            <TextInput
-              placeholder={
-                weekendMode === "multiplier"
-                  ? "Multiplier (e.g., 1.25)"
-                  : `Uplift (${currencySymbol}/h)`
-              }
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              value={weekendValueText}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/[^0-9.\-]/g, "");
-                setWeekendValueText(cleaned);
-              }}
-              onEndEditing={() => {
-                let n = parseFloat(weekendValueText || "");
-                if (Number.isNaN(n)) n = 0;
-                if (weekendMode === "multiplier") {
-                  n = Math.max(0.01, Math.min(5, n));
-                } else {
-                  n = Math.max(0, n);
-                }
-                updatePayRules({
-                  weekend: {
-                    ...(settings?.payRules?.weekend || {}),
-                    // store in new fields; keep legacy untouched
-                    multiplier: weekendMode === "multiplier" ? n : undefined,
-                    uplift: weekendMode === "fixed" ? n : undefined,
-                  },
-                });
-                setWeekendValueText(String(n));
-              }}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-            <TouchableOpacity
-              onPress={() =>
-                openHelp(
-                  "Weekend Uplift",
-                  "Apply an uplift automatically on selected weekend days.\n\nModels:\n• Multiplier: Base × multiplier (e.g., 1.25).\n• Fixed: Base + amount per hour (e.g., +£0.50/h).\n\nStacking: With 'stack', Weekend combines with Overtime; with 'highestOnly', we use the better pay per hour."
-                )
-              }
-            >
-              <ThemedText style={{ color: colors.primary }}>ⓘ</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Allowances */}
-        <ThemedText
-          style={[
-            styles.subsectionTitle,
-            { color: colors.textSecondary, marginTop: 16 },
-          ]}
-        >
-          Allowances
-        </ThemedText>
-        <View style={styles.allowanceForm}>
-          <View>
-            <ThemedText
-              style={[styles.inputLabel, { color: colors.textSecondary }]}
-            >
-              Label
-            </ThemedText>
-            <TextInput
-              placeholder="Label (e.g., Meal)"
-              placeholderTextColor={colors.textSecondary}
-              value={newAllowance.label}
-              onChangeText={(t) => setNewAllowance((p) => ({ ...p, label: t }))}
-              style={[
-                styles.input,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-          </View>
-
-          <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
-            <View style={{ flex: 1, maxWidth: 160 }}>
-              <ThemedText
-                style={[styles.inputLabel, { color: colors.textSecondary }]}
-              >
-                Value
-              </ThemedText>
               <TextInput
                 placeholder="Value"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
-                value={newAllowance.value}
-                onChangeText={(t) =>
-                  setNewAllowance((p) => ({ ...p, value: t }))
-                }
+                value={(() => {
+                  const ot: any = settings?.payRules?.overtime || {};
+                  const active = ot.active || "daily";
+                  const r = ot[active] || {};
+                  return String(
+                    (r.mode || "fixed") === "multiplier"
+                      ? r.multiplier ?? ""
+                      : r.uplift ?? ""
+                  );
+                })()}
+                onChangeText={(t) => {
+                  const ot: any = settings?.payRules?.overtime || {};
+                  const active = ot.active || "daily";
+                  const r = ot[active] || {};
+                  const isMul = (r.mode || "fixed") === "multiplier";
+                  const n = parseFloat(t.replace(/[^0-9.]/g, ""));
+                  updatePayRules({
+                    overtime: {
+                      ...ot,
+                      [active]: {
+                        ...r,
+                        [isMul ? "multiplier" : "uplift"]: isNaN(n)
+                          ? undefined
+                          : n,
+                      },
+                      enabled: true,
+                    } as any,
+                  });
+                }}
                 style={[
                   styles.input,
+                  styles.flex1,
                   { color: colors.text, borderColor: colors.border },
                 ]}
               />
             </View>
-            <View style={{ flex: 1, maxWidth: 180 }}>
-              <ThemedText
-                style={[styles.inputLabel, { color: colors.textSecondary }]}
-              >
-                Unit
+            <TouchableOpacity
+              style={[styles.modalButton, { borderColor: colors.primary }]}
+              onPress={() => setShowOvertimeSheet(false)}
+            >
+              <ThemedText style={{ color: colors.primary }}>Done</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Night Edit Sheet */}
+      <Modal
+        transparent
+        visible={showNightSheet}
+        animationType="fade"
+        onRequestClose={() => setShowNightSheet(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <ThemedText
+              type="subtitle"
+              style={[styles.modalTitle, { color: colors.text }]}
+            >
+              Edit Night
+            </ThemedText>
+            <View style={styles.toggleRow}>
+              <ThemedText style={{ flex: 1, color: colors.text }}>
+                Enable Night
               </ThemedText>
+              <Switch
+                value={Boolean((settings?.payRules?.night as any)?.enabled)}
+                onValueChange={(val) =>
+                  updatePayRules({
+                    night: {
+                      ...(settings?.payRules?.night || {}),
+                      enabled: val,
+                    },
+                  })
+                }
+              />
+            </View>
+            <View style={[styles.inlineInputs, { marginTop: 8 }]}>
               <Dropdown
                 compact
-                placeholder="Unit"
-                style={{ width: "100%" }}
-                value={newAllowance.unit}
+                placeholder="Start HH"
+                value={splitTime(settings?.payRules?.night?.start).h}
                 onChange={(v) =>
-                  setNewAllowance((p) => ({ ...p, unit: v as any }))
+                  updatePayRules({
+                    night: {
+                      ...(settings?.payRules?.night || {}),
+                      start: joinTime(
+                        String(v),
+                        splitTime(settings?.payRules?.night?.start).m
+                      ),
+                    },
+                  })
+                }
+                items={hoursOptions}
+              />
+              <Dropdown
+                compact
+                placeholder="MM"
+                value={splitTime(settings?.payRules?.night?.start).m}
+                onChange={(v) =>
+                  updatePayRules({
+                    night: {
+                      ...(settings?.payRules?.night || {}),
+                      start: joinTime(
+                        splitTime(settings?.payRules?.night?.start).h,
+                        String(v)
+                      ),
+                    },
+                  })
+                }
+                items={minutesOptions}
+              />
+              <ThemedText style={{ opacity: 0.6 }}>→</ThemedText>
+              <Dropdown
+                compact
+                placeholder="End HH"
+                value={splitTime(settings?.payRules?.night?.end).h}
+                onChange={(v) =>
+                  updatePayRules({
+                    night: {
+                      ...(settings?.payRules?.night || {}),
+                      end: joinTime(
+                        String(v),
+                        splitTime(settings?.payRules?.night?.end).m
+                      ),
+                    },
+                  })
+                }
+                items={hoursOptions}
+              />
+              <Dropdown
+                compact
+                placeholder="MM"
+                value={splitTime(settings?.payRules?.night?.end).m}
+                onChange={(v) =>
+                  updatePayRules({
+                    night: {
+                      ...(settings?.payRules?.night || {}),
+                      end: joinTime(
+                        splitTime(settings?.payRules?.night?.end).h,
+                        String(v)
+                      ),
+                    },
+                  })
+                }
+                items={minutesOptions}
+              />
+            </View>
+            <View style={[styles.inlineInputs, { marginTop: 8 }]}>
+              <Dropdown
+                compact
+                placeholder="Type"
+                value={settings?.payRules?.night?.type || "fixed"}
+                onChange={(v) =>
+                  updatePayRules({
+                    night: {
+                      ...(settings?.payRules?.night || {}),
+                      type: v as any,
+                    },
+                  })
                 }
                 items={[
-                  { value: "perShift", label: "perShift" },
-                  { value: "perHour", label: "perHour" },
-                  { value: "perKm", label: "perKm" },
+                  { value: "fixed", label: "Fixed" },
+                  { value: "percentage", label: "Percentage" },
+                ]}
+              />
+              <TextInput
+                placeholder="Value"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+                value={nightValueText}
+                onChangeText={setNightValueText}
+                onEndEditing={() => {
+                  let n = parseFloat(nightValueText || "0");
+                  if (Number.isNaN(n)) n = 0;
+                  updatePayRules({
+                    night: { ...(settings?.payRules?.night || {}), value: n },
+                  });
+                  setNightValueText(String(n));
+                }}
+                style={[
+                  styles.input,
+                  styles.flex1,
+                  { color: colors.text, borderColor: colors.border },
                 ]}
               />
             </View>
-            <View style={{ justifyContent: "flex-end", minWidth: 100 }}>
-              <ThemedText
-                style={[styles.inputLabel, { color: colors.textSecondary }]}
-              >
-                Action
-              </ThemedText>
-              <TouchableOpacity
-                style={[styles.smallButton, { borderColor: colors.primary }]}
-                onPress={async () => {
-                  if (!newAllowance.label || !newAllowance.value) return;
-                  const n = parseFloat(newAllowance.value);
-                  if (Number.isNaN(n)) return;
-                  const nextList: AllowanceItem[] = [
-                    ...(settings?.payRules?.allowances || []),
-                    {
-                      id: Date.now().toString(36),
-                      type: newAllowance.label,
-                      value: n,
-                      unit: newAllowance.unit,
-                    },
-                  ];
-                  await updatePayRules({ allowances: nextList });
-                  setNewAllowance({ label: "", value: "", unit: "perShift" });
-                }}
-              >
-                <ThemedText
-                  style={[styles.actionButtonText, { color: colors.primary }]}
-                >
-                  Add
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[styles.modalButton, { borderColor: colors.primary }]}
+              onPress={() => setShowNightSheet(false)}
+            >
+              <ThemedText style={{ color: colors.primary }}>Done</ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
+      </Modal>
 
-        <View style={{ gap: 8, marginTop: 8 }}>
-          {(settings?.payRules?.allowances || []).map((a) => (
-            <View
-              key={a.id}
-              style={[styles.rateRow, { borderColor: colors.border }]}
+      {/* Weekend Edit Sheet */}
+      <Modal
+        transparent
+        visible={showWeekendSheet}
+        animationType="fade"
+        onRequestClose={() => setShowWeekendSheet(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <ThemedText
+              type="subtitle"
+              style={[styles.modalTitle, { color: colors.text }]}
             >
-              <ThemedText style={{ fontWeight: "600" }}>{a.type}</ThemedText>
-              <View style={styles.rateMeta}>
-                <ThemedText>
-                  {currencySymbol}
-                  {a.value.toFixed(2)}
-                </ThemedText>
-                <ThemedText style={styles.rateType}>{a.unit}</ThemedText>
-                <TouchableOpacity
-                  onPress={async () => {
-                    const filtered = (
-                      settings?.payRules?.allowances || []
-                    ).filter((x) => x.id !== a.id);
-                    await updatePayRules({ allowances: filtered });
-                  }}
-                >
-                  <ThemedText style={{ color: colors.error }}>
-                    Delete
-                  </ThemedText>
-                </TouchableOpacity>
+              Edit Weekend
+            </ThemedText>
+            <View style={styles.toggleRow}>
+              <ThemedText style={{ flex: 1, color: colors.text }}>
+                Enable Weekend
+              </ThemedText>
+              <Switch
+                value={Boolean((settings?.payRules?.weekend as any)?.enabled)}
+                onValueChange={(val) =>
+                  updatePayRules({
+                    weekend: {
+                      ...(settings?.payRules?.weekend || {}),
+                      enabled: val,
+                    },
+                  })
+                }
+              />
+            </View>
+            <View style={[styles.inlineInputs, { marginTop: 8 }]}>
+              <View style={styles.chipGroup}>
+                {(["Sat", "Sun"] as const).map((d) => {
+                  const on = settings?.payRules?.weekend?.days?.includes(d);
+                  return (
+                    <TouchableOpacity
+                      key={d}
+                      style={[styles.chip, on && styles.chipActive]}
+                      onPress={() => {
+                        const current = new Set(
+                          settings?.payRules?.weekend?.days || []
+                        );
+                        on ? current.delete(d) : current.add(d);
+                        updatePayRules({
+                          weekend: {
+                            ...(settings?.payRules?.weekend || {}),
+                            days: Array.from(current) as any,
+                          },
+                        });
+                      }}
+                    >
+                      <ThemedText
+                        style={[styles.chipText, on && styles.chipTextActive]}
+                      >
+                        {d}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
-          ))}
-          {!(settings?.payRules?.allowances || []).length && (
-            <ThemedText style={{ color: colors.textSecondary }}>
-              No allowances yet. Add one above.
-            </ThemedText>
-          )}
+            <View style={[styles.inlineInputs, { marginTop: 8 }]}>
+              <Dropdown
+                compact
+                placeholder="Mode"
+                value={
+                  (settings?.payRules?.weekend as any)?.mode ||
+                  ((settings?.payRules?.weekend as any)?.type === "percentage"
+                    ? "multiplier"
+                    : (settings?.payRules?.weekend as any)?.type === "fixed"
+                    ? "fixed"
+                    : "multiplier")
+                }
+                onChange={(v) =>
+                  updatePayRules({
+                    weekend: {
+                      ...(settings?.payRules?.weekend || {}),
+                      mode: v as any,
+                    },
+                  })
+                }
+                items={[
+                  { value: "multiplier", label: "Multiplier" },
+                  { value: "fixed", label: "Fixed uplift" },
+                ]}
+              />
+              <TextInput
+                placeholder="Value"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+                value={weekendValueText}
+                onChangeText={setWeekendValueText}
+                onEndEditing={() => {
+                  let n = parseFloat(weekendValueText || "0");
+                  if (Number.isNaN(n)) n = 0;
+                  const mode =
+                    (settings?.payRules?.weekend as any)?.mode || "multiplier";
+                  updatePayRules({
+                    weekend: {
+                      ...(settings?.payRules?.weekend || {}),
+                      [mode === "multiplier" ? "multiplier" : "uplift"]: n,
+                    },
+                  });
+                  setWeekendValueText(String(n));
+                }}
+                style={[
+                  styles.input,
+                  styles.flex1,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.modalButton, { borderColor: colors.primary }]}
+              onPress={() => setShowWeekendSheet(false)}
+            >
+              <ThemedText style={{ color: colors.primary }}>Done</ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
+      </Modal>
 
-        {/* Pay Period */}
-        <ThemedText
-          style={[
-            styles.subsectionTitle,
-            { color: colors.textSecondary, marginTop: 16 },
-          ]}
-        >
-          Pay Period
-        </ThemedText>
-        <View style={[styles.inlineInputs, { marginTop: 4 }]}>
-          <Dropdown
-            compact
-            placeholder="Cycle"
-            value={settings?.payRules?.payPeriod?.cycle || "weekly"}
-            onChange={(v) =>
-              updatePayRules({
-                payPeriod: {
-                  ...(settings?.payRules?.payPeriod || {}),
-                  cycle: v as any,
-                },
-              })
-            }
-            items={[
-              { value: "weekly", label: "Weekly" },
-              { value: "fortnightly", label: "Fortnightly" },
-              { value: "monthly", label: "Monthly" },
-            ]}
-          />
-          {(settings?.payRules?.payPeriod?.cycle || "weekly") === "monthly" ? (
-            <TextInput
-              placeholder="Start date (1-31)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="number-pad"
-              value={payPeriodStartDateText}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/[^0-9]/g, "");
-                setPayPeriodStartDateText(cleaned);
-              }}
-              onEndEditing={() => {
-                let n = parseInt(payPeriodStartDateText || "", 10);
-                if (Number.isNaN(n)) n = 1;
-                n = Math.max(1, Math.min(31, n));
-                setPayPeriodStartDateText(String(n));
-                updatePayRules({
-                  payPeriod: {
-                    ...(settings?.payRules?.payPeriod || { cycle: "monthly" }),
-                    startDate: n,
-                  },
-                });
-              }}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-          ) : (
-            <Dropdown
-              compact
-              placeholder="Start day"
-              value={settings?.payRules?.payPeriod?.startDay || "Monday"}
-              onChange={(v) =>
-                updatePayRules({
-                  payPeriod: {
-                    cycle: (settings?.payRules?.payPeriod?.cycle ||
-                      "weekly") as any,
-                    startDay: v as any,
-                    startDate: settings?.payRules?.payPeriod?.startDate,
-                  },
-                })
-              }
-              items={[
-                "Monday",
-                "Tuesday",
-                "Wednesday",
-                "Thursday",
-                "Friday",
-                "Saturday",
-                "Sunday",
-              ].map((d) => ({ value: d, label: d }))}
-            />
-          )}
-        </View>
-      </View>
-
-      {/* Theme Section */}
+      {/* Preferences: Main */}
       <View
         style={[
           styles.section,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <ThemedText
-          type="subtitle"
-          style={[styles.sectionTitle, { color: colors.text }]}
-        >
-          Appearance
-        </ThemedText>
-
-        <View style={styles.themeOptions}>
-          <TouchableOpacity
-            style={getThemeButtonStyle("light")}
-            onPress={() => setThemeMode("light")}
-            accessibilityLabel="Light theme"
-          >
-            <ThemedText style={getThemeTextStyle("light")}>☀️ Light</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={getThemeButtonStyle("dark")}
-            onPress={() => setThemeMode("dark")}
-            accessibilityLabel="Dark theme"
-          >
-            <ThemedText style={getThemeTextStyle("dark")}>🌙 Dark</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={getThemeButtonStyle("system")}
-            onPress={() => setThemeMode("system")}
-            accessibilityLabel="System theme"
-          >
-            <ThemedText style={getThemeTextStyle("system")}>
-              📱 System
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        <ThemedText
-          style={[styles.sectionDescription, { color: colors.textSecondary }]}
-        >
-          Current:{" "}
-          {themeMode === "system"
-            ? "System Default"
-            : themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}
-        </ThemedText>
-      </View>
-
-      {/* Preferences (subset) */}
-      <View
-        style={[
-          styles.section,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            display: activeSettingsTab === "preferences" ? "flex" : "none",
+          },
         ]}
       >
         <ThemedText
@@ -1591,7 +1049,23 @@ export function SettingsPage() {
         >
           Preferences
         </ThemedText>
-        <View style={[styles.inlineInputs, { flexWrap: "wrap" }]}>
+        <ThemedText
+          style={[styles.subsectionTitle, { color: colors.textSecondary }]}
+        >
+          Dark mode
+        </ThemedText>
+        <View style={[styles.toggleRow, { marginTop: 4 }]}>
+          <ThemedText style={{ flex: 1, color: colors.text }}>
+            Enable dark mode
+          </ThemedText>
+          <Switch
+            value={themeMode === "dark"}
+            onValueChange={(val) => setThemeMode(val ? "dark" : "light")}
+          />
+        </View>
+        <View
+          style={[styles.inlineInputs, { flexWrap: "wrap", marginTop: 12 }]}
+        >
           <Dropdown
             compact
             placeholder="Currency"
@@ -1614,6 +1088,7 @@ export function SettingsPage() {
             ]}
           />
         </View>
+        {/* Advanced options moved to Advanced tab */}
 
         {/* Goals */}
         <View style={styles.goalsGroup}>
@@ -1689,11 +1164,49 @@ export function SettingsPage() {
         </View>
       </View>
 
-      {/* Account Section */}
+      {/* Advanced: Account */}
       <View
         style={[
           styles.section,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            display: activeSettingsTab === "advanced" ? "flex" : "none",
+          },
+        ]}
+      >
+        <ThemedText
+          type="subtitle"
+          style={[styles.sectionTitle, { color: colors.text }]}
+        >
+          Advanced
+        </ThemedText>
+
+        {/* Stacking toggle moved here */}
+        <View style={[styles.toggleRow, { marginTop: 4 }]}>
+          <ThemedText style={{ flex: 1, color: colors.text }}>
+            Stacking (apply Night/Weekend on top of Base/OT)
+          </ThemedText>
+          <Switch
+            value={(settings?.preferences?.stackingRule || "stack") === "stack"}
+            onValueChange={(val) =>
+              updatePreferences({
+                stackingRule: val ? "stack" : "highestOnly",
+              })
+            }
+          />
+        </View>
+      </View>
+
+      {/* Advanced: Account */}
+      <View
+        style={[
+          styles.section,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            display: activeSettingsTab === "advanced" ? "flex" : "none",
+          },
         ]}
       >
         <ThemedText
@@ -1716,11 +1229,15 @@ export function SettingsPage() {
         </TouchableOpacity>
       </View>
 
-      {/* App Info Section */}
+      {/* Advanced: About */}
       <View
         style={[
           styles.section,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            display: activeSettingsTab === "advanced" ? "flex" : "none",
+          },
         ]}
       >
         <ThemedText
@@ -1781,6 +1298,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
+  },
+  simpleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
   },
   sectionDescription: {
     fontSize: 14,

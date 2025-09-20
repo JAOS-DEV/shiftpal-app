@@ -165,13 +165,12 @@ export default function HomeScreen() {
         });
       } catch {}
 
-      notify({
-        type: "success",
-        message: "Day submitted",
-        description: `${actionText} • ${shifts.length} shift${
+      notify.success(
+        "Day submitted",
+        `${actionText} • ${shifts.length} shift${
           shifts.length > 1 ? "s" : ""
-        } • ${formatDateDisplay(selectedDate)} • Total ${timeText}`,
-      });
+        } • ${formatDateDisplay(selectedDate)} • Total ${timeText}`
+      );
 
       // Refresh history if we're on that tab
       if (activeTab === "history") {
@@ -264,6 +263,7 @@ export default function HomeScreen() {
                 <ShiftEntriesList
                   shifts={shifts}
                   onRemoveShift={handleRemoveShift}
+                  embedded
                 />
                 <DailyTotals shifts={shifts} />
                 <SubmitButton

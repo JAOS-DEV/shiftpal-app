@@ -14,11 +14,14 @@ import { ThemedView } from "./ThemedView";
 interface ShiftEntriesListProps {
   shifts: Shift[];
   onRemoveShift: (shiftId: string) => void;
+  // When embedded in a parent ScrollView, disable FlatList to avoid nested VirtualizedList warning
+  embedded?: boolean;
 }
 
 export function ShiftEntriesList({
   shifts,
   onRemoveShift,
+  embedded = false,
 }: ShiftEntriesListProps) {
   const handleRemoveShift = (shiftId: string, shiftInfo: string) => {
     Alert.alert(
@@ -72,17 +75,34 @@ export function ShiftEntriesList({
         Shifts for Today ({shifts.length})
       </ThemedText>
 
-      <FlatList
-        data={data}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews
-        initialNumToRender={8}
-        windowSize={5}
-      />
+      {embedded ? (
+        <View style={styles.listContainer}>
+          {data.map((item, index) => (
+            <View key={item.id}>
+              <ShiftRow
+                shift={item}
+                index={index}
+                onRemove={() =>
+                  handleRemoveShift(item.id, `${item.start} - ${item.end}`)
+                }
+              />
+              {index < data.length - 1 ? <View style={{ height: 8 }} /> : null}
+            </View>
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews
+          initialNumToRender={8}
+          windowSize={5}
+        />
+      )}
     </ThemedView>
   );
 }

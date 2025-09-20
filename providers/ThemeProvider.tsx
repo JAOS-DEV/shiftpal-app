@@ -60,7 +60,8 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+  // Default to light mode
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load saved theme preference
@@ -69,7 +70,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
-          setThemeModeState(savedTheme as ThemeMode);
+          // Map legacy 'system' preference to light by default
+          setThemeModeState(
+            savedTheme === "system" ? "light" : (savedTheme as ThemeMode)
+          );
         }
         setIsInitialized(true);
       } catch (error) {

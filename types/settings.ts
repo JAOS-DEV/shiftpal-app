@@ -149,5 +149,23 @@ export interface PayCalculationEntry {
     base?: number;
     overtime?: number;
   };
+  // Optional calculation snapshots for richer History rendering
+  calcSnapshot?: {
+    // Hours actually used for calculation after auto-splits
+    usedBase?: HoursAndMinutes;
+    usedOvertime?: HoursAndMinutes;
+    // Night split used at calculation time
+    night?: {
+      base?: HoursAndMinutes;
+      overtime?: HoursAndMinutes;
+      type?: "fixed" | "percentage";
+      value?: number; // fixed amount or percentage
+    };
+    // Weekend rules active that day
+    weekend?: {
+      mode?: "fixed" | "multiplier";
+      value?: number; // uplift amount or multiplier
+    };
+  };
   createdAt: number;
 }

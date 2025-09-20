@@ -3,54 +3,87 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
-type Tab = "tracker" | "history";
+type LegacyTab = "tracker" | "history";
 
 interface TabSwitcherProps {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
+  // Legacy usage (defaults to tracker/history)
+  activeTab?: LegacyTab;
+  onTabChange?: (tab: LegacyTab) => void;
   showTrackerDot?: boolean;
+  // Custom tabs usage
+  tabs?: { key: string; label: string }[];
+  activeKey?: string;
+  onKeyChange?: (key: string) => void;
 }
 
 export function TabSwitcher({
   activeTab,
   onTabChange,
   showTrackerDot,
+  tabs,
+  activeKey,
+  onKeyChange,
 }: TabSwitcherProps) {
+  const isCustom = Array.isArray(tabs) && tabs.length > 0;
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "tracker" && styles.activeTab]}
-          onPress={() => onTabChange("tracker")}
-          accessibilityLabel="Shift tracker tab"
-        >
-          <View style={styles.tabLabelWrap}>
-            <ThemedText
-              style={[
-                styles.tabText,
-                activeTab === "tracker" && styles.activeTabText,
-              ]}
+        {isCustom ? (
+          tabs!.map((t) => {
+            const isActive = activeKey === t.key;
+            return (
+              <TouchableOpacity
+                key={t.key}
+                style={[styles.tab, isActive && styles.activeTab]}
+                onPress={() => onKeyChange && onKeyChange(t.key)}
+                accessibilityLabel={`${t.label} tab`}
+              >
+                <ThemedText
+                  style={[styles.tabText, isActive && styles.activeTabText]}
+                  numberOfLines={1}
+                >
+                  {t.label}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })
+        ) : (
+          <>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === "tracker" && styles.activeTab]}
+              onPress={() => onTabChange && onTabChange("tracker")}
+              accessibilityLabel="Shift tracker tab"
             >
-              Tracker
-            </ThemedText>
-            {showTrackerDot && <View style={styles.dot} />}
-          </View>
-        </TouchableOpacity>
+              <View style={styles.tabLabelWrap}>
+                <ThemedText
+                  style={[
+                    styles.tabText,
+                    activeTab === "tracker" && styles.activeTabText,
+                  ]}
+                >
+                  Tracker
+                </ThemedText>
+                {showTrackerDot && <View style={styles.dot} />}
+              </View>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "history" && styles.activeTab]}
-          onPress={() => onTabChange("history")}
-          accessibilityLabel="History tab"
-        >
-          <ThemedText
-            style={[
-              styles.tabText,
-              activeTab === "history" && styles.activeTabText,
-            ]}
-          >
-            History
-          </ThemedText>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === "history" && styles.activeTab]}
+              onPress={() => onTabChange && onTabChange("history")}
+              accessibilityLabel="History tab"
+            >
+              <ThemedText
+                style={[
+                  styles.tabText,
+                  activeTab === "history" && styles.activeTabText,
+                ]}
+              >
+                History
+              </ThemedText>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </ThemedView>
   );
@@ -58,7 +91,7 @@ export function TabSwitcher({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5EA",
@@ -67,12 +100,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#F2F2F7",
     borderRadius: 12,
-    padding: 4,
+    padding: 2,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: "center",
   },
@@ -96,9 +129,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "500",
     color: "#666",
+    textAlign: "center",
+    includeFontPadding: false,
   },
   activeTabText: {
     color: "#007AFF",

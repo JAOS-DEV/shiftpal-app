@@ -90,6 +90,14 @@ export default function PayCalculatorScreen() {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [trackerDerivedSplit, setTrackerDerivedSplit] = useState<{
+    base: HoursAndMinutes;
+    overtime: HoursAndMinutes;
+  } | null>(null);
+  const [trackerNightHint, setTrackerNightHint] = useState<{
+    base?: HoursAndMinutes;
+    ot?: HoursAndMinutes;
+  } | null>(null);
 
   const currencySymbol = useMemo(
     () =>
@@ -161,6 +169,10 @@ export default function PayCalculatorScreen() {
     // Derive night allocation per mode
     let nightBaseHours: HoursAndMinutes | undefined;
     let nightOvertimeHours: HoursAndMinutes | undefined;
+    let derivedSplit: {
+      base: HoursAndMinutes;
+      overtime: HoursAndMinutes;
+    } | null = null;
     if (mode === "tracker") {
       try {
         const alloc = await settingsService.deriveTrackerNightAllocationForDate(
@@ -175,14 +187,35 @@ export default function PayCalculatorScreen() {
       nightOvertimeHours = manualNightOt;
     }
 
+    // Choose hours for calculation
+    let hoursWorked: HoursAndMinutes =
+      mode === "tracker" ? trackerHoursWorked : manualHoursWorked;
+    let overtimeWorked: HoursAndMinutes =
+      mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked;
+    // Auto-derive tracker overtime split when OT not entered
+    if (
+      mode === "tracker" &&
+      (overtimeWorked.hours || 0) === 0 &&
+      (overtimeWorked.minutes || 0) === 0
+    ) {
+      try {
+        const split = await settingsService.deriveTrackerOvertimeSplitForDate(
+          date,
+          settings
+        );
+        hoursWorked = split.base;
+        overtimeWorked = split.overtime;
+        derivedSplit = split;
+      } catch {}
+    }
+
     const input: PayCalculationInput = {
       mode,
       date,
       hourlyRateId,
       overtimeRateId,
-      hoursWorked: mode === "tracker" ? trackerHoursWorked : manualHoursWorked,
-      overtimeWorked:
-        mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked,
+      hoursWorked,
+      overtimeWorked,
       nightBaseHours,
       nightOvertimeHours,
     };
@@ -254,6 +287,9 @@ export default function PayCalculatorScreen() {
     }
     // else keep computed result
     setBreakdown(result);
+    // Store hint state for UI (using local state setters)
+    setTrackerDerivedSplit(derivedSplit);
+    setTrackerNightHint({ base: nightBaseHours, ot: nightOvertimeHours });
   };
 
   useEffect(() => {
@@ -325,6 +361,37 @@ export default function PayCalculatorScreen() {
                 overtime: parseFloat(manualOvertimeRateText || ""),
               }
             : undefined,
+        calcSnapshot: {
+          usedBase:
+            mode === "tracker" ? trackerDerivedSplit?.base : manualHoursWorked,
+          usedOvertime:
+            mode === "tracker"
+              ? trackerDerivedSplit?.overtime
+              : manualOvertimeWorked,
+          night: Boolean((settings?.payRules?.night as any)?.enabled)
+            ? {
+                base: trackerNightHint?.base,
+                overtime: trackerNightHint?.ot,
+                type: settings?.payRules?.night?.type,
+                value: settings?.payRules?.night?.value,
+              }
+            : undefined,
+          weekend: Boolean((settings?.payRules?.weekend as any)?.enabled)
+            ? {
+                mode:
+                  (settings?.payRules?.weekend as any)?.mode ||
+                  ((settings?.payRules?.weekend as any)?.type === "percentage"
+                    ? ("multiplier" as const)
+                    : (settings?.payRules?.weekend as any)?.type === "fixed"
+                    ? ("fixed" as const)
+                    : undefined),
+                value:
+                  (settings?.payRules as any)?.weekend?.multiplier ??
+                  (settings?.payRules as any)?.weekend?.uplift ??
+                  (settings?.payRules as any)?.weekend?.value,
+              }
+            : undefined,
+        },
         createdAt: Date.now(),
       };
       await settingsService.savePayCalculation(entry);
@@ -928,10 +995,49 @@ export default function PayCalculatorScreen() {
                     </>
                   ) : null}
                   {mode === "tracker" && (
-                    <ThemedText style={styles.helperText}>
-                      Auto-fills from your shifts for the selected date when
-                      available.
-                    </ThemedText>
+                    <>
+                      <ThemedText style={styles.helperText}>
+                        Auto-fills from your shifts for the selected date when
+                        available.
+                      </ThemedText>
+                      {(() => {
+                        const split = trackerDerivedSplit;
+                        const night = trackerNightHint;
+                        const parts: string[] = [];
+                        if (split) {
+                          parts.push(`Base: ${formatHMClock(split.base)}`);
+                          parts.push(
+                            `Overtime: ${formatHMClock(split.overtime)}`
+                          );
+                        }
+                        if (night && (night.base || night.ot)) {
+                          const nb = night.base || { hours: 0, minutes: 0 };
+                          const no = night.ot || { hours: 0, minutes: 0 };
+                          const totalMinutes =
+                            Math.max(
+                              0,
+                              (nb.hours || 0) * 60 + (nb.minutes || 0)
+                            ) +
+                            Math.max(
+                              0,
+                              (no.hours || 0) * 60 + (no.minutes || 0)
+                            );
+                          const total = {
+                            hours: Math.floor(totalMinutes / 60),
+                            minutes: totalMinutes % 60,
+                          };
+                          parts.push(
+                            `Night uplift applied: ${formatHMClock(total)}`
+                          );
+                        }
+                        if (!parts.length) return null;
+                        return (
+                          <ThemedText style={styles.helperText}>
+                            {parts.join(" • ")}
+                          </ThemedText>
+                        );
+                      })()}
+                    </>
                   )}
                 </View>
 
@@ -1292,6 +1398,15 @@ export default function PayCalculatorScreen() {
                           const baseAmount = baseRateVal * (baseMinutes / 60);
                           const overtimeAmount =
                             overtimeRateVal * (overtimeMinutes / 60);
+                          const overtimeAmountFinal = Number(
+                            (entry.calculatedPay as any).overtime ?? 0
+                          );
+                          const upliftsAmount = Number(
+                            (entry.calculatedPay as any).uplifts ?? 0
+                          );
+                          const allowancesAmount = Number(
+                            (entry.calculatedPay as any).allowances ?? 0
+                          );
                           const totalBeforeDeductions =
                             (entry.calculatedPay as any).gross ??
                             entry.calculatedPay.base +
@@ -1372,8 +1487,206 @@ export default function PayCalculatorScreen() {
                                       </View>
                                       <ThemedText style={styles.lineItemAmount}>
                                         {currencySymbol}
-                                        {overtimeAmount.toFixed(2)}
+                                        {overtimeAmountFinal
+                                          ? overtimeAmountFinal.toFixed(2)
+                                          : overtimeAmount.toFixed(2)}
                                       </ThemedText>
+                                    </>
+                                  ) : overtimeAmountFinal > 0 ? (
+                                    <>
+                                      <View style={styles.lineItemRow}>
+                                        <ThemedText
+                                          style={styles.lineItemLabel}
+                                        >
+                                          Overtime:
+                                        </ThemedText>
+                                        {(() => {
+                                          const snap = (entry as any)
+                                            .calcSnapshot;
+                                          const used = snap?.usedOvertime;
+                                          const mins = used
+                                            ? Math.max(
+                                                0,
+                                                (used.hours || 0) * 60 +
+                                                  (used.minutes || 0)
+                                              )
+                                            : 0;
+                                          if (mins > 0) {
+                                            const perHour =
+                                              overtimeAmountFinal / (mins / 60);
+                                            return (
+                                              <ThemedText
+                                                style={styles.lineItemValue}
+                                              >
+                                                {formatHMClock({
+                                                  hours: Math.floor(mins / 60),
+                                                  minutes: mins % 60,
+                                                })}{" "}
+                                                @ {currencySymbol}
+                                                {perHour.toFixed(2)}
+                                              </ThemedText>
+                                            );
+                                          }
+                                          return (
+                                            <ThemedText
+                                              style={styles.lineItemValue}
+                                            >
+                                              {currencySymbol}
+                                              {overtimeAmountFinal.toFixed(2)}
+                                            </ThemedText>
+                                          );
+                                        })()}
+                                      </View>
+                                    </>
+                                  ) : null}
+
+                                  {upliftsAmount > 0 ? (
+                                    <>
+                                      <View style={styles.lineItemRow}>
+                                        <ThemedText
+                                          style={styles.lineItemLabel}
+                                        >
+                                          Uplifts:
+                                        </ThemedText>
+                                        <View
+                                          style={{ alignItems: "flex-end" }}
+                                        >
+                                          {(() => {
+                                            const snap = (entry as any)
+                                              .calcSnapshot;
+                                            const lines: React.ReactNode[] = [];
+                                            if (
+                                              snap?.night &&
+                                              (snap.night.base ||
+                                                snap.night.overtime)
+                                            ) {
+                                              const nb = snap.night.base || {
+                                                hours: 0,
+                                                minutes: 0,
+                                              };
+                                              const no = snap.night
+                                                .overtime || {
+                                                hours: 0,
+                                                minutes: 0,
+                                              };
+                                              const hoursTotal =
+                                                (nb.hours || 0) +
+                                                (no.hours || 0) +
+                                                ((nb.minutes || 0) +
+                                                  (no.minutes || 0)) /
+                                                  60;
+                                              if (snap.night.type === "fixed") {
+                                                lines.push(
+                                                  <ThemedText
+                                                    key="night-fixed"
+                                                    style={styles.lineItemValue}
+                                                  >
+                                                    Night:{" "}
+                                                    {formatHMClock({
+                                                      hours:
+                                                        Math.floor(hoursTotal),
+                                                      minutes: Math.round(
+                                                        (hoursTotal % 1) * 60
+                                                      ),
+                                                    })}{" "}
+                                                    @ {currencySymbol}
+                                                    {(
+                                                      snap.night.value ?? 0
+                                                    ).toFixed(2)}
+                                                  </ThemedText>
+                                                );
+                                              } else if (
+                                                snap.night.type === "percentage"
+                                              ) {
+                                                lines.push(
+                                                  <ThemedText
+                                                    key="night-pct"
+                                                    style={styles.lineItemValue}
+                                                  >
+                                                    Night:{" "}
+                                                    {formatHMClock({
+                                                      hours:
+                                                        Math.floor(hoursTotal),
+                                                      minutes: Math.round(
+                                                        (hoursTotal % 1) * 60
+                                                      ),
+                                                    })}{" "}
+                                                    @ +
+                                                    {(
+                                                      snap.night.value ?? 0
+                                                    ).toFixed(0)}
+                                                    %
+                                                  </ThemedText>
+                                                );
+                                              }
+                                            }
+                                            if (
+                                              snap?.weekend?.value &&
+                                              snap?.weekend?.mode
+                                            ) {
+                                              if (
+                                                snap.weekend.mode === "fixed"
+                                              ) {
+                                                lines.push(
+                                                  <ThemedText
+                                                    key="wk-fixed"
+                                                    style={styles.lineItemValue}
+                                                  >
+                                                    Weekend: +{currencySymbol}
+                                                    {Number(
+                                                      snap.weekend.value
+                                                    ).toFixed(2)}{" "}
+                                                    /h
+                                                  </ThemedText>
+                                                );
+                                              } else if (
+                                                snap.weekend.mode ===
+                                                "multiplier"
+                                              ) {
+                                                lines.push(
+                                                  <ThemedText
+                                                    key="wk-mul"
+                                                    style={styles.lineItemValue}
+                                                  >
+                                                    Weekend: ×
+                                                    {Number(
+                                                      snap.weekend.value
+                                                    ).toFixed(2)}
+                                                  </ThemedText>
+                                                );
+                                              }
+                                            }
+                                            lines.push(
+                                              <ThemedText
+                                                key="uplifts-total"
+                                                style={styles.lineItemValue}
+                                              >
+                                                {currencySymbol}
+                                                {upliftsAmount.toFixed(2)}
+                                              </ThemedText>
+                                            );
+                                            return <>{lines}</>;
+                                          })()}
+                                        </View>
+                                      </View>
+                                    </>
+                                  ) : null}
+
+                                  {allowancesAmount > 0 ? (
+                                    <>
+                                      <View style={styles.lineItemRow}>
+                                        <ThemedText
+                                          style={styles.lineItemLabel}
+                                        >
+                                          Allowances:
+                                        </ThemedText>
+                                        <ThemedText
+                                          style={styles.lineItemValue}
+                                        >
+                                          {currencySymbol}
+                                          {allowancesAmount.toFixed(2)}
+                                        </ThemedText>
+                                      </View>
                                     </>
                                   ) : null}
 
