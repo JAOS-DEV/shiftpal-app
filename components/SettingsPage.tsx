@@ -11,16 +11,18 @@ import {
 } from "@/types/settings";
 // Native time picker removed; using dropdowns universally for 24h control
 import { notify } from "@/utils/notify";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Switch,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Dropdown } from "./Dropdown";
 import { TabSwitcher } from "./TabSwitcher";
@@ -41,8 +43,8 @@ export function SettingsPage() {
       settings?.preferences?.currency === "USD"
         ? "$"
         : settings?.preferences?.currency === "EUR"
-        ? "€"
-        : "£",
+          ? "€"
+          : "£",
     [settings?.preferences?.currency]
   );
   const [newAllowance, setNewAllowance] = useState<{
@@ -83,6 +85,18 @@ export function SettingsPage() {
   const openHelp = (title: string, body: string) =>
     setHelpModal({ visible: true, title, body });
   const closeHelp = () => setHelpModal({ visible: false, title: "", body: "" });
+
+  // Week start day picker
+  const [showWeekStartPicker, setShowWeekStartPicker] = useState(false);
+  const weekDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+  ];
 
   // Simple edit sheets and Advanced toggle
   const [showOvertimeSheet, setShowOvertimeSheet] = useState(false);
@@ -190,14 +204,14 @@ export function SettingsPage() {
       daily?.threshold !== undefined && daily?.threshold !== null
         ? String(daily.threshold)
         : legacyDailyThreshold !== undefined && legacyDailyThreshold !== null
-        ? String(legacyDailyThreshold)
-        : ""
+          ? String(legacyDailyThreshold)
+          : ""
     );
     const nextDailyMode: any = daily?.mode
       ? daily.mode
       : typeof legacyDailyMultiplier === "number"
-      ? "multiplier"
-      : "";
+        ? "multiplier"
+        : "";
     setOvertimeDailyMode(nextDailyMode);
     const dailyValue =
       nextDailyMode === "multiplier"
@@ -210,14 +224,14 @@ export function SettingsPage() {
       weekly?.threshold !== undefined && weekly?.threshold !== null
         ? String(weekly.threshold)
         : legacyWeeklyThreshold !== undefined && legacyWeeklyThreshold !== null
-        ? String(legacyWeeklyThreshold)
-        : ""
+          ? String(legacyWeeklyThreshold)
+          : ""
     );
     const nextWeeklyMode: any = weekly?.mode
       ? weekly.mode
       : typeof legacyWeeklyMultiplier === "number"
-      ? "multiplier"
-      : "";
+        ? "multiplier"
+        : "";
     setOvertimeWeeklyMode(nextWeeklyMode);
     const weeklyValue =
       nextWeeklyMode === "multiplier"
@@ -238,10 +252,10 @@ export function SettingsPage() {
     const wkMode: any = wk?.mode
       ? wk.mode
       : wk?.type === "percentage"
-      ? "multiplier"
-      : wk?.type === "fixed"
-      ? "fixed"
-      : "";
+        ? "multiplier"
+        : wk?.type === "fixed"
+          ? "fixed"
+          : "";
     setWeekendMode(wkMode);
     const wkValue = wkMode === "multiplier" ? wk?.multiplier : wk?.uplift;
     setWeekendValueText(
@@ -440,9 +454,15 @@ export function SettingsPage() {
                   key={r.id}
                   style={[styles.rateRow, { borderColor: colors.border }]}
                 >
-                  <ThemedText style={{ fontWeight: "600" }}>
-                    {r.label}
-                  </ThemedText>
+                  <View style={styles.rateLabel}>
+                    <ThemedText
+                      style={{ fontWeight: "600" }}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {r.label}
+                    </ThemedText>
+                  </View>
                   <View style={styles.rateMeta}>
                     <ThemedText>
                       {currencySymbol}
@@ -500,13 +520,11 @@ export function SettingsPage() {
                   mode === "multiplier"
                     ? rule?.multiplier ?? 1.5
                     : rule?.uplift ?? 2;
-                return `${
-                  basis === "weekly" ? "Weekly" : "Daily"
-                } threshold ${threshold}h • ${
-                  mode === "multiplier"
+                return `${basis === "weekly" ? "Weekly" : "Daily"
+                  } threshold ${threshold}h • ${mode === "multiplier"
                     ? `${value}×`
                     : `+${currencySymbol}${Number(value).toFixed(2)}`
-                }`;
+                  }`;
               })()}
             </ThemedText>
           </View>
@@ -534,15 +552,13 @@ export function SettingsPage() {
                 const end = n?.end || "06:00";
                 const type = n?.type || "fixed";
                 const value = Number(n?.value ?? 1);
-                return `${
-                  enabled
-                    ? `${start}–${end} • ${
-                        type === "percentage"
-                          ? `+${value}%`
-                          : `+${currencySymbol}${value.toFixed(2)}`
-                      }`
-                    : "Disabled"
-                }`;
+                return `${enabled
+                  ? `${start}–${end} • ${type === "percentage"
+                    ? `+${value}%`
+                    : `+${currencySymbol}${value.toFixed(2)}`
+                  }`
+                  : "Disabled"
+                  }`;
               })()}
             </ThemedText>
           </View>
@@ -572,21 +588,19 @@ export function SettingsPage() {
                   (w?.type === "percentage"
                     ? "multiplier"
                     : w?.type === "fixed"
-                    ? "fixed"
-                    : "multiplier");
+                      ? "fixed"
+                      : "multiplier");
                 const value =
                   mode === "multiplier"
                     ? Number(w?.multiplier ?? 1.25)
                     : Number(w?.uplift ?? 0.5);
-                return `${
-                  enabled
-                    ? `${days} • ${
-                        mode === "multiplier"
-                          ? `+${Math.round((value - 1) * 100)}%`
-                          : `+${currencySymbol}${value.toFixed(2)}/h`
-                      }`
-                    : "Disabled"
-                }`;
+                return `${enabled
+                  ? `${days} • ${mode === "multiplier"
+                    ? `+${Math.round((value - 1) * 100)}%`
+                    : `+${currencySymbol}${value.toFixed(2)}/h`
+                  }`
+                  : "Disabled"
+                  }`;
               })()}
             </ThemedText>
           </View>
@@ -980,8 +994,8 @@ export function SettingsPage() {
                   ((settings?.payRules?.weekend as any)?.type === "percentage"
                     ? "multiplier"
                     : (settings?.payRules?.weekend as any)?.type === "fixed"
-                    ? "fixed"
-                    : "multiplier")
+                      ? "fixed"
+                      : "multiplier")
                 }
                 onChange={(v) =>
                   updatePayRules({
@@ -1027,6 +1041,106 @@ export function SettingsPage() {
               onPress={() => setShowWeekendSheet(false)}
             >
               <ThemedText style={{ color: colors.primary }}>Done</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Week Start Day Picker */}
+      <Modal
+        transparent
+        visible={showWeekStartPicker}
+        animationType="fade"
+        onRequestClose={() => setShowWeekStartPicker(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.weekStartModal,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <ThemedText
+              type="subtitle"
+              style={[styles.modalTitle, { color: colors.text, textAlign: "center" }]}
+            >
+              Start Week On
+            </ThemedText>
+
+            <View style={styles.pickerContainer}>
+              {/* Top gradient overlay */}
+              <LinearGradient
+                colors={[colors.surface, colors.surface + "CC", colors.surface + "00"]}
+                style={[styles.gradientOverlay, styles.topGradient]}
+                pointerEvents="none"
+              />
+
+              <ScrollView
+                style={styles.wheelPicker}
+                showsVerticalScrollIndicator={false}
+                snapToInterval={44}
+                decelerationRate="fast"
+                contentContainerStyle={styles.wheelContent}
+                bounces={false}
+              >
+                {/* Add padding items at start */}
+                <View style={styles.wheelItem} />
+                <View style={styles.wheelItem} />
+
+                {weekDays.map((day, index) => {
+                  const isSelected = (settings?.payRules?.payPeriod?.startDay || "Monday") === day;
+                  return (
+                    <TouchableOpacity
+                      key={day}
+                      style={styles.wheelItem}
+                      onPress={async () => {
+                        await updatePayRules({
+                          payPeriod: {
+                            ...(settings?.payRules?.payPeriod || {}),
+                            startDay: day,
+                            cycle: settings?.payRules?.payPeriod?.cycle || "weekly"
+                          }
+                        });
+                      }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.wheelItemText,
+                          {
+                            color: isSelected ? colors.text : colors.textSecondary,
+                            fontSize: isSelected ? 20 : 17,
+                            fontWeight: isSelected ? "600" : "400",
+                            opacity: isSelected ? 1 : 0.6
+                          }
+                        ]}
+                      >
+                        {day}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {/* Add padding items at end */}
+                <View style={styles.wheelItem} />
+                <View style={styles.wheelItem} />
+              </ScrollView>
+
+              {/* Selection indicator */}
+              <View style={[styles.selectionIndicator, { borderColor: colors.border }]} />
+
+              {/* Bottom gradient overlay */}
+              <LinearGradient
+                colors={[colors.surface + "00", colors.surface + "CC", colors.surface]}
+                style={[styles.gradientOverlay, styles.bottomGradient]}
+                pointerEvents="none"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.modalButton, { borderColor: colors.primary, alignSelf: "center", width: "80%" }]}
+              onPress={() => setShowWeekStartPicker(false)}
+            >
+              <ThemedText style={{ color: colors.primary, fontWeight: "600", alignSelf: "center" }}>OK</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -1087,6 +1201,21 @@ export function SettingsPage() {
               { value: "12h", label: "12-hour" },
             ]}
           />
+        </View>
+
+        {/* Week Start Day */}
+        <View style={[styles.toggleRow, { marginTop: 16 }]}>
+          <ThemedText style={{ flex: 1, color: colors.text }}>
+            Start Week On
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.smallButton, { borderColor: colors.border }]}
+            onPress={() => setShowWeekStartPicker(true)}
+          >
+            <ThemedText style={{ color: colors.text }}>
+              {settings?.payRules?.payPeriod?.startDay || "Monday"}
+            </ThemedText>
+          </TouchableOpacity>
         </View>
         {/* Advanced options moved to Advanced tab */}
 
@@ -1418,13 +1547,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 12,
+  },
+  rateLabel: {
+    flex: 1,
+    minWidth: 0, // Important for text ellipsis to work
   },
   rateMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    flexShrink: 0, // Prevent the meta section from shrinking
   },
   rateType: {
     color: "#666",
@@ -1470,5 +1604,62 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
+  },
+  weekStartModal: {
+    width: "85%",
+    maxWidth: 320,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    gap: 16,
+  },
+  pickerContainer: {
+    height: 220,
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "transparent",
+  },
+  wheelPicker: {
+    height: 220,
+    width: "100%",
+  },
+  wheelContent: {
+    paddingVertical: 0,
+  },
+  wheelItem: {
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  wheelItemText: {
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  selectionIndicator: {
+    position: "absolute",
+    top: 88,
+    left: 16,
+    right: 16,
+    height: 44,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderRadius: 12,
+    opacity: 0.4,
+    pointerEvents: "none",
+    backgroundColor: "#007bff79",
+  },
+  gradientOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 88,
+    zIndex: 1,
+  },
+  topGradient: {
+    top: 0,
+  },
+  bottomGradient: {
+    bottom: 0,
   },
 });

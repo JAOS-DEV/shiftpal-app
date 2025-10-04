@@ -10,9 +10,109 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-import Toast from "react-native-toast-message";
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+
+// Custom toast configuration with transparency
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: '#4CAF50',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 8,
+        marginHorizontal: 16,
+      }}
+      contentContainerStyle={{
+        paddingHorizontal: 15,
+        backgroundColor: 'transparent',
+      }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666',
+      }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{
+        borderLeftColor: '#F44336',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 8,
+        marginHorizontal: 16,
+      }}
+      contentContainerStyle={{
+        paddingHorizontal: 15,
+        backgroundColor: 'transparent',
+      }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666',
+      }}
+    />
+  ),
+  info: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: '#2196F3',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 8,
+        marginHorizontal: 16,
+      }}
+      contentContainerStyle={{
+        paddingHorizontal: 15,
+        backgroundColor: 'transparent',
+      }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666',
+      }}
+    />
+  ),
+  warning: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: '#FF9800',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 8,
+        marginHorizontal: 16,
+      }}
+      contentContainerStyle={{
+        paddingHorizontal: 15,
+        backgroundColor: 'transparent',
+      }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666',
+      }}
+    />
+  ),
+};
 
 function RootNavigator() {
   const { user, initializing } = useAuth();
@@ -44,7 +144,12 @@ export default function RootLayout() {
         <AuthProvider>
           <RootNavigator />
           <StatusBar style="auto" />
-          <Toast />
+          <Toast 
+            config={toastConfig}
+            position="top" 
+            topOffset={80}
+            visibilityTime={3000}
+          />
         </AuthProvider>
       </ThemeProvider>
     </CustomThemeProvider>

@@ -15,7 +15,7 @@ function show(
     type,
     text1,
     ...(text2 ? { text2 } : {}),
-    position: options?.position ?? "bottom",
+    position: options?.position ?? "top",
     visibilityTime: options?.visibilityTime,
   });
 }
