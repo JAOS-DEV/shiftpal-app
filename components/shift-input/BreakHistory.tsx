@@ -14,6 +14,33 @@ export const BreakHistory: React.FC<BreakHistoryProps> = ({
 }) => {
   const [showBreakHistory, setShowBreakHistory] = useState(true);
 
+  // Helper function to safely format milliseconds as HH:MM:SS
+  const formatTimeFromMs = (ms: number): string => {
+    if (!Number.isFinite(ms) || ms < 0) {
+      return "00:00:00";
+    }
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  // Helper function to safely format timestamp as time
+  const formatTimeFromTimestamp = (timestamp: number): string => {
+    if (!Number.isFinite(timestamp) || timestamp < 0) {
+      return "00:00";
+    }
+    try {
+      return new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "00:00";
+    }
+  };
+
   if (!breaks || breaks.length === 0) {
     return null;
   }
@@ -46,19 +73,13 @@ export const BreakHistory: React.FC<BreakHistoryProps> = ({
                 #{idx + 1}
               </ThemedText>
               <ThemedText style={styles.breakDuration}>
-                {new Date(b.durationMs).toISOString().substr(11, 8)}
+                {formatTimeFromMs(b.durationMs)}
               </ThemedText>
               <ThemedText style={styles.breakTimes}>
-                {new Date(b.start).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatTimeFromTimestamp(b.start)}
                 {" - "}
                 {b.end
-                  ? new Date(b.end).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                  ? formatTimeFromTimestamp(b.end)
                   : "ongoing"}
               </ThemedText>
               {b.note ? (
@@ -72,7 +93,7 @@ export const BreakHistory: React.FC<BreakHistoryProps> = ({
                 Total breaks
               </ThemedText>
               <ThemedText style={styles.breakTotalValue}>
-                {new Date(totalBreakMs).toISOString().substr(11, 8)}
+                {formatTimeFromMs(totalBreakMs)}
               </ThemedText>
             </View>
           ) : null}
