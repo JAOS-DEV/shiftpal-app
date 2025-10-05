@@ -1,5 +1,5 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import React from "react";
+import React, { useMemo } from "react";
 import {
     StyleSheet,
     View,
@@ -21,10 +21,15 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({
 }) => {
   const { colors } = useTheme();
 
+  const periodText = useMemo(() => ({
+    adjective: period === "week" ? "weekly" : "monthly",
+    title: period === "week" ? "Weekly Goal" : "Monthly Goal",
+  }), [period]);
+
   if (!goal || goal <= 0) {
     return (
       <ThemedText style={styles.goalHintText}>
-        Set a {period === "week" ? "weekly" : "monthly"} goal in Settings →
+        Set a {periodText.adjective} goal in Settings →
         Preferences to track progress.
       </ThemedText>
     );
@@ -38,7 +43,7 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({
     <>
       <View style={styles.goalHeaderRow}>
         <ThemedText style={styles.goalTitle}>
-          {period === "week" ? "Weekly Goal" : "Monthly Goal"}
+          {periodText.title}
         </ThemedText>
         <ThemedText style={styles.goalAmounts}>
           {currencySymbol}

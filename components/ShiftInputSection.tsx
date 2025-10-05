@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -23,7 +23,7 @@ const STORAGE_KEYS = {
 export function ShiftInputSection({
   onAddShift,
   onShiftListRefresh,
-}: ShiftInputSectionProps) {
+}: ShiftInputSectionProps): React.JSX.Element {
   const [mode, setMode] = useState<"manual" | "timer">("manual");
   const [includeBreaks, setIncludeBreaks] = useState(false);
 
@@ -59,6 +59,14 @@ export function ShiftInputSection({
     ).catch(() => {});
   }, [includeBreaks]);
 
+  const handleManualMode = useCallback(() => {
+    setMode("manual");
+  }, []);
+
+  const handleTimerMode = useCallback(() => {
+    setMode("timer");
+  }, []);
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
@@ -72,7 +80,7 @@ export function ShiftInputSection({
               styles.modeButton,
               mode === "manual" && styles.modeButtonActive,
             ]}
-            onPress={() => setMode("manual")}
+            onPress={handleManualMode}
           >
             <ThemedText
               style={[
@@ -88,7 +96,7 @@ export function ShiftInputSection({
               styles.modeButton,
               mode === "timer" && styles.modeButtonActive,
             ]}
-            onPress={() => setMode("timer")}
+            onPress={handleTimerMode}
           >
             <ThemedText
               style={[

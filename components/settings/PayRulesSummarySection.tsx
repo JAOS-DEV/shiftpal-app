@@ -1,10 +1,10 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import { PayRules } from "@/types/settings";
+import { NightRules, OvertimeRules, PayRules, WeekendRules } from "@/types/settings";
 import React from "react";
 import {
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
 
@@ -26,7 +26,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
   const { colors } = useTheme();
 
   const getOvertimeSummary = (): string => {
-    const ot: any = payRules?.overtime || {};
+    const ot: OvertimeRules = payRules?.overtime || {};
     const basis = ot.active || "daily";
     const rule = basis === "weekly" ? ot.weekly : ot.daily;
     const threshold = rule?.threshold ?? (basis === "weekly" ? 40 : 8);
@@ -41,7 +41,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
   };
 
   const getNightSummary = (): string => {
-    const n: any = payRules?.night || {};
+    const n: NightRules = payRules?.night || {};
     const enabled = n?.enabled !== false;
     const start = n?.start || "22:00";
     const end = n?.end || "06:00";
@@ -57,7 +57,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
   };
 
   const getWeekendSummary = (): string => {
-    const w: any = payRules?.weekend || {};
+    const w: WeekendRules = payRules?.weekend || {};
     const enabled = w?.enabled === true;
     const days = (w?.days || ["Sat", "Sun"]).join(", ");
     const mode =
@@ -101,7 +101,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
       <View style={styles.simpleRow}>
         <View style={styles.ruleContent}>
           <ThemedText style={styles.ruleTitle}>Overtime</ThemedText>
-          <ThemedText style={{ color: colors.textSecondary }}>
+          <ThemedText style={[styles.ruleDescription, { color: colors.textSecondary }]}>
             {getOvertimeSummary()}
           </ThemedText>
         </View>
@@ -121,7 +121,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
       <View style={styles.simpleRow}>
         <View style={styles.ruleContent}>
           <ThemedText style={styles.ruleTitle}>Night</ThemedText>
-          <ThemedText style={{ color: colors.textSecondary }}>
+          <ThemedText style={[styles.ruleDescription, { color: colors.textSecondary }]}>
             {getNightSummary()}
           </ThemedText>
         </View>
@@ -141,7 +141,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
       <View style={styles.simpleRow}>
         <View style={styles.ruleContent}>
           <ThemedText style={styles.ruleTitle}>Weekend</ThemedText>
-          <ThemedText style={{ color: colors.textSecondary }}>
+          <ThemedText style={[styles.ruleDescription, { color: colors.textSecondary }]}>
             {getWeekendSummary()}
           </ThemedText>
         </View>
@@ -194,6 +194,10 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  ruleDescription: {
+    fontSize: 14,
+    lineHeight: 18,
   },
 });
 

@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
+import { PayRules } from "@/types/settings";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
@@ -37,7 +37,7 @@ export const WeekStartPickerModal: React.FC<WeekStartPickerModalProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const updatePayRules = async (updates: any): Promise<void> => {
+  const updatePayRules = async (updates: Partial<PayRules>): Promise<void> => {
     await settingsService.setPayRules(updates);
     onSettingsChange();
   };

@@ -7,19 +7,19 @@ import { AppSettings, PayCalculationEntry } from "@/types/settings";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 type TopTab = "calculator" | "history";
 
-export default function PayCalculatorScreen(): JSX.Element {
+export default function PayCalculatorScreen(): React.JSX.Element {
   const [topTab, setTopTab] = useState<TopTab>("calculator");
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState<boolean>(true);

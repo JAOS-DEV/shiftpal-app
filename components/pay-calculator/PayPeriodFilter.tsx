@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
     Platform, StyleSheet,
     TouchableOpacity,
@@ -24,6 +24,11 @@ export const PayPeriodFilter: React.FC<PayPeriodFilterProps> = ({
   onRecalcAll,
   onUndo,
 }) => {
+  const staleText = useMemo(() => {
+    const entryText = staleCount === 1 ? "entry is" : "entries are";
+    return `${staleCount} ${entryText} out of date with current settings`;
+  }, [staleCount]);
+
   const handleThisWeek = (): void => {
     onPeriodChange("week");
   };
@@ -51,8 +56,7 @@ export const PayPeriodFilter: React.FC<PayPeriodFilterProps> = ({
       {staleCount > 0 && (
         <View style={styles.staleWarning}>
           <ThemedText style={styles.staleText}>
-            {staleCount} entr{staleCount === 1 ? "y is" : "ies are"} out of
-            date with current settings
+            {staleText}
           </ThemedText>
           <TouchableOpacity
             style={[

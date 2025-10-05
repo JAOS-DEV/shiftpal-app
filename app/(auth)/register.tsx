@@ -17,9 +17,9 @@ import {
     View,
 } from "react-native";
 
-export default function RegisterScreen() {
+export default function RegisterScreen(): React.JSX.Element {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"] as any;
+  const theme = Colors[colorScheme ?? "light"];
   const { signUpWithEmail } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -34,9 +34,9 @@ export default function RegisterScreen() {
     try {
       await signUpWithEmail(email, password);
       notify.success("Account created");
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to register");
-      notify.error("Registration failed", e?.message ?? undefined);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to register");
+      notify.error("Registration failed", e instanceof Error ? e.message : undefined);
     } finally {
       setLoading(false);
     }
@@ -56,28 +56,10 @@ export default function RegisterScreen() {
             <ShiftPalLogo width={72} height={72} />
           </View>
           {isLoading ? (
-            <View style={{ gap: 10 }}>
-              <View
-                style={{
-                  height: 16,
-                  backgroundColor: "#EDEDED",
-                  borderRadius: 8,
-                }}
-              />
-              <View
-                style={{
-                  height: 48,
-                  backgroundColor: "#F3F3F3",
-                  borderRadius: 12,
-                }}
-              />
-              <View
-                style={{
-                  height: 48,
-                  backgroundColor: "#F3F3F3",
-                  borderRadius: 12,
-                }}
-              />
+            <View style={styles.loadingContainer}>
+              <View style={styles.loadingLine} />
+              <View style={styles.loadingInput} />
+              <View style={styles.loadingInput} />
             </View>
           ) : null}
           {!!error && <Text style={styles.error}>{error}</Text>}
@@ -158,4 +140,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   outlineButtonText: { fontWeight: "700" },
+  loadingContainer: {
+    gap: 10,
+  },
+  loadingLine: {
+    height: 16,
+    backgroundColor: "#EDEDED",
+    borderRadius: 8,
+  },
+  loadingInput: {
+    height: 48,
+    backgroundColor: "#F3F3F3",
+    borderRadius: 12,
+  },
 });

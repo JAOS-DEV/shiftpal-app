@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
+import { AppSettings, Preferences } from "@/types/settings";
 import React, { useState } from "react";
 import {
     StyleSheet,
@@ -44,7 +44,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
     );
   }, [settings]);
 
-  const updatePreferences = async (updates: any): Promise<void> => {
+  const updatePreferences = async (updates: Partial<Preferences>): Promise<void> => {
     await settingsService.setPreferences(updates);
     onSettingsChange();
   };
@@ -84,7 +84,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
           compact
           placeholder="Currency"
           value={settings?.preferences?.currency || "GBP"}
-          onChange={(v) => updatePreferences({ currency: v as any })}
+          onChange={(v) => updatePreferences({ currency: v as Preferences["currency"] })}
           items={[
             { value: "GBP", label: "GBP (£)" },
             { value: "USD", label: "USD ($)" },
@@ -95,7 +95,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
           compact
           placeholder="Time format"
           value={settings?.preferences?.timeFormat || "24h"}
-          onChange={(v) => updatePreferences({ timeFormat: v as any })}
+          onChange={(v) => updatePreferences({ timeFormat: v as Preferences["timeFormat"] })}
           items={[
             { value: "24h", label: "24-hour" },
             { value: "12h", label: "12-hour" },

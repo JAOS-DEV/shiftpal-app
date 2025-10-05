@@ -22,7 +22,7 @@ export function ShiftEntriesList({
   shifts,
   onRemoveShift,
   embedded = false,
-}: ShiftEntriesListProps) {
+}: ShiftEntriesListProps): React.JSX.Element {
   const handleRemoveShift = (shiftId: string, shiftInfo: string) => {
     Alert.alert(
       "Remove Shift",
@@ -86,7 +86,7 @@ export function ShiftEntriesList({
                   handleRemoveShift(item.id, `${item.start} - ${item.end}`)
                 }
               />
-              {index < data.length - 1 ? <View style={{ height: 8 }} /> : null}
+              {index < data.length - 1 ? <View style={styles.separator} /> : null}
             </View>
           ))}
         </View>
@@ -95,7 +95,7 @@ export function ShiftEntriesList({
           data={data}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews
@@ -118,6 +118,17 @@ const ShiftRow = React.memo(function ShiftRow({
   index,
   onRemove,
 }: ShiftRowProps) {
+  const breakText = useMemo(() => {
+    if (typeof shift.breakMinutes !== "number" || shift.breakMinutes <= 0) {
+      return null;
+    }
+    
+    const countText = typeof shift.breakCount === "number" ? ` (${shift.breakCount})` : "";
+    const includedText = shift.includeBreaks ? " (included)" : " (excluded)";
+    
+    return `Breaks: ${shift.breakMinutes}m${countText}${includedText}`;
+  }, [shift.breakMinutes, shift.breakCount, shift.includeBreaks]);
+
   return (
     <View style={styles.shiftRow}>
       <View style={styles.shiftInfo}>
@@ -132,13 +143,9 @@ const ShiftRow = React.memo(function ShiftRow({
           <ThemedText style={styles.durationText}>
             {shift.durationText}
           </ThemedText>
-          {typeof shift.breakMinutes === "number" && shift.breakMinutes > 0 && (
+          {breakText && (
             <ThemedText style={styles.breakText}>
-              Breaks: {shift.breakMinutes}m
-              {typeof shift.breakCount === "number"
-                ? ` (${shift.breakCount})`
-                : ""}
-              {shift.includeBreaks ? " (included)" : " (excluded)"}
+              {breakText}
             </ThemedText>
           )}
           <ThemedText style={styles.minutesText}>
@@ -246,5 +253,8 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  separator: {
+    height: 8,
   },
 });

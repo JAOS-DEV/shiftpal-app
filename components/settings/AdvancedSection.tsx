@@ -1,7 +1,7 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
+import { Preferences } from "@/types/settings";
 import React from "react";
 import {
     Alert,
@@ -24,7 +24,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
   const { colors } = useTheme();
   const { signOutUser } = useAuth();
 
-  const updatePreferences = async (updates: any): Promise<void> => {
+  const updatePreferences = async (updates: Partial<Preferences>): Promise<void> => {
     await settingsService.setPreferences(updates);
     onSettingsChange();
   };

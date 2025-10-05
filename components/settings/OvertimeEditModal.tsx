@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
+import { OvertimeRules, PayRules } from "@/types/settings";
 import React from "react";
 import {
     Modal,
@@ -27,33 +27,33 @@ export const OvertimeEditModal: React.FC<OvertimeEditModalProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const updatePayRules = async (updates: any): Promise<void> => {
+  const updatePayRules = async (updates: Partial<PayRules>): Promise<void> => {
     await settingsService.setPayRules(updates);
     onSettingsChange();
   };
 
   const getActiveBasis = (): string => {
-    return (settings?.payRules?.overtime as any)?.active || "daily";
+    return settings?.payRules?.overtime?.active || "daily";
   };
 
   const getThreshold = (): string => {
-    const ot: any = settings?.payRules?.overtime || {};
+    const ot: OvertimeRules = settings?.payRules?.overtime || {};
     const rule = getActiveBasis() === "weekly" ? ot.weekly : ot.daily;
     return rule?.threshold != null ? String(rule.threshold) : "";
   };
 
   const getMode = (): string => {
-    const ot: any = settings?.payRules?.overtime || {};
+    const ot: OvertimeRules = settings?.payRules?.overtime || {};
     const active = getActiveBasis();
-    return (ot[active] || {}).mode || "fixed";
+    return (ot[active as keyof OvertimeRules] as any)?.mode || "fixed";
   };
 
   const getValue = (): string => {
-    const ot: any = settings?.payRules?.overtime || {};
+    const ot: OvertimeRules = settings?.payRules?.overtime || {};
     const active = getActiveBasis();
-    const r = ot[active] || {};
+    const rule = ot[active as keyof OvertimeRules] as any;
     return String(
-      (r.mode || "fixed") === "multiplier" ? r.multiplier ?? "" : r.uplift ?? ""
+      (rule?.mode || "fixed") === "multiplier" ? rule?.multiplier ?? "" : rule?.uplift ?? ""
     );
   };
 

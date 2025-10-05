@@ -36,7 +36,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   settings,
   loadingSettings,
   onPaySaved,
-}) => {
+}): React.JSX.Element => {
   const { colors } = useTheme();
   const [mode, setMode] = useState<Mode>("tracker");
   const [date, setDate] = useState<string>(getCurrentDateString());

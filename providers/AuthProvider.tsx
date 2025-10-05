@@ -1,26 +1,26 @@
 import { getFirebase } from "@/lib/firebase";
 import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-  User,
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut,
+    User,
 } from "firebase/auth";
 import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
 
-type AuthContextValue = {
+interface AuthContextValue {
   user: User | null;
   initializing: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
-};
+}
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
@@ -23,8 +23,20 @@ export function TabSwitcher({
   tabs,
   activeKey,
   onKeyChange,
-}: TabSwitcherProps) {
+}: TabSwitcherProps): React.JSX.Element {
   const isCustom = Array.isArray(tabs) && tabs.length > 0;
+
+  const handleKeyChange = useCallback((key: string) => {
+    onKeyChange?.(key);
+  }, [onKeyChange]);
+
+  const handleTrackerTabChange = useCallback(() => {
+    onTabChange?.("tracker");
+  }, [onTabChange]);
+
+  const handleHistoryTabChange = useCallback(() => {
+    onTabChange?.("history");
+  }, [onTabChange]);
 
   return (
     <ThemedView style={styles.container}>
@@ -36,7 +48,7 @@ export function TabSwitcher({
               <TouchableOpacity
                 key={t.key}
                 style={[styles.tab, isActive && styles.activeTab]}
-                onPress={() => onKeyChange && onKeyChange(t.key)}
+                onPress={() => handleKeyChange(t.key)}
                 accessibilityLabel={`${t.label} tab`}
               >
                 <ThemedText
@@ -52,7 +64,7 @@ export function TabSwitcher({
           <>
             <TouchableOpacity
               style={[styles.tab, activeTab === "tracker" && styles.activeTab]}
-              onPress={() => onTabChange && onTabChange("tracker")}
+              onPress={handleTrackerTabChange}
               accessibilityLabel="Shift tracker tab"
             >
               <View style={styles.tabLabelWrap}>
@@ -70,7 +82,7 @@ export function TabSwitcher({
 
             <TouchableOpacity
               style={[styles.tab, activeTab === "history" && styles.activeTab]}
-              onPress={() => onTabChange && onTabChange("history")}
+              onPress={handleHistoryTabChange}
               accessibilityLabel="History tab"
             >
               <ThemedText

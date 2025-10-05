@@ -2,11 +2,11 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { getCurrentDateString, isFutureDate } from "@/utils/timeUtils";
 import React, { useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
@@ -23,7 +23,7 @@ export function DatePicker({
   selectedDate,
   onDateSelect,
   onClose,
-}: DatePickerProps) {
+}: DatePickerProps): React.JSX.Element {
   const { colors } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const [year, month] = selectedDate.split("-").map(Number);

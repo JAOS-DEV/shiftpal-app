@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
+import { PayRules, WeekendRules } from "@/types/settings";
 import React from "react";
 import {
     Modal,
@@ -29,13 +29,13 @@ export const WeekendEditModal: React.FC<WeekendEditModalProps> = ({
   const { colors } = useTheme();
   const [weekendValueText, setWeekendValueText] = React.useState("");
 
-  const updatePayRules = async (updates: any): Promise<void> => {
+  const updatePayRules = async (updates: Partial<PayRules>): Promise<void> => {
     await settingsService.setPayRules(updates);
     onSettingsChange();
   };
 
   const getWeekendMode = (): string => {
-    const w: any = settings?.payRules?.weekend || {};
+    const w: WeekendRules = settings?.payRules?.weekend || {};
     return (
       w?.mode ||
       (w?.type === "percentage"
@@ -48,7 +48,7 @@ export const WeekendEditModal: React.FC<WeekendEditModalProps> = ({
 
   React.useEffect(() => {
     const mode = getWeekendMode();
-    const wk = settings?.payRules?.weekend as any;
+    const wk = settings?.payRules?.weekend as WeekendRules;
     const wkValue = mode === "multiplier" ? wk?.multiplier : wk?.uplift;
     setWeekendValueText(
       wkValue !== undefined && wkValue !== null ? String(wkValue) : ""
@@ -66,7 +66,7 @@ export const WeekendEditModal: React.FC<WeekendEditModalProps> = ({
     updatePayRules({
       weekend: {
         ...(settings?.payRules?.weekend || {}),
-        days: Array.from(current) as any,
+        days: Array.from(current) as WeekendRules["days"],
       },
     });
   };
@@ -96,7 +96,7 @@ export const WeekendEditModal: React.FC<WeekendEditModalProps> = ({
               Enable Weekend
             </ThemedText>
             <Switch
-              value={Boolean((settings?.payRules?.weekend as any)?.enabled)}
+              value={Boolean(settings?.payRules?.weekend?.enabled)}
               onValueChange={(val) =>
                 updatePayRules({
                   weekend: {
@@ -136,7 +136,7 @@ export const WeekendEditModal: React.FC<WeekendEditModalProps> = ({
                 updatePayRules({
                   weekend: {
                     ...(settings?.payRules?.weekend || {}),
-                    mode: v as any,
+                    mode: v as WeekendRules["mode"],
                   },
                 })
               }

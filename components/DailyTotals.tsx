@@ -9,7 +9,7 @@ interface DailyTotalsProps {
   shifts: Shift[];
 }
 
-export function DailyTotals({ shifts }: DailyTotalsProps) {
+export function DailyTotals({ shifts }: DailyTotalsProps): React.JSX.Element {
   const totalMinutes = shifts.reduce(
     (sum, shift) => sum + shift.durationMinutes,
     0

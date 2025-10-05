@@ -2,7 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { Day, HistoryFilter } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   Platform,
@@ -34,7 +34,7 @@ export function HistoryList({
   loading = false,
   errorMessage = null,
   onRetry,
-}: HistoryListProps) {
+}: HistoryListProps): React.JSX.Element {
   const { colors } = useTheme();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
@@ -109,6 +109,18 @@ export function HistoryList({
     ],
   ];
 
+  const handleWeekFilter = useCallback(() => {
+    onFilterChange({ type: "week" });
+  }, [onFilterChange]);
+
+  const handleMonthFilter = useCallback(() => {
+    onFilterChange({ type: "month" });
+  }, [onFilterChange]);
+
+  const handleAllFilter = useCallback(() => {
+    onFilterChange({ type: "all" });
+  }, [onFilterChange]);
+
   if (loading) {
     return (
       <ThemedView style={styles.container}>
@@ -148,7 +160,7 @@ export function HistoryList({
               style={[styles.filterButton, { borderColor: colors.primary }]}
               onPress={onRetry}
             >
-              <ThemedText style={{ color: colors.primary, fontWeight: "600" }}>
+              <ThemedText style={[styles.retryText, { color: colors.primary }]}>
                 Retry
               </ThemedText>
             </TouchableOpacity>
@@ -185,21 +197,21 @@ export function HistoryList({
       <View style={styles.filtersContainer}>
         <TouchableOpacity
           style={getFilterButtonStyle("week")}
-          onPress={() => onFilterChange({ type: "week" })}
+          onPress={handleWeekFilter}
         >
           <ThemedText style={getFilterTextStyle("week")}>Week</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={getFilterButtonStyle("month")}
-          onPress={() => onFilterChange({ type: "month" })}
+          onPress={handleMonthFilter}
         >
           <ThemedText style={getFilterTextStyle("month")}>Month</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={getFilterButtonStyle("all")}
-          onPress={() => onFilterChange({ type: "all" })}
+          onPress={handleAllFilter}
         >
           <ThemedText style={getFilterTextStyle("all")}>All Time</ThemedText>
         </TouchableOpacity>
@@ -283,5 +295,8 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     gap: 8,
+  },
+  retryText: {
+    fontWeight: "600",
   },
 });

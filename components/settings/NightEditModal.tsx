@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
+import { AppSettings, NightRules, PayRules } from "@/types/settings";
 import React, { useMemo } from "react";
 import {
     Modal,
@@ -63,7 +63,7 @@ export const NightEditModal: React.FC<NightEditModalProps> = ({
   const joinTime = (h: string, m: string): string =>
     `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
 
-  const updatePayRules = async (updates: any): Promise<void> => {
+  const updatePayRules = async (updates: Partial<PayRules>): Promise<void> => {
     await settingsService.setPayRules(updates);
     onSettingsChange();
   };
@@ -102,7 +102,7 @@ export const NightEditModal: React.FC<NightEditModalProps> = ({
               Enable Night
             </ThemedText>
             <Switch
-              value={Boolean((settings?.payRules?.night as any)?.enabled)}
+              value={Boolean(settings?.payRules?.night?.enabled)}
               onValueChange={(val) =>
                 updatePayRules({
                   night: {
@@ -193,7 +193,7 @@ export const NightEditModal: React.FC<NightEditModalProps> = ({
                 updatePayRules({
                   night: {
                     ...(settings?.payRules?.night || {}),
-                    type: v as any,
+                    type: v as NightRules["type"],
                   },
                 })
               }

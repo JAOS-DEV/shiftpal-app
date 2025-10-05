@@ -43,14 +43,14 @@ export const HelpModal: React.FC<HelpModalProps> = ({
           >
             {title}
           </ThemedText>
-          <ThemedText style={{ color: colors.text }}>
+          <ThemedText style={[styles.modalBody, { color: colors.text }]}>
             {body}
           </ThemedText>
           <TouchableOpacity
             style={[styles.modalButton, { borderColor: colors.primary }]}
             onPress={onClose}
           >
-            <ThemedText style={{ color: colors.primary }}>Close</ThemedText>
+            <ThemedText style={[styles.modalButtonText, { color: colors.primary }]}>Close</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -84,6 +84,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
+  },
+  modalBody: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

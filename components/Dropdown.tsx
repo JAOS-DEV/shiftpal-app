@@ -1,11 +1,11 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
@@ -21,7 +21,7 @@ interface DropdownProps {
   items: DropdownItem[];
   onChange: (value: string) => void;
   placeholder?: string;
-  style?: any; // optional trigger container style override
+  style?: object; // optional trigger container style override
   compact?: boolean; // reduce paddings to better match small inputs
 }
 
@@ -33,13 +33,26 @@ export function Dropdown({
   placeholder,
   style,
   compact = false,
-}: DropdownProps) {
+}: DropdownProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const { colors } = useTheme();
   const selectedLabel = useMemo(
     () => items.find((i) => i.value === value)?.label,
     [items, value]
   );
+
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const handleItemSelect = useCallback((itemValue: string) => {
+    onChange(itemValue);
+    setOpen(false);
+  }, [onChange]);
 
   return (
     <>
@@ -50,7 +63,7 @@ export function Dropdown({
           { borderColor: colors.border, backgroundColor: colors.surface },
           style,
         ]}
-        onPress={() => setOpen(true)}
+        onPress={handleOpen}
         accessibilityLabel={label ? `${label} dropdown` : "dropdown"}
       >
         {label ? (
@@ -84,7 +97,7 @@ export function Dropdown({
           <ThemedView
             style={[styles.sheet, { backgroundColor: colors.surface }]}
           >
-            <ScrollView style={{ maxHeight: 300 }}>
+            <ScrollView style={styles.scrollView}>
               {items.map((it) => (
                 <TouchableOpacity
                   key={it.value}
@@ -96,10 +109,7 @@ export function Dropdown({
                       { backgroundColor: colors.card },
                     ],
                   ]}
-                  onPress={() => {
-                    onChange(it.value);
-                    setOpen(false);
-                  }}
+                  onPress={() => handleItemSelect(it.value)}
                 >
                   <ThemedText
                     style={[styles.optionText, { color: colors.text }]}
@@ -111,7 +121,7 @@ export function Dropdown({
             </ScrollView>
             <TouchableOpacity
               style={[styles.closeBtn, { borderColor: colors.border }]}
-              onPress={() => setOpen(false)}
+              onPress={handleClose}
             >
               <ThemedText style={[styles.closeBtnText, { color: colors.text }]}>
                 Close
@@ -194,5 +204,8 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontWeight: "600",
+  },
+  scrollView: {
+    maxHeight: 300,
   },
 });

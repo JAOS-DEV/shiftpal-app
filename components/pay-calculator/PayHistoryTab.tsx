@@ -30,7 +30,7 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
   loadingHistory,
   currentVersion,
   onHistoryUpdated,
-}) => {
+}): React.JSX.Element => {
   const { colors } = useTheme();
   const [period, setPeriod] = useState<PeriodFilter>("week");
   const [pendingUndo, setPendingUndo] = useState<{

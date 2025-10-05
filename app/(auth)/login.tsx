@@ -7,19 +7,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-export default function LoginScreen() {
+export default function LoginScreen(): React.JSX.Element {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"] as any;
+  const theme = Colors[colorScheme ?? "light"];
   const { signInWithEmail } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -34,9 +34,9 @@ export default function LoginScreen() {
     try {
       await signInWithEmail(email, password);
       notify.success("Logged in");
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to sign in");
-      notify.error("Login failed", e?.message ?? undefined);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to sign in");
+      notify.error("Login failed", e instanceof Error ? e.message : undefined);
     } finally {
       setLoading(false);
     }
@@ -56,28 +56,10 @@ export default function LoginScreen() {
             <ShiftPalLogo width={72} height={72} />
           </View>
           {isLoading ? (
-            <View style={{ gap: 10 }}>
-              <View
-                style={{
-                  height: 16,
-                  backgroundColor: "#EDEDED",
-                  borderRadius: 8,
-                }}
-              />
-              <View
-                style={{
-                  height: 48,
-                  backgroundColor: "#F3F3F3",
-                  borderRadius: 12,
-                }}
-              />
-              <View
-                style={{
-                  height: 48,
-                  backgroundColor: "#F3F3F3",
-                  borderRadius: 12,
-                }}
-              />
+            <View style={styles.loadingContainer}>
+              <View style={styles.loadingLine} />
+              <View style={styles.loadingInput} />
+              <View style={styles.loadingInput} />
             </View>
           ) : null}
           {!!error && <Text style={styles.error}>{error}</Text>}
@@ -162,4 +144,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   outlineButtonText: { fontWeight: "700" },
+  loadingContainer: {
+    gap: 10,
+  },
+  loadingLine: {
+    height: 16,
+    backgroundColor: "#EDEDED",
+    borderRadius: 8,
+  },
+  loadingInput: {
+    height: 48,
+    backgroundColor: "#F3F3F3",
+    borderRadius: 12,
+  },
 });
