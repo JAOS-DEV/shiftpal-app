@@ -1,3 +1,4 @@
+import { usePeriodFilter } from "@/hooks/usePeriodFilter";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { AppSettings, HoursAndMinutes, PayCalculationEntry } from "@/types/settings";
@@ -6,12 +7,13 @@ import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useMemo, useState } from "react";
 import {
     StyleSheet,
+    TouchableOpacity,
     View
 } from "react-native";
+import { PeriodFilter } from "../PeriodFilter";
 import { ThemedText } from "../ThemedText";
 import { ThemedView } from "../ThemedView";
 import { PayHistoryEntry as PayHistoryEntryComponent } from "./PayHistoryEntry";
-import { PayPeriodFilter } from "./PayPeriodFilter";
 import { PaySummaryCard } from "./PaySummaryCard";
 
 type PeriodFilter = "week" | "month" | "all";
@@ -32,11 +34,20 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
   onHistoryUpdated,
 }): React.JSX.Element => {
   const { colors } = useTheme();
-  const [period, setPeriod] = useState<PeriodFilter>("week");
   const [pendingUndo, setPendingUndo] = useState<{
     ids: string[];
     prev: PayCalculationEntry[];
   } | null>(null);
+
+  const {
+    currentPeriod,
+    currentDateRange,
+    handlePeriodChange,
+    handleNavigatePrevious,
+    handleNavigateNext,
+    handleJumpToCurrent,
+    isInCurrentPeriod,
+  } = usePeriodFilter({ settings });
 
   const currencySymbol = useMemo(
     () =>
@@ -48,39 +59,14 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
     [settings?.preferences?.currency]
   );
 
-  const startOfToday = (): Date => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
-
-  const isInCurrentWeek = (ts: number): boolean => {
-    const d = new Date(ts);
-    const now = startOfToday();
-    const day = now.getDay();
-    const diffToMonday = day === 0 ? 6 : day - 1;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diffToMonday);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
-    return d >= monday && d <= sunday;
-  };
-
-  const isInCurrentMonth = (ts: number): boolean => {
-    const d = new Date(ts);
-    const now = new Date();
-    return (
-      d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-    );
-  };
-
   const filteredHistory = useMemo(() => {
-    if (period === "all") return payHistory;
-    if (period === "week")
-      return payHistory.filter((e) => isInCurrentWeek(e.createdAt));
-    return payHistory.filter((e) => isInCurrentMonth(e.createdAt));
-  }, [payHistory, period]);
+    if (currentPeriod === "all") return payHistory;
+    return payHistory.filter((e) => {
+      // Convert timestamp to date string for comparison
+      const dateString = new Date(e.createdAt).toISOString().split('T')[0];
+      return isInCurrentPeriod(dateString);
+    });
+  }, [payHistory, currentPeriod, isInCurrentPeriod]);
 
   const hmToMinutes = (hm: HoursAndMinutes | undefined | null): number => {
     const h = Math.max(0, hm?.hours ?? 0);
@@ -225,19 +211,48 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
 
   return (
     <ThemedView>
-      <PayPeriodFilter
-        activePeriod={period}
-        onPeriodChange={setPeriod}
-        staleCount={staleCount}
-        onRecalcAll={handleRecalcAll}
-        onUndo={pendingUndo ? handleUndo : null}
+      <PeriodFilter
+        activePeriod={currentPeriod}
+        onPeriodChange={handlePeriodChange}
+        settings={settings}
+        onNavigatePrevious={handleNavigatePrevious}
+        onNavigateNext={handleNavigateNext}
+        onJumpToCurrent={handleJumpToCurrent}
+        currentDateRange={currentDateRange}
       />
+
+      {/* Stale entries warning */}
+      {staleCount > 0 && (
+        <View style={[styles.staleWarning, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <ThemedText style={[styles.staleText, { color: colors.textSecondary }]}>
+            {staleCount} {staleCount === 1 ? "entry is" : "entries are"} out of date with current settings
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.recalcAllBtn, { backgroundColor: colors.primary }]}
+            onPress={handleRecalcAll}
+          >
+            <ThemedText style={styles.recalcAllBtnText}>
+              Recalculate all in view
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Undo button */}
+      {pendingUndo && (
+        <TouchableOpacity
+          style={[styles.undoBtn, { backgroundColor: colors.primary }]}
+          onPress={handleUndo}
+        >
+          <ThemedText style={styles.undoBtnText}>Undo</ThemedText>
+        </TouchableOpacity>
+      )}
 
       {filteredHistory.length > 0 && (
         <PaySummaryCard
           summary={summary}
           currencySymbol={currencySymbol}
-          period={period}
+          period={currentPeriod}
           settings={settings}
         />
       )}
@@ -303,6 +318,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 8,
+  },
+  staleWarning: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  staleText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  recalcAllBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  recalcAllBtnText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  undoBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  undoBtnText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 

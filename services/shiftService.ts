@@ -1,21 +1,21 @@
 import { getFirebase } from "@/lib/firebase";
 import {
-  Day,
-  HistoryFilter,
-  RunningTimer,
-  Shift,
-  Submission,
+    Day,
+    HistoryFilter,
+    RunningTimer,
+    Shift,
+    Submission,
 } from "@/types/shift";
 import { calculateDuration, formatDurationText } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  setDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    setDoc,
 } from "firebase/firestore";
 
 const SHIFTS_STORAGE_KEY = "shifts_data";
@@ -366,7 +366,8 @@ class ShiftService {
    * Get all submitted days with optional filtering
    */
   async getSubmittedDays(
-    filter: HistoryFilter = { type: "all" }
+    filter: HistoryFilter = { type: "all" },
+    settings?: any
   ): Promise<Day[]> {
     try {
       // Load from local storage first
@@ -396,9 +397,41 @@ class ShiftService {
 
       // Apply filters
       if (filter.type === "week") {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        days = days.filter((day) => new Date(day.date) >= weekAgo);
+        // Get the user's week start day setting
+        const weekStartDay = settings?.payRules?.payPeriod?.startDay || "Monday";
+        
+        // Map day names to numbers (0=Sunday, 1=Monday, etc.)
+        const dayMap: Record<string, number> = {
+          Sunday: 0,
+          Monday: 1,
+          Tuesday: 2,
+          Wednesday: 3,
+          Thursday: 4,
+          Friday: 5,
+          Saturday: 6,
+        };
+        
+        const startDayNum = dayMap[weekStartDay] ?? 1; // Default to Monday
+        const now = new Date();
+        const currentDayNum = now.getDay();
+        
+        // Calculate days since the start of the current week
+        const daysSinceWeekStart = (currentDayNum - startDayNum + 7) % 7;
+        
+        // Calculate the start of the current week
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - daysSinceWeekStart);
+        weekStart.setHours(0, 0, 0, 0);
+        
+        // Calculate the end of the current week
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        
+        days = days.filter((day) => {
+          const dayDate = new Date(day.date + "T00:00:00");
+          return dayDate >= weekStart && dayDate <= weekEnd;
+        });
       } else if (filter.type === "month") {
         const monthAgo = new Date();
         monthAgo.setMonth(monthAgo.getMonth() - 1);

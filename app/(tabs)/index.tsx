@@ -9,11 +9,14 @@ import { ThemedView } from "@/components/ThemedView";
 import { logAnalyticsEvent } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { settingsService } from "@/services/settingsService";
 import { shiftService } from "@/services/shiftService";
-import { Day, HistoryFilter, Shift } from "@/types/shift";
+import { AppSettings } from "@/types/settings";
+import { Day, Shift } from "@/types/shift";
 import { notify } from "@/utils/notify";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
@@ -28,15 +31,35 @@ export default function HomeScreen() {
   const { signOutUser } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = useState<Tab>("tracker");
   const [selectedDate, setSelectedDate] = useState(getCurrentDateString());
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [submittedDays, setSubmittedDays] = useState<Day[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>({
-    type: "all",
-  });
   const [timerRunning, setTimerRunning] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+
+  // Load settings when focused
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!isFocused) return;
+      try {
+        const s = await settingsService.getSettings();
+        setSettings(s);
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+    loadSettings();
+
+    // Subscribe to live settings changes
+    const unsub = settingsService.subscribe((next) => {
+      setSettings(next);
+    });
+
+    return () => unsub();
+  }, [isFocused]);
 
   // Load shifts for selected date
   useEffect(() => {
@@ -61,7 +84,7 @@ export default function HomeScreen() {
     if (activeTab === "history") {
       loadSubmittedDays();
     }
-  }, [activeTab, historyFilter]);
+  }, [activeTab]);
 
   // Poll timer state to show tiny indicator on tab (future) or other UX
   useEffect(() => {
@@ -89,7 +112,8 @@ export default function HomeScreen() {
 
   const loadSubmittedDays = async () => {
     try {
-      const days = await shiftService.getSubmittedDays(historyFilter);
+      // Load all days - filtering will be handled locally in HistoryList
+      const days = await shiftService.getSubmittedDays({ type: "all" }, settings);
       setSubmittedDays(days);
     } catch (error) {
       console.error("Error loading submitted days:", error);
@@ -200,9 +224,6 @@ export default function HomeScreen() {
     AsyncStorage.setItem("shiftpal.ui.active_tab", tab).catch(() => {});
   };
 
-  const handleHistoryFilterChange = (filter: HistoryFilter) => {
-    setHistoryFilter(filter);
-  };
 
   const handleDeleteDay = async (date: string) => {
     try {
@@ -276,10 +297,9 @@ export default function HomeScreen() {
             ) : (
               <HistoryList
                 days={submittedDays}
-                filter={historyFilter}
-                onFilterChange={handleHistoryFilterChange}
                 onDeleteDay={handleDeleteDay}
                 onDeleteSubmission={handleDeleteSubmission}
+                settings={settings}
               />
             )}
           </View>

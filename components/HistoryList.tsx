@@ -1,8 +1,10 @@
+import { usePeriodFilter } from "@/hooks/usePeriodFilter";
 import { useTheme } from "@/providers/ThemeProvider";
-import { Day, HistoryFilter } from "@/types/shift";
+import { AppSettings } from "@/types/settings";
+import { Day } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Platform,
@@ -11,32 +13,47 @@ import {
 } from "react-native";
 import { DayRow } from "./history/DayRow";
 import { styles } from "./HistoryList.styles";
+import { PeriodFilter } from "./PeriodFilter";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
 interface HistoryListProps {
   days: Day[];
-  filter: HistoryFilter;
-  onFilterChange: (filter: HistoryFilter) => void;
   onDeleteDay: (date: string) => void;
   onDeleteSubmission?: (date: string, submissionId: string) => void;
   loading?: boolean;
   errorMessage?: string | null;
   onRetry?: () => void;
+  settings: AppSettings | null;
 }
 
 export function HistoryList({
   days,
-  filter,
-  onFilterChange,
   onDeleteDay,
   onDeleteSubmission,
   loading = false,
   errorMessage = null,
   onRetry,
+  settings,
 }: HistoryListProps): React.JSX.Element {
   const { colors } = useTheme();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+
+  const {
+    currentPeriod,
+    currentDateRange,
+    handlePeriodChange,
+    handleNavigatePrevious,
+    handleNavigateNext,
+    handleJumpToCurrent,
+    isInCurrentPeriod,
+  } = usePeriodFilter({ settings });
+
+  // Filter days based on current period - using useMemo like PayHistoryTab
+  const filteredDays = useMemo(() => {
+    if (currentPeriod === "all") return days;
+    return days.filter((day) => isInCurrentPeriod(day.date));
+  }, [days, currentPeriod, isInCurrentPeriod]);
 
   const toggleDayExpansion = (dayId: string): void => {
     try {
@@ -90,36 +107,6 @@ export function HistoryList({
       ]);
     }
   };
-
-  const getFilterButtonStyle = (filterType: HistoryFilter["type"]) => [
-    styles.filterButton,
-    { backgroundColor: colors.card, borderColor: colors.border },
-    filter.type === filterType && [
-      styles.activeFilterButton,
-      { backgroundColor: colors.primary, borderColor: colors.primary },
-    ],
-  ];
-
-  const getFilterTextStyle = (filterType: HistoryFilter["type"]) => [
-    styles.filterButtonText,
-    { color: colors.text },
-    filter.type === filterType && [
-      styles.activeFilterButtonText,
-      { color: "white" },
-    ],
-  ];
-
-  const handleWeekFilter = useCallback(() => {
-    onFilterChange({ type: "week" });
-  }, [onFilterChange]);
-
-  const handleMonthFilter = useCallback(() => {
-    onFilterChange({ type: "month" });
-  }, [onFilterChange]);
-
-  const handleAllFilter = useCallback(() => {
-    onFilterChange({ type: "all" });
-  }, [onFilterChange]);
 
   if (loading) {
     return (
@@ -191,34 +178,21 @@ export function HistoryList({
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
-        History ({days.length} days)
+        History ({filteredDays.length} days)
       </ThemedText>
 
-      <View style={styles.filtersContainer}>
-        <TouchableOpacity
-          style={getFilterButtonStyle("week")}
-          onPress={handleWeekFilter}
-        >
-          <ThemedText style={getFilterTextStyle("week")}>Week</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={getFilterButtonStyle("month")}
-          onPress={handleMonthFilter}
-        >
-          <ThemedText style={getFilterTextStyle("month")}>Month</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={getFilterButtonStyle("all")}
-          onPress={handleAllFilter}
-        >
-          <ThemedText style={getFilterTextStyle("all")}>All Time</ThemedText>
-        </TouchableOpacity>
-      </View>
+      <PeriodFilter
+        activePeriod={currentPeriod}
+        onPeriodChange={handlePeriodChange}
+        settings={settings}
+        onNavigatePrevious={handleNavigatePrevious}
+        onNavigateNext={handleNavigateNext}
+        onJumpToCurrent={handleJumpToCurrent}
+        currentDateRange={currentDateRange}
+      />
 
       <View style={styles.listContainer}>
-        {days.map((day) => (
+        {filteredDays.map((day) => (
           <DayRow
             key={day.id}
             day={day}
