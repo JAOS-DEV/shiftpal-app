@@ -14,7 +14,7 @@ interface TimerState {
   totalBreakMs?: number;
 }
 
-export const useTimer = (includeBreaks: boolean, onShiftListRefresh?: () => void) => {
+export const useTimer = (includeBreaks: boolean, onShiftListRefresh?: () => void, selectedDate?: string) => {
   const [timerState, setTimerState] = useState<TimerState>({
     running: false,
     paused: false,
@@ -67,7 +67,8 @@ export const useTimer = (includeBreaks: boolean, onShiftListRefresh?: () => void
 
   const handleTimerStart = async (): Promise<void> => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await shiftService.startTimer(getCurrentDateString());
+    const dateToUse = selectedDate || getCurrentDateString();
+    await shiftService.startTimer(dateToUse);
     await refreshTimer();
   };
 

@@ -13,6 +13,7 @@ import { ThemedView } from "./ThemedView";
 interface ShiftInputSectionProps {
   onAddShift: (startTime: string, endTime: string) => void;
   onShiftListRefresh?: () => void;
+  selectedDate?: string;
 }
 
 const STORAGE_KEYS = {
@@ -23,6 +24,7 @@ const STORAGE_KEYS = {
 export function ShiftInputSection({
   onAddShift,
   onShiftListRefresh,
+  selectedDate,
 }: ShiftInputSectionProps): React.JSX.Element {
   const [mode, setMode] = useState<"manual" | "timer">("manual");
   const [includeBreaks, setIncludeBreaks] = useState(false);
@@ -117,6 +119,7 @@ export function ShiftInputSection({
           includeBreaks={includeBreaks}
           onIncludeBreaksChange={setIncludeBreaks}
           onShiftListRefresh={onShiftListRefresh}
+          selectedDate={selectedDate}
         />
       )}
     </ThemedView>

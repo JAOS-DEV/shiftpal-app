@@ -14,12 +14,14 @@ interface TimerModeInputProps {
   includeBreaks: boolean;
   onIncludeBreaksChange: (value: boolean) => void;
   onShiftListRefresh?: () => void;
+  selectedDate?: string;
 }
 
 export const TimerModeInput: React.FC<TimerModeInputProps> = ({
   includeBreaks,
   onIncludeBreaksChange,
   onShiftListRefresh,
+  selectedDate,
 }) => {
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteText, setNoteText] = useState("");
@@ -31,7 +33,7 @@ export const TimerModeInput: React.FC<TimerModeInputProps> = ({
     handleTimerStop,
     handleUndoLastBreak,
     handleSaveNote,
-  } = useTimer(includeBreaks, onShiftListRefresh);
+  } = useTimer(includeBreaks, onShiftListRefresh, selectedDate);
 
   const handleSaveNoteAndClose = async (): Promise<void> => {
     await handleSaveNote(noteText);

@@ -18,8 +18,8 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 type Tab = "tracker" | "history";
@@ -259,6 +259,7 @@ export default function HomeScreen() {
                 <ShiftInputSection
                   onAddShift={handleAddShift}
                   onShiftListRefresh={() => loadShiftsForDate(selectedDate)}
+                  selectedDate={selectedDate}
                 />
                 <ShiftEntriesList
                   shifts={shifts}
