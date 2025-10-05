@@ -1,8 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import { settingsService } from "@/services/settingsService";
-import { AppSettings } from "@/types/settings";
-import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet } from "react-native";
+import React, { useMemo, useState } from "react";
+import { useModals } from "../hooks/useModals";
+import { useSettings } from "../hooks/useSettings";
 import { AdvancedSection } from "./settings/AdvancedSection";
 import { HelpModal } from "./settings/HelpModal";
 import { NightEditModal } from "./settings/NightEditModal";
@@ -12,27 +11,29 @@ import { PayRulesSummarySection } from "./settings/PayRulesSummarySection";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { WeekendEditModal } from "./settings/WeekendEditModal";
 import { WeekStartPickerModal } from "./settings/WeekStartPickerModal";
+import { styles } from "./SettingsPage.styles";
 import { TabSwitcher } from "./TabSwitcher";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
 export function SettingsPage(): JSX.Element {
   const { colors } = useTheme();
-  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const { settings, refreshSettings } = useSettings();
+  const {
+    showOvertimeSheet,
+    showNightSheet,
+    showWeekendSheet,
+    showWeekStartPicker,
+    helpModal,
+    openModal,
+    closeModal,
+    openHelpModal,
+    closeHelpModal,
+  } = useModals();
+  
   const [activeSettingsTab, setActiveSettingsTab] = useState<
     "pay" | "preferences" | "advanced"
   >("pay");
-
-  // Modal visibility states
-  const [showOvertimeSheet, setShowOvertimeSheet] = useState(false);
-  const [showNightSheet, setShowNightSheet] = useState(false);
-  const [showWeekendSheet, setShowWeekendSheet] = useState(false);
-  const [showWeekStartPicker, setShowWeekStartPicker] = useState(false);
-  const [helpModal, setHelpModal] = useState<{
-    visible: boolean;
-    title: string;
-    body: string;
-  }>({ visible: false, title: "", body: "" });
 
   const currencySymbol = useMemo(
     () =>
@@ -44,20 +45,10 @@ export function SettingsPage(): JSX.Element {
     [settings?.preferences?.currency]
   );
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async (): Promise<void> => {
-    const s = await settingsService.getSettings();
-    setSettings(s);
-  };
-
   const openHelp = (title: string, body: string): void =>
-    setHelpModal({ visible: true, title, body });
+    openHelpModal(title, body);
 
-  const closeHelp = (): void =>
-    setHelpModal({ visible: false, title: "", body: "" });
+  const closeHelp = (): void => closeHelpModal();
 
   return (
     <ThemedView style={styles.container}>
@@ -71,26 +62,26 @@ export function SettingsPage(): JSX.Element {
       <OvertimeEditModal
         visible={showOvertimeSheet}
         settings={settings}
-        onClose={() => setShowOvertimeSheet(false)}
-        onSettingsChange={loadSettings}
+        onClose={() => closeModal("showOvertimeSheet")}
+        onSettingsChange={refreshSettings}
       />
       <NightEditModal
         visible={showNightSheet}
         settings={settings}
-        onClose={() => setShowNightSheet(false)}
-        onSettingsChange={loadSettings}
+        onClose={() => closeModal("showNightSheet")}
+        onSettingsChange={refreshSettings}
       />
       <WeekendEditModal
         visible={showWeekendSheet}
         settings={settings}
-        onClose={() => setShowWeekendSheet(false)}
-        onSettingsChange={loadSettings}
+        onClose={() => closeModal("showWeekendSheet")}
+        onSettingsChange={refreshSettings}
       />
       <WeekStartPickerModal
         visible={showWeekStartPicker}
         settings={settings}
-        onClose={() => setShowWeekStartPicker(false)}
-        onSettingsChange={loadSettings}
+        onClose={() => closeModal("showWeekStartPicker")}
+        onSettingsChange={refreshSettings}
       />
 
       <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
@@ -111,15 +102,18 @@ export function SettingsPage(): JSX.Element {
         <>
           <PayRatesSection
             payRates={settings?.payRates || []}
-            onRatesChange={loadSettings}
+            onRatesChange={refreshSettings}
             currencySymbol={currencySymbol}
           />
           <PayRulesSummarySection
             payRules={settings?.payRules}
             currencySymbol={currencySymbol}
-            onEditOvertime={() => setShowOvertimeSheet(true)}
-            onEditNight={() => setShowNightSheet(true)}
-            onEditWeekend={() => setShowWeekendSheet(true)}
+            onEditOvertime={() => openModal("showOvertimeSheet")}
+            onEditNight={() => openModal("showNightSheet")}
+            onEditWeekend={() => openModal("showWeekendSheet")}
+            onEditWeekStart={() => openModal("showWeekStartPicker")}
+            onHelp={openHelp}
+            currencySymbol={currencySymbol}
           />
         </>
       )}
@@ -129,27 +123,15 @@ export function SettingsPage(): JSX.Element {
         <PreferencesSection
           settings={settings}
           currencySymbol={currencySymbol}
-          onOpenWeekStartPicker={() => setShowWeekStartPicker(true)}
-          onSettingsChange={loadSettings}
+          onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
+          onSettingsChange={refreshSettings}
         />
       )}
 
       {/* Advanced Tab */}
       {activeSettingsTab === "advanced" && (
-        <AdvancedSection settings={settings} onSettingsChange={loadSettings} />
+        <AdvancedSection settings={settings} onSettingsChange={refreshSettings} />
       )}
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 24,
-  },
-});

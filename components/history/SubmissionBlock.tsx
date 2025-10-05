@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { ShiftDetails } from "./ShiftDetails";
 
 interface SubmissionBlockProps {
   date: string;
@@ -126,112 +127,7 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
         </TouchableOpacity>
       </View>
 
-      {submission.shifts.map((shift) => (
-        <View
-          key={shift.id}
-          style={[
-            styles.shiftBlock,
-            { borderBottomColor: colors.textSecondary, borderBottomWidth: 2 },
-          ]}
-        >
-          <View style={styles.shiftRow}>
-            <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
-              {shift.start} - {shift.end}
-            </ThemedText>
-            <ThemedText
-              style={[styles.shiftDuration, { color: colors.textSecondary }]}
-            >
-              {shift.durationText} ({shift.durationMinutes} min)
-            </ThemedText>
-          </View>
-
-          {typeof shift.includeBreaks === "boolean" && (
-            <ThemedText
-              style={[
-                styles.shiftBreakSummary,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Breaks:{" "}
-              {typeof shift.breakMinutes === "number" ? shift.breakMinutes : 0}m
-              {typeof shift.breakCount === "number" && shift.breakCount > 0
-                ? ` (${shift.breakCount})`
-                : ""}
-              {shift.includeBreaks ? " (included)" : " (excluded)"}
-            </ThemedText>
-          )}
-
-          {Array.isArray(shift.breaks) && shift.breaks.length > 0 ? (
-            <View
-              style={[
-                styles.breaksDetailContainer,
-                { borderColor: colors.border, backgroundColor: colors.card },
-              ]}
-            >
-              <ThemedText
-                style={[styles.breaksTitle, { color: colors.textSecondary }]}
-              >
-                Breaks
-              </ThemedText>
-              {shift.breaks.map((b, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.breakDetailRow,
-                    { borderTopColor: colors.border },
-                  ]}
-                >
-                  <View style={styles.breakDetailHeader}>
-                    <ThemedText
-                      style={[
-                        styles.breakDetailIndex,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      #{i + 1}
-                    </ThemedText>
-                    <ThemedText
-                      style={[styles.breakDetailTime, { color: colors.text }]}
-                    >
-                      {new Date(b.start).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {" - "}
-                      {new Date(b.end).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </ThemedText>
-                    <View style={styles.breakDurationChip}>
-                      <ThemedText style={styles.breakDurationChipText}>
-                        {b.durationMinutes}m
-                      </ThemedText>
-                    </View>
-                  </View>
-                  {b.note ? (
-                    <View
-                      style={[
-                        styles.breakNoteBox,
-                        { borderColor: colors.border },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[styles.breakDetailNote, { color: colors.text }]}
-                      >
-                        <ThemedText style={styles.breakDetailNoteLabel}>
-                          Note:{" "}
-                        </ThemedText>
-                        {b.note}
-                      </ThemedText>
-                    </View>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </View>
-      ))}
+      <ShiftDetails shifts={submission.shifts} colors={colors} />
 
       <View style={styles.submissionFooter}>
         <ThemedText

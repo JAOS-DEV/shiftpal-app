@@ -16,7 +16,7 @@ export function SubmitButton({
   shifts,
   onSubmit,
   isSubmitting = false,
-}: SubmitButtonProps) {
+}: SubmitButtonProps): React.JSX.Element {
   console.log("SubmitButton: Component rendered with props:", {
     shiftsLength: shifts.length,
     isSubmitting,

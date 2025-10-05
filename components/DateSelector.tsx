@@ -14,7 +14,7 @@ interface DateSelectorProps {
 export function DateSelector({
   selectedDate,
   onDateChange,
-}: DateSelectorProps) {
+}: DateSelectorProps): React.JSX.Element {
   const { colors } = useTheme();
   const [showDatePicker, setShowDatePicker] = useState(false);
 

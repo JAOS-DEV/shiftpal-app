@@ -13,7 +13,7 @@ export function ThemedText({
   darkColor,
   type = "default",
   ...rest
-}: ThemedTextProps) {
+}: ThemedTextProps): React.JSX.Element {
   const { colors } = useTheme();
 
   return (

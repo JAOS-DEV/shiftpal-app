@@ -19,7 +19,7 @@ export function SegmentedSwitcher({
   items,
   activeId,
   onChange,
-}: SegmentedSwitcherProps) {
+}: SegmentedSwitcherProps): React.JSX.Element {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.tabContainer}>

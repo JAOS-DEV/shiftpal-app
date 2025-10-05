@@ -11,7 +11,7 @@ export function ThemedView({
   lightColor,
   darkColor,
   ...otherProps
-}: ThemedViewProps) {
+}: ThemedViewProps): React.JSX.Element {
   const { colors } = useTheme();
 
   return (
