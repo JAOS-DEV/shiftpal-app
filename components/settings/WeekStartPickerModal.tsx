@@ -1,14 +1,14 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { PayRules } from "@/types/settings";
+import { AppSettings, PayRules } from "@/types/settings";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
 
@@ -109,14 +109,21 @@ export const WeekStartPickerModal: React.FC<WeekStartPickerModalProps> = ({
                 return (
                   <TouchableOpacity
                     key={day}
-                    style={styles.wheelItem}
+                    style={[
+                      styles.wheelItem,
+                      isSelected && {
+                        backgroundColor: colors.primary + "20",
+                        borderRadius: 8,
+                        marginHorizontal: 8,
+                      }
+                    ]}
                     onPress={() => handleDaySelect(day)}
                   >
                     <ThemedText
                       style={[
                         styles.wheelItemText,
                         {
-                          color: isSelected ? colors.text : colors.textSecondary,
+                          color: isSelected ? colors.primary : colors.textSecondary,
                           fontSize: isSelected ? 20 : 17,
                           fontWeight: isSelected ? "600" : "400",
                           opacity: isSelected ? 1 : 0.6,
@@ -134,10 +141,6 @@ export const WeekStartPickerModal: React.FC<WeekStartPickerModalProps> = ({
               <View style={styles.wheelItem} />
             </ScrollView>
 
-            {/* Selection indicator */}
-            <View
-              style={[styles.selectionIndicator, { borderColor: colors.border }]}
-            />
 
             {/* Bottom gradient overlay */}
             <LinearGradient
@@ -218,18 +221,6 @@ const styles = StyleSheet.create({
   wheelItemText: {
     textAlign: "center",
     letterSpacing: 0.5,
-  },
-  selectionIndicator: {
-    position: "absolute",
-    top: 88,
-    left: 16,
-    right: 16,
-    height: 44,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
-    borderRadius: 12,
-    opacity: 0.4,
-    backgroundColor: "#007bff79",
   },
   gradientOverlay: {
     position: "absolute",
