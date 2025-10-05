@@ -3,12 +3,17 @@ import React, { useMemo, useState } from "react";
 import { useModals } from "../hooks/useModals";
 import { useSettings } from "../hooks/useSettings";
 import { AdvancedSection } from "./settings/AdvancedSection";
+import { AllowancesSettingsSection } from "./settings/AllowancesSettingsSection";
 import { HelpModal } from "./settings/HelpModal";
 import { NightEditModal } from "./settings/NightEditModal";
+import { NiSettingsSection } from "./settings/NiSettingsSection";
+import { NotificationsSettingsSection } from "./settings/NotificationsSettingsSection";
 import { OvertimeEditModal } from "./settings/OvertimeEditModal";
+import { PayPeriodSettingsSection } from "./settings/PayPeriodSettingsSection";
 import { PayRatesSection } from "./settings/PayRatesSection";
 import { PayRulesSummarySection } from "./settings/PayRulesSummarySection";
 import { PreferencesSection } from "./settings/PreferencesSection";
+import { TaxSettingsSection } from "./settings/TaxSettingsSection";
 import { WeekendEditModal } from "./settings/WeekendEditModal";
 import { WeekStartPickerModal } from "./settings/WeekStartPickerModal";
 import { styles } from "./SettingsPage.styles";
@@ -16,7 +21,7 @@ import { TabSwitcher } from "./TabSwitcher";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
-export function SettingsPage(): JSX.Element {
+export function SettingsPage(): React.JSX.Element {
   const { colors } = useTheme();
   const { settings, refreshSettings } = useSettings();
   const {
@@ -32,7 +37,7 @@ export function SettingsPage(): JSX.Element {
   } = useModals();
   
   const [activeSettingsTab, setActiveSettingsTab] = useState<
-    "pay" | "preferences" | "advanced"
+    "pay" | "preferences" | "advanced" | "notifications"
   >("pay");
 
   const currencySymbol = useMemo(
@@ -91,6 +96,7 @@ export function SettingsPage(): JSX.Element {
         tabs={[
           { key: "pay", label: "Pay" },
           { key: "preferences", label: "Preferences" },
+          { key: "notifications", label: "Notifications" },
           { key: "advanced", label: "Advanced" },
         ]}
         activeKey={activeSettingsTab}
@@ -113,7 +119,26 @@ export function SettingsPage(): JSX.Element {
             onEditWeekend={() => openModal("showWeekendSheet")}
             onEditWeekStart={() => openModal("showWeekStartPicker")}
             onHelp={openHelp}
+          />
+          <PayPeriodSettingsSection
+            payPeriod={settings?.payRules?.payPeriod}
+            onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
+            onSettingsChange={refreshSettings}
+          />
+          <TaxSettingsSection
+            taxRules={settings?.payRules?.tax}
             currencySymbol={currencySymbol}
+            onSettingsChange={refreshSettings}
+          />
+          <NiSettingsSection
+            niRules={settings?.payRules?.ni}
+            currencySymbol={currencySymbol}
+            onSettingsChange={refreshSettings}
+          />
+          <AllowancesSettingsSection
+            allowances={settings?.payRules?.allowances || []}
+            currencySymbol={currencySymbol}
+            onSettingsChange={refreshSettings}
           />
         </>
       )}
@@ -123,7 +148,14 @@ export function SettingsPage(): JSX.Element {
         <PreferencesSection
           settings={settings}
           currencySymbol={currencySymbol}
-          onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
+          onSettingsChange={refreshSettings}
+        />
+      )}
+
+      {/* Notifications Tab */}
+      {activeSettingsTab === "notifications" && (
+        <NotificationsSettingsSection
+          notifications={settings?.notifications}
           onSettingsChange={refreshSettings}
         />
       )}

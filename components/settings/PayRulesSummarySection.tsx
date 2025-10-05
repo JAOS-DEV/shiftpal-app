@@ -14,6 +14,8 @@ interface PayRulesSummarySectionProps {
   onEditOvertime: () => void;
   onEditNight: () => void;
   onEditWeekend: () => void;
+  onEditWeekStart: () => void;
+  onHelp: (title: string, body: string) => void;
 }
 
 export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
@@ -22,6 +24,8 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
   onEditOvertime,
   onEditNight,
   onEditWeekend,
+  onEditWeekStart,
+  onHelp,
 }) => {
   const { colors } = useTheme();
 

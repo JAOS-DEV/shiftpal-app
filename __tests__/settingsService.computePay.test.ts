@@ -26,8 +26,6 @@ function baseSettings(): AppSettings {
       dateFormat: "DD/MM/YYYY",
       timeFormat: "24h",
       stackingRule: "stack",
-      holidayRecognition: false,
-      roundingRule: "none",
     },
     notifications: { remindSubmitShifts: true, remindCheckPay: true },
   };

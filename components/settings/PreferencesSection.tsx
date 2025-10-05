@@ -6,8 +6,7 @@ import {
     StyleSheet,
     Switch,
     TextInput,
-    TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
@@ -15,14 +14,12 @@ import { ThemedText } from "../ThemedText";
 interface PreferencesSectionProps {
   settings: AppSettings | null;
   currencySymbol: string;
-  onOpenWeekStartPicker: () => void;
   onSettingsChange: () => void;
 }
 
 export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
   settings,
   currencySymbol,
-  onOpenWeekStartPicker,
   onSettingsChange,
 }) => {
   const { themeMode, setThemeMode, colors } = useTheme();
@@ -103,19 +100,21 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
         />
       </View>
 
-      {/* Week Start Day */}
-      <View style={[styles.toggleRow, styles.largeMargin]}>
+      {/* Date Format */}
+      <View style={[styles.toggleRow, styles.mediumMargin]}>
         <ThemedText style={[styles.flex1, { color: colors.text }]}>
-          Start Week On
+          Date Format
         </ThemedText>
-        <TouchableOpacity
-          style={[styles.smallButton, { borderColor: colors.border }]}
-          onPress={onOpenWeekStartPicker}
-        >
-          <ThemedText style={{ color: colors.text }}>
-            {settings?.payRules?.payPeriod?.startDay || "Monday"}
-          </ThemedText>
-        </TouchableOpacity>
+        <Dropdown
+          compact
+          placeholder="Date format"
+          value={settings?.preferences?.dateFormat || "DD/MM/YYYY"}
+          onChange={(v) => updatePreferences({ dateFormat: v as Preferences["dateFormat"] })}
+          items={[
+            { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
+            { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
+          ]}
+        />
       </View>
 
       {/* Goals */}

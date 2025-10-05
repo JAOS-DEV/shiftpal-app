@@ -92,8 +92,6 @@ export interface Preferences {
   dateFormat: "DD/MM/YYYY" | "MM/DD/YYYY" | string;
   timeFormat: "24h" | "12h";
   stackingRule: "stack" | "highestOnly";
-  holidayRecognition: boolean;
-  roundingRule: "5min" | "15min" | "none" | string;
   weeklyGoal?: number; // target gross or net per week (we'll use net total)
   monthlyGoal?: number; // target per month (net)
 }

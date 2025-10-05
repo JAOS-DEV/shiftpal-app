@@ -1,15 +1,15 @@
 import { getFirebase } from "@/lib/firebase";
 import {
-  AllowanceItem,
-  AppSettings,
-  HoursAndMinutes,
-  NotificationsPrefs,
-  PayBreakdown,
-  PayCalculationEntry,
-  PayCalculationInput,
-  PayRate,
-  PayRules,
-  Preferences,
+    AllowanceItem,
+    AppSettings,
+    HoursAndMinutes,
+    NotificationsPrefs,
+    PayBreakdown,
+    PayCalculationEntry,
+    PayCalculationInput,
+    PayRate,
+    PayRules,
+    Preferences,
 } from "@/types/settings";
 import { timeToMinutes } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -47,8 +47,6 @@ function defaultSettings(): AppSettings {
       dateFormat: "DD/MM/YYYY",
       timeFormat: "24h",
       stackingRule: "stack",
-      holidayRecognition: false,
-      roundingRule: "none",
       weeklyGoal: 1000,
       monthlyGoal: 4000,
     },
@@ -242,7 +240,6 @@ class SettingsService {
     const payload = {
       tax: s?.payRules?.tax || {},
       ni: s?.payRules?.ni || {},
-      roundingRule: s?.preferences?.roundingRule,
     };
     try {
       return this.simpleHash(JSON.stringify(payload));
@@ -357,22 +354,6 @@ class SettingsService {
   private toHours(hm: HoursAndMinutes): number {
     const minutes = Math.max(0, (hm?.hours ?? 0) * 60 + (hm?.minutes ?? 0));
     return minutes / 60;
-  }
-
-  private roundHours(
-    hours: number,
-    roundingRule: Preferences["roundingRule"]
-  ): number {
-    if (!roundingRule || roundingRule === "none") return hours;
-    const minutes = hours * 60;
-    const step =
-      roundingRule === "5min"
-        ? 5
-        : roundingRule === "15min"
-        ? 15
-        : parseInt(String(roundingRule).replace(/\D/g, "")) || 1;
-    const rounded = Math.round(minutes / step) * step;
-    return rounded / 60;
   }
 
   computePay(input: PayCalculationInput, settings: AppSettings): PayBreakdown {
