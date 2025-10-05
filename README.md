@@ -25,51 +25,52 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Firebase Email/Password Auth Setup
+## 🔥 Firebase Setup (Required)
 
-1. Create a Firebase project and enable Email/Password provider in Authentication.
+### Quick Setup
 
-2. Add a Web app in Firebase Settings and copy config values.
+1. **Create a Firebase project**:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project
+   - Enable **Email/Password** authentication in Authentication > Sign-in method
 
-3. Configure env vars (preferred) in a `.env` file at the project root:
+2. **Get your Firebase config**:
+   - Go to Project Settings > Your apps
+   - Add a Web app
+   - Copy the configuration values
 
-```
-EXPO_PUBLIC_FIREBASE_API_KEY=YOUR_API_KEY
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=YOUR_SENDER_ID
-EXPO_PUBLIC_FIREBASE_APP_ID=YOUR_APP_ID
-```
+3. **Configure environment variables** (Recommended):
+   
+   Create a `.env` file in the project root:
 
-Then run:
+   ```env
+   EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+   EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+   EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+   ```
 
-```
-npx expo start --clear
-```
+   **Alternative**: Put values in `app.json` under `expo.extra.firebase` (not recommended for production)
 
-Alternatively, put values in `app.json` under `expo.extra.firebase`:
+4. **Restart the development server**:
+   ```bash
+   npx expo start --clear
+   ```
 
-```json
-{
-  "expo": {
-    "extra": {
-      "firebase": {
-        "apiKey": "YOUR_API_KEY",
-        "authDomain": "YOUR_AUTH_DOMAIN",
-        "projectId": "YOUR_PROJECT_ID",
-        "storageBucket": "YOUR_STORAGE_BUCKET",
-        "messagingSenderId": "YOUR_SENDER_ID",
-        "appId": "YOUR_APP_ID"
-      }
-    }
-  }
-}
-```
+### Usage
 
-4. Run the app and use the auth screens:
+- Navigate to `/(auth)/register` to create an account
+- Navigate to `/(auth)/login` to sign in
+- The app uses Firebase Authentication with persistence
 
-- `/(auth)/register` to create an account
-- `/(auth)/login` to sign in
+## 📱 iOS App Store Launch
 
-The app uses an AuthProvider with persistence (web localStorage, native AsyncStorage) and protects routes via Expo Router segments.
+See [IOS_LAUNCH_CHECKLIST.md](./IOS_LAUNCH_CHECKLIST.md) for a comprehensive guide on:
+- Required configuration changes
+- Asset preparation
+- App Store Connect setup
+- Testing checklist
+- Submission process

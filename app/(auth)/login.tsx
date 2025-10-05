@@ -7,14 +7,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -136,6 +136,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    // Use boxShadow for web compatibility
+    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.08)",
+    // Keep shadow properties for React Native
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 6,

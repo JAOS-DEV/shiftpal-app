@@ -220,14 +220,14 @@ export function DatePicker({
                           { borderColor: colors.primary },
                         ],
                     ]}
-                    disabled={isPast || isFuture}
+                    disabled={isFuture}
                   >
                     <ThemedText
                       style={[
                         styles.dayText,
                         isSelected && styles.selectedDayText,
                         isToday && !isSelected && { color: colors.primary },
-                        (isPast || isFuture) && {
+                        isFuture && {
                           color: colors.textSecondary,
                           opacity: 0.3,
                         },
