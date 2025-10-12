@@ -2,11 +2,11 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { HoursAndMinutes, PayCalculationEntry } from "@/types/settings";
 import React, { useState } from "react";
 import {
-    Alert,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
 
@@ -90,7 +90,9 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
   const overtimeMinutes = hmToMinutes(entry.input.overtimeWorked);
   const baseAmount = baseRateVal * (baseMinutes / 60);
   const overtimeAmount = overtimeRateVal * (overtimeMinutes / 60);
-  const overtimeAmountFinal = Number((entry.calculatedPay as any).overtime ?? 0);
+  const overtimeAmountFinal = Number(
+    (entry.calculatedPay as any).overtime ?? 0
+  );
   const upliftsAmount = Number((entry.calculatedPay as any).uplifts ?? 0);
   const allowancesAmount = Number((entry.calculatedPay as any).allowances ?? 0);
   const totalBeforeDeductions =
@@ -203,7 +205,9 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
                 <TouchableOpacity
                   style={[
                     styles.recalcBtn,
-                    Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
+                    Platform.OS === "web"
+                      ? ({ cursor: "pointer" } as any)
+                      : null,
                   ]}
                   onPress={() => onRecalculate(entry)}
                 >
@@ -317,4 +321,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

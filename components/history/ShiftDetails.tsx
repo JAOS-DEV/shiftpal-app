@@ -10,6 +10,8 @@ interface ShiftDetailsProps {
     durationText: string;
     durationMinutes: number;
     includeBreaks?: boolean;
+    breakMinutes?: number;
+    breakCount?: number;
     breaks?: Array<{
       start: number;
       end?: number;
@@ -24,34 +26,29 @@ interface ShiftDetailsProps {
   };
 }
 
-export const ShiftDetails: React.FC<ShiftDetailsProps> = ({ shifts, colors }) => {
+export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
+  shifts,
+  colors,
+}) => {
   return (
     <>
       {shifts.map((shift, idx) => (
         <View
           key={`${shift.start}-${shift.end}-${idx}`}
-          style={[
-            styles.shiftRow,
-            { borderColor: colors.border },
-          ]}
+          style={[styles.shiftRow, { borderColor: colors.border }]}
         >
-          <View style={styles.shiftRow}>
-            <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
-              {shift.start} - {shift.end}
-            </ThemedText>
-            <ThemedText
-              style={[styles.shiftDuration, { color: colors.textSecondary }]}
-            >
-              {shift.durationText} ({shift.durationMinutes} min)
-            </ThemedText>
-          </View>
+          <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
+            {shift.start} - {shift.end}
+          </ThemedText>
+          <ThemedText
+            style={[styles.shiftDuration, { color: colors.textSecondary }]}
+          >
+            {shift.durationText} ({shift.durationMinutes} min)
+          </ThemedText>
 
           {typeof shift.includeBreaks === "boolean" && (
             <ThemedText
-              style={[
-                styles.breakStatusText,
-                { color: colors.textSecondary },
-              ]}
+              style={[styles.breakStatusText, { color: colors.text }]}
             >
               Breaks:{" "}
               {typeof shift.breakMinutes === "number" ? shift.breakMinutes : 0}m
@@ -87,5 +84,6 @@ const styles = {
   breakStatusText: {
     fontSize: 12,
     marginTop: 4,
+    fontWeight: "600" as const,
   },
 };

@@ -1,11 +1,11 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
@@ -49,10 +49,13 @@ export function Dropdown({
     setOpen(false);
   }, []);
 
-  const handleItemSelect = useCallback((itemValue: string) => {
-    onChange(itemValue);
-    setOpen(false);
-  }, [onChange]);
+  const handleItemSelect = useCallback(
+    (itemValue: string) => {
+      onChange(itemValue);
+      setOpen(false);
+    },
+    [onChange]
+  );
 
   return (
     <>

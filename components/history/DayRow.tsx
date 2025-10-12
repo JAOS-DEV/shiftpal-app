@@ -4,11 +4,11 @@ import { Day } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useRef, useState } from "react";
 import {
-    Dimensions,
-    Modal,
-    Pressable,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Modal,
+  Pressable,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { styles } from "./DayRow.styles";
 import { SubmissionBlock } from "./SubmissionBlock";
@@ -38,7 +38,9 @@ export const DayRow: React.FC<DayRowProps> = ({
   } | null>(null);
   const actionsRef = useRef<View>(null);
 
-  const computeMenuPosition = (items: number): { top: number; left: number; width: number } => {
+  const computeMenuPosition = (
+    items: number
+  ): { top: number; left: number; width: number } => {
     const { width: screenW, height: screenH } = Dimensions.get("window");
     const MENU_WIDTH = 200;
     const EST_ITEM_HEIGHT = 44;
@@ -60,9 +62,8 @@ export const DayRow: React.FC<DayRowProps> = ({
     return { top, left, width: MENU_WIDTH };
   };
 
-  const computeBreaksSummary = (): JSX.Element | null => {
-    const allShifts =
-      day.submissions?.flatMap((s) => s.shifts || []) || [];
+  const computeBreaksSummary = (): React.ReactElement | null => {
+    const allShifts = day.submissions?.flatMap((s) => s.shifts || []) || [];
     const total = allShifts.reduce(
       (sum, s) =>
         sum + (typeof s.breakMinutes === "number" ? s.breakMinutes : 0),
@@ -81,16 +82,12 @@ export const DayRow: React.FC<DayRowProps> = ({
     );
     const excluded = total - included;
     const count = allShifts.reduce(
-      (sum, s) =>
-        sum + (typeof s.breakCount === "number" ? s.breakCount : 0),
+      (sum, s) => sum + (typeof s.breakCount === "number" ? s.breakCount : 0),
       0
     );
     return (
       <ThemedText
-        style={[
-          styles.breakSummaryText,
-          { color: colors.textSecondary },
-        ]}
+        style={[styles.breakSummaryText, { color: colors.textSecondary }]}
       >
         Breaks: {total}m{count ? ` (${count})` : ""}
         {included ? ` • included ${included}m` : ""}
@@ -269,4 +266,3 @@ export const DayRow: React.FC<DayRowProps> = ({
     </View>
   );
 };
-

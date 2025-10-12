@@ -5,14 +5,14 @@ import { formatDateDisplay } from "@/utils/timeUtils";
 import * as Haptics from "expo-haptics";
 import React, { useRef, useState } from "react";
 import {
-    Alert,
-    Dimensions,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ShiftDetails } from "./ShiftDetails";
 
@@ -37,7 +37,9 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
   } | null>(null);
   const actionsRef = useRef<View>(null);
 
-  const computeMenuPosition = (items: number): { top: number; left: number; width: number } => {
+  const computeMenuPosition = (
+    items: number
+  ): { top: number; left: number; width: number } => {
     const { width: screenW, height: screenH } = Dimensions.get("window");
     const MENU_WIDTH = 200;
     const EST_ITEM_HEIGHT = 44;
@@ -359,4 +361,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

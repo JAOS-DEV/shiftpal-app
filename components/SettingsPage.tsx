@@ -1,5 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import { ScrollView } from "react-native";
 import { useModals } from "../hooks/useModals";
 import { useSettings } from "../hooks/useSettings";
 import { AdvancedSection } from "./settings/AdvancedSection";
@@ -17,7 +18,6 @@ import { TaxSettingsSection } from "./settings/TaxSettingsSection";
 import { WeekendEditModal } from "./settings/WeekendEditModal";
 import { WeekStartPickerModal } from "./settings/WeekStartPickerModal";
 import { styles } from "./SettingsPage.styles";
-import { TabSwitcher } from "./TabSwitcher";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
@@ -35,10 +35,6 @@ export function SettingsPage(): React.JSX.Element {
     openHelpModal,
     closeHelpModal,
   } = useModals();
-  
-  const [activeSettingsTab, setActiveSettingsTab] = useState<
-    "pay" | "preferences" | "advanced" | "notifications"
-  >("pay");
 
   const currencySymbol = useMemo(
     () =>
@@ -92,78 +88,86 @@ export function SettingsPage(): React.JSX.Element {
       <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
         Settings
       </ThemedText>
-      <TabSwitcher
-        tabs={[
-          { key: "pay", label: "Pay" },
-          { key: "preferences", label: "Preferences" },
-          { key: "notifications", label: "Notifications" },
-          { key: "advanced", label: "Advanced" },
-        ]}
-        activeKey={activeSettingsTab}
-        onKeyChange={(k) => setActiveSettingsTab(k as any)}
-      />
 
-      {/* Pay Tab */}
-      {activeSettingsTab === "pay" && (
-        <>
-          <PayRatesSection
-            payRates={settings?.payRates || []}
-            onRatesChange={refreshSettings}
-            currencySymbol={currencySymbol}
-          />
-          <PayRulesSummarySection
-            payRules={settings?.payRules}
-            currencySymbol={currencySymbol}
-            onEditOvertime={() => openModal("showOvertimeSheet")}
-            onEditNight={() => openModal("showNightSheet")}
-            onEditWeekend={() => openModal("showWeekendSheet")}
-            onEditWeekStart={() => openModal("showWeekStartPicker")}
-            onHelp={openHelp}
-          />
-          <PayPeriodSettingsSection
-            payPeriod={settings?.payRules?.payPeriod}
-            onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
-            onSettingsChange={refreshSettings}
-          />
-          <TaxSettingsSection
-            taxRules={settings?.payRules?.tax}
-            currencySymbol={currencySymbol}
-            onSettingsChange={refreshSettings}
-          />
-          <NiSettingsSection
-            niRules={settings?.payRules?.ni}
-            currencySymbol={currencySymbol}
-            onSettingsChange={refreshSettings}
-          />
-          <AllowancesSettingsSection
-            allowances={settings?.payRules?.allowances || []}
-            currencySymbol={currencySymbol}
-            onSettingsChange={refreshSettings}
-          />
-        </>
-      )}
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Pay Settings Section */}
+        <ThemedText
+          style={[styles.sectionHeader, { color: colors.textSecondary }]}
+        >
+          PAY SETTINGS
+        </ThemedText>
+        <PayRatesSection
+          payRates={settings?.payRates || []}
+          onRatesChange={refreshSettings}
+          currencySymbol={currencySymbol}
+        />
+        <PayRulesSummarySection
+          payRules={settings?.payRules}
+          currencySymbol={currencySymbol}
+          onEditOvertime={() => openModal("showOvertimeSheet")}
+          onEditNight={() => openModal("showNightSheet")}
+          onEditWeekend={() => openModal("showWeekendSheet")}
+          onEditWeekStart={() => openModal("showWeekStartPicker")}
+          onHelp={openHelp}
+        />
+        <PayPeriodSettingsSection
+          payPeriod={settings?.payRules?.payPeriod}
+          onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
+          onSettingsChange={refreshSettings}
+        />
+        <TaxSettingsSection
+          taxRules={settings?.payRules?.tax}
+          currencySymbol={currencySymbol}
+          onSettingsChange={refreshSettings}
+        />
+        <NiSettingsSection
+          niRules={settings?.payRules?.ni}
+          currencySymbol={currencySymbol}
+          onSettingsChange={refreshSettings}
+        />
+        <AllowancesSettingsSection
+          allowances={settings?.payRules?.allowances || []}
+          currencySymbol={currencySymbol}
+          onSettingsChange={refreshSettings}
+        />
 
-      {/* Preferences Tab */}
-      {activeSettingsTab === "preferences" && (
+        {/* Preferences Section */}
+        <ThemedText
+          style={[styles.sectionHeader, { color: colors.textSecondary }]}
+        >
+          PREFERENCES
+        </ThemedText>
         <PreferencesSection
           settings={settings}
           currencySymbol={currencySymbol}
           onSettingsChange={refreshSettings}
         />
-      )}
 
-      {/* Notifications Tab */}
-      {activeSettingsTab === "notifications" && (
+        {/* Notifications Section */}
+        <ThemedText
+          style={[styles.sectionHeader, { color: colors.textSecondary }]}
+        >
+          NOTIFICATIONS
+        </ThemedText>
         <NotificationsSettingsSection
           notifications={settings?.notifications}
           onSettingsChange={refreshSettings}
         />
-      )}
 
-      {/* Advanced Tab */}
-      {activeSettingsTab === "advanced" && (
-        <AdvancedSection settings={settings} onSettingsChange={refreshSettings} />
-      )}
+        {/* Advanced Section */}
+        <ThemedText
+          style={[styles.sectionHeader, { color: colors.textSecondary }]}
+        >
+          ADVANCED
+        </ThemedText>
+        <AdvancedSection
+          settings={settings}
+          onSettingsChange={refreshSettings}
+        />
+      </ScrollView>
     </ThemedView>
   );
 }

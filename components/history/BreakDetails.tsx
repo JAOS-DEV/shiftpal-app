@@ -16,7 +16,10 @@ interface BreakDetailsProps {
   };
 }
 
-export const BreakDetails: React.FC<BreakDetailsProps> = ({ breaks, colors }) => {
+export const BreakDetails: React.FC<BreakDetailsProps> = ({
+  breaks,
+  colors,
+}) => {
   if (!breaks || breaks.length === 0) {
     return null;
   }
@@ -26,19 +29,13 @@ export const BreakDetails: React.FC<BreakDetailsProps> = ({ breaks, colors }) =>
       {breaks.map((b, i) => (
         <View
           key={b.start}
-          style={[
-            styles.breakDetailRow,
-            { borderColor: colors.border },
-          ]}
+          style={[styles.breakDetailRow, { borderColor: colors.border }]}
         >
           <View style={styles.breakDetailHeader}>
             <ThemedText
-              style={[
-                styles.breakDetailIndex,
-                { color: colors.textSecondary },
-              ]}
+              style={[styles.breakDetailIndex, { color: colors.textSecondary }]}
             >
-              #{i + 1}
+              Break #{i + 1}
             </ThemedText>
             <ThemedText
               style={[styles.breakDetailTime, { color: colors.text }]}
@@ -62,12 +59,7 @@ export const BreakDetails: React.FC<BreakDetailsProps> = ({ breaks, colors }) =>
             </View>
           </View>
           {b.note ? (
-            <View
-              style={[
-                styles.breakNoteBox,
-                { borderColor: colors.border },
-              ]}
-            >
+            <View style={[styles.breakNoteBox, { borderColor: colors.border }]}>
               <ThemedText
                 style={[styles.breakDetailNote, { color: colors.text }]}
               >
@@ -132,5 +124,6 @@ const styles = {
   },
   breakDetailNoteLabel: {
     fontWeight: "600" as const,
+    fontSize: 12,
   },
 };

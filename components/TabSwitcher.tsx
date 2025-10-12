@@ -26,9 +26,12 @@ export function TabSwitcher({
 }: TabSwitcherProps): React.JSX.Element {
   const isCustom = Array.isArray(tabs) && tabs.length > 0;
 
-  const handleKeyChange = useCallback((key: string) => {
-    onKeyChange?.(key);
-  }, [onKeyChange]);
+  const handleKeyChange = useCallback(
+    (key: string) => {
+      onKeyChange?.(key);
+    },
+    [onKeyChange]
+  );
 
   const handleTrackerTabChange = useCallback(() => {
     onTabChange?.("tracker");
@@ -53,7 +56,6 @@ export function TabSwitcher({
               >
                 <ThemedText
                   style={[styles.tabText, isActive && styles.activeTabText]}
-                  numberOfLines={1}
                 >
                   {t.label}
                 </ThemedText>
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: "center",
   },
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "500",
     color: "#666",
     textAlign: "center",
