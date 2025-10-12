@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-export const styles = StyleSheet.create({
+export const authStyles = StyleSheet.create({
   flex: { flex: 1 },
   gradient: { flex: 1, paddingHorizontal: 20 },
   scroll: { flexGrow: 1, justifyContent: "center", gap: 12 },
@@ -29,6 +29,7 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryButtonText: { color: "#fff", fontWeight: "700" },
+  linkMuted: { color: "#374151", textAlign: "center", marginTop: 8 },
   outlineButton: {
     borderWidth: 1,
     paddingVertical: 12,

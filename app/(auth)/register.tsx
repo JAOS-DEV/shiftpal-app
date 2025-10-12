@@ -2,20 +2,20 @@ import ShiftPalLogo from "@/assets/images/shiftpal.svg";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/providers/AuthProvider";
+import { authStyles as styles } from "@/styles/auth.styles";
 import { notify } from "@/utils/notify";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { styles } from "./register.styles";
 
 export default function RegisterScreen(): React.JSX.Element {
   const colorScheme = useColorScheme();
@@ -36,7 +36,10 @@ export default function RegisterScreen(): React.JSX.Element {
       notify.success("Account created");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to register");
-      notify.error("Registration failed", e instanceof Error ? e.message : undefined);
+      notify.error(
+        "Registration failed",
+        e instanceof Error ? e.message : undefined
+      );
     } finally {
       setLoading(false);
     }

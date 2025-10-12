@@ -2,6 +2,7 @@ import ShiftPalLogo from "@/assets/images/shiftpal.svg";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/providers/AuthProvider";
+import { authStyles as styles } from "@/styles/auth.styles";
 import { notify } from "@/utils/notify";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -15,7 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { styles } from "./login.styles";
 
 export default function LoginScreen(): React.JSX.Element {
   const colorScheme = useColorScheme();

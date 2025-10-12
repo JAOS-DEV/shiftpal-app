@@ -1,9 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import {
   Auth,
   browserLocalPersistence,
   getAuth,
+  getReactNativePersistence,
+  initializeAuth,
   setPersistence,
 } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore";
@@ -67,22 +70,31 @@ let firestore: Firestore;
 let analyticsInstance: any | undefined;
 
 export function getFirebase() {
+  // Initialize app if not already initialized
   if (!getApps().length) {
     app = initializeApp(getFirebaseConfig());
   } else {
     app = getApp();
   }
 
-  if (Platform.OS === "web") {
-    auth = getAuth(app);
-    setPersistence(auth, browserLocalPersistence);
-    void initWebAnalytics();
-  } else {
-    // Expo Go native: use default in-memory auth; avoids native persistence module requirements
-    auth = getAuth(app);
+  // Initialize auth only once
+  if (!auth) {
+    if (Platform.OS === "web") {
+      auth = getAuth(app);
+      setPersistence(auth, browserLocalPersistence);
+      void initWebAnalytics();
+    } else {
+      // React Native: use AsyncStorage for auth persistence
+      auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+      });
+    }
   }
 
-  firestore = getFirestore(app);
+  // Initialize firestore only once
+  if (!firestore) {
+    firestore = getFirestore(app);
+  }
 
   return { app, auth, firestore };
 }
