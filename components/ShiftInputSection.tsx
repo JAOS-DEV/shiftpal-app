@@ -1,9 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { ManualModeInput } from "./shift-input/ManualModeInput";
 import { TimerModeInput } from "./shift-input/TimerModeInput";
 import { styles } from "./ShiftInputSection.styles";
@@ -11,7 +8,7 @@ import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
 interface ShiftInputSectionProps {
-  onAddShift: (startTime: string, endTime: string) => void;
+  onAddShift: (startTime: string, endTime: string, note?: string) => void;
   onShiftListRefresh?: () => void;
   selectedDate?: string;
 }

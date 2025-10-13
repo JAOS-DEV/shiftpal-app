@@ -1,23 +1,19 @@
 import { notify } from "@/utils/notify";
 import {
-    calculateDuration,
-    formatDurationText,
-    isValidTimeFormat,
-    isValidTimeRange,
+  calculateDuration,
+  formatDurationText,
+  isValidTimeFormat,
+  isValidTimeRange,
 } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
-import {
-    Alert,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { Alert, TextInput, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 import { styles } from "./ManualModeInput.styles";
+import { NoteModal } from "./NoteModal";
 
 interface ManualModeInputProps {
-  onAddShift: (startTime: string, endTime: string) => void;
+  onAddShift: (startTime: string, endTime: string, note?: string) => void;
 }
 
 const STORAGE_KEYS = {
@@ -33,6 +29,8 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
   const [isValid, setIsValid] = useState(false);
   const [prevStartTime, setPrevStartTime] = useState("");
   const [prevEndTime, setPrevEndTime] = useState("");
+  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [noteText, setNoteText] = useState("");
   const endTimeRef = useRef<TextInput>(null);
 
   // Load saved times on mount
@@ -133,7 +131,7 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
       return;
     }
 
-    onAddShift(startTime, endTime);
+    onAddShift(startTime, endTime, noteText.trim() || undefined);
 
     notify.success("Shift added", `Recorded ${formatDurationText(duration)}`);
 
@@ -142,11 +140,25 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
     setEndTime("");
     setPrevStartTime("");
     setPrevEndTime("");
+    setNoteText("");
     setIsValid(false);
     AsyncStorage.multiRemove([
       STORAGE_KEYS.startTime,
       STORAGE_KEYS.endTime,
     ]).catch(() => {});
+  };
+
+  const handleAddNote = (): void => {
+    setNoteModalVisible(true);
+  };
+
+  const handleSaveNoteAndClose = (): void => {
+    setNoteModalVisible(false);
+  };
+
+  const handleCancelNote = (): void => {
+    setNoteModalVisible(false);
+    setNoteText("");
   };
 
   const getDurationPreview = (): string => {
@@ -214,21 +226,39 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
         </View>
       ) : null}
 
-      <TouchableOpacity
-        style={[styles.addButton, !isValid && styles.disabledButton]}
-        onPress={handleAddShift}
-        disabled={!isValid}
-        accessibilityLabel="Add shift"
-      >
-        <ThemedText
-          style={[
-            styles.addButtonText,
-            !isValid && styles.disabledButtonText,
-          ]}
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.noteButton, !isValid && styles.disabledButton]}
+          onPress={handleAddNote}
+          disabled={!isValid}
+          accessibilityLabel="Add note"
         >
-          Add Shift
-        </ThemedText>
-      </TouchableOpacity>
+          <ThemedText
+            style={[
+              styles.noteButtonText,
+              !isValid && styles.disabledButtonText,
+            ]}
+          >
+            Add Note
+          </ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.addButton, !isValid && styles.disabledButton]}
+          onPress={handleAddShift}
+          disabled={!isValid}
+          accessibilityLabel="Add shift"
+        >
+          <ThemedText
+            style={[
+              styles.addButtonText,
+              !isValid && styles.disabledButtonText,
+            ]}
+          >
+            Add Shift
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.helpContainer}>
         <ThemedText style={styles.helpText}>
@@ -236,7 +266,14 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
           Overnight shifts are supported.
         </ThemedText>
       </View>
+
+      <NoteModal
+        visible={noteModalVisible}
+        noteText={noteText}
+        onNoteTextChange={setNoteText}
+        onSave={handleSaveNoteAndClose}
+        onCancel={handleCancelNote}
+      />
     </>
   );
 };
-

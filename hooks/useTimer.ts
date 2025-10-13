@@ -10,17 +10,28 @@ interface TimerState {
   startedAt?: number;
   elapsedMs: number;
   currentBreakMs?: number;
-  breaks?: Array<{ start: number; end?: number; durationMs: number; note?: string }>;
+  breaks?: Array<{
+    start: number;
+    end?: number;
+    durationMs: number;
+    note?: string;
+  }>;
   totalBreakMs?: number;
 }
 
-export const useTimer = (includeBreaks: boolean, onShiftListRefresh?: () => void, selectedDate?: string) => {
+export const useTimer = (
+  includeBreaks: boolean,
+  onShiftListRefresh?: () => void,
+  selectedDate?: string
+) => {
   const [timerState, setTimerState] = useState<TimerState>({
     running: false,
     paused: false,
     elapsedMs: 0,
   });
-  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   const refreshTimer = async (): Promise<void> => {
     const t = await shiftService.getRunningTimer();
@@ -35,22 +46,37 @@ export const useTimer = (includeBreaks: boolean, onShiftListRefresh?: () => void
       if (end && p.start) pausedMs += Math.max(0, end - p.start);
     }
     const elapsedMs = Math.max(0, now - t.startedAt - pausedMs);
-    const currentBreakMs = t.status === "paused" && t.pauses.length > 0 ? 
-      Math.max(0, now - (t.pauses[t.pauses.length - 1]?.start ?? 0)) : undefined;
-    
+    const currentBreakMs =
+      t.status === "paused" && t.pauses.length > 0
+        ? Math.max(0, now - (t.pauses[t.pauses.length - 1]?.start ?? 0))
+        : undefined;
+
+    // Calculate break durations properly
+    const breaks = t.pauses.map((p) => {
+      const end =
+        p.end ??
+        (t.status === "paused" && p === t.pauses[t.pauses.length - 1]
+          ? now
+          : p.start);
+      const durationMs = Math.max(0, end - p.start);
+      return {
+        start: p.start,
+        end: p.end,
+        durationMs,
+        note: p.note,
+      };
+    });
+
+    const totalBreakMs = breaks.reduce((sum, b) => sum + b.durationMs, 0);
+
     setTimerState({
       running: true,
       paused: t.status === "paused",
       startedAt: t.startedAt,
       elapsedMs,
       currentBreakMs,
-      breaks: t.pauses.map(p => ({
-        start: p.start,
-        end: p.end,
-        durationMs: p.durationMs,
-        note: p.note,
-      })),
-      totalBreakMs: t.pauses.reduce((sum, p) => sum + p.durationMs, 0),
+      breaks,
+      totalBreakMs,
     });
   };
 

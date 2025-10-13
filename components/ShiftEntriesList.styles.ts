@@ -75,6 +75,23 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
   },
+  noteContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5EA",
+  },
+  noteText: {
+    fontSize: 13,
+    fontStyle: "italic",
+    opacity: 0.7,
+    color: "#666",
+  },
+  noteLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontStyle: "italic",
+  },
   removeButton: {
     width: 32,
     height: 32,

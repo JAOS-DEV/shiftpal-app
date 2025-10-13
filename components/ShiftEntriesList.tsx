@@ -86,7 +86,9 @@ export function ShiftEntriesList({
                   handleRemoveShift(item.id, `${item.start} - ${item.end}`)
                 }
               />
-              {index < data.length - 1 ? <View style={styles.separator} /> : null}
+              {index < data.length - 1 ? (
+                <View style={styles.separator} />
+              ) : null}
             </View>
           ))}
         </View>
@@ -122,10 +124,11 @@ const ShiftRow = React.memo(function ShiftRow({
     if (typeof shift.breakMinutes !== "number" || shift.breakMinutes <= 0) {
       return null;
     }
-    
-    const countText = typeof shift.breakCount === "number" ? ` (${shift.breakCount})` : "";
+
+    const countText =
+      typeof shift.breakCount === "number" ? ` (${shift.breakCount})` : "";
     const includedText = shift.includeBreaks ? " (included)" : " (excluded)";
-    
+
     return `Breaks: ${shift.breakMinutes}m${countText}${includedText}`;
   }, [shift.breakMinutes, shift.breakCount, shift.includeBreaks]);
 
@@ -144,14 +147,21 @@ const ShiftRow = React.memo(function ShiftRow({
             {shift.durationText}
           </ThemedText>
           {breakText && (
-            <ThemedText style={styles.breakText}>
-              {breakText}
-            </ThemedText>
+            <ThemedText style={styles.breakText}>{breakText}</ThemedText>
           )}
           <ThemedText style={styles.minutesText}>
             ({shift.durationMinutes} min)
           </ThemedText>
         </View>
+
+        {shift.note && (
+          <View style={styles.noteContainer}>
+            <ThemedText style={styles.noteText}>
+              <ThemedText style={styles.noteLabel}>Note: </ThemedText>
+              {shift.note}
+            </ThemedText>
+          </View>
+        )}
       </View>
 
       <TouchableOpacity

@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  StyleSheet,
-  Switch,
-  View,
-} from "react-native";
+import { StyleSheet, Switch, View } from "react-native";
 import { useTimer } from "../../hooks/useTimer";
 import { ThemedText } from "../ThemedText";
 import { BreakHistory } from "./BreakHistory";
@@ -50,7 +46,9 @@ export const TimerModeInput: React.FC<TimerModeInputProps> = ({
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -69,9 +67,9 @@ export const TimerModeInput: React.FC<TimerModeInputProps> = ({
           </View>
         ) : null}
 
-        <BreakHistory 
-          breaks={timerState.breaks || []} 
-          totalBreakMs={timerState.totalBreakMs} 
+        <BreakHistory
+          breaks={timerState.breaks || []}
+          totalBreakMs={timerState.totalBreakMs}
         />
 
         <View style={styles.breakToggleRow}>

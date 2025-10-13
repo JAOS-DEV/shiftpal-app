@@ -1,15 +1,15 @@
 import { usePeriodFilter } from "@/hooks/usePeriodFilter";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings, HoursAndMinutes, PayCalculationEntry } from "@/types/settings";
+import {
+  AppSettings,
+  HoursAndMinutes,
+  PayCalculationEntry,
+} from "@/types/settings";
 import { notify } from "@/utils/notify";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useMemo, useState } from "react";
-import {
-    StyleSheet,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { PeriodFilter } from "../PeriodFilter";
 import { ThemedText } from "../ThemedText";
 import { ThemedView } from "../ThemedView";
@@ -63,7 +63,7 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
     if (currentPeriod === "all") return payHistory;
     return payHistory.filter((e) => {
       // Convert timestamp to date string for comparison
-      const dateString = new Date(e.createdAt).toISOString().split('T')[0];
+      const dateString = new Date(e.createdAt).toISOString().split("T")[0];
       return isInCurrentPeriod(dateString);
     });
   }, [payHistory, currentPeriod, isInCurrentPeriod]);
@@ -136,7 +136,9 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
     return stale;
   }, [filteredHistory, currentVersion]);
 
-  const handleRecalcEntry = async (entry: PayCalculationEntry): Promise<void> => {
+  const handleRecalcEntry = async (
+    entry: PayCalculationEntry
+  ): Promise<void> => {
     const before = entry;
     const next = await settingsService.recomputeEntry(entry);
     await settingsService.updateHistoryEntry(next);
@@ -180,7 +182,9 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
     notify.info("Deleted");
   };
 
-  const resolveRateValue = (id: string | null | undefined): number | undefined => {
+  const resolveRateValue = (
+    id: string | null | undefined
+  ): number | undefined => {
     if (!id) return undefined;
     const list = settings?.payRates || [];
     return list.find((r) => r.id === id)?.value;
@@ -223,9 +227,17 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
 
       {/* Stale entries warning */}
       {staleCount > 0 && (
-        <View style={[styles.staleWarning, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ThemedText style={[styles.staleText, { color: colors.textSecondary }]}>
-            {staleCount} {staleCount === 1 ? "entry is" : "entries are"} out of date with current settings
+        <View
+          style={[
+            styles.staleWarning,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <ThemedText
+            style={[styles.staleText, { color: colors.textSecondary }]}
+          >
+            {staleCount} {staleCount === 1 ? "entry is" : "entries are"} out of
+            date with current settings
           </ThemedText>
           <TouchableOpacity
             style={[styles.recalcAllBtn, { backgroundColor: colors.primary }]}
@@ -354,4 +366,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

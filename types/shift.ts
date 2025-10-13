@@ -5,6 +5,7 @@ export interface Shift {
   durationMinutes: number;
   durationText: string; // e.g., "1h 10m"
   createdAt: number; // timestamp
+  note?: string; // optional note for the shift
   // Optional break tracking for timer-based shifts
   breakMinutes?: number; // total break minutes (not counted when includeBreaks=false)
   breakCount?: number; // number of break intervals

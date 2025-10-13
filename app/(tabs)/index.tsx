@@ -21,8 +21,8 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 type Tab = "tracker" | "history";
@@ -113,7 +113,10 @@ export default function HomeScreen() {
   const loadSubmittedDays = async () => {
     try {
       // Load all days - filtering will be handled locally in HistoryList
-      const days = await shiftService.getSubmittedDays({ type: "all" }, settings);
+      const days = await shiftService.getSubmittedDays(
+        { type: "all" },
+        settings
+      );
       setSubmittedDays(days);
     } catch (error) {
       console.error("Error loading submitted days:", error);
@@ -121,12 +124,17 @@ export default function HomeScreen() {
     }
   };
 
-  const handleAddShift = async (startTime: string, endTime: string) => {
+  const handleAddShift = async (
+    startTime: string,
+    endTime: string,
+    note?: string
+  ) => {
     try {
       const newShift = await shiftService.addShift(
         selectedDate,
         startTime,
-        endTime
+        endTime,
+        note
       );
       setShifts((prev) => [...prev, newShift]);
       await logAnalyticsEvent("add_shift", {
@@ -223,7 +231,6 @@ export default function HomeScreen() {
     setActiveTab(tab);
     AsyncStorage.setItem("shiftpal.ui.active_tab", tab).catch(() => {});
   };
-
 
   const handleDeleteDay = async (date: string) => {
     try {

@@ -9,6 +9,7 @@ interface ShiftDetailsProps {
     end: string;
     durationText: string;
     durationMinutes: number;
+    note?: string;
     includeBreaks?: boolean;
     breakMinutes?: number;
     breakCount?: number;
@@ -59,6 +60,17 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
             </ThemedText>
           )}
 
+          {shift.note && (
+            <View style={styles.noteContainer}>
+              <ThemedText style={[styles.noteText, { color: colors.text }]}>
+                <ThemedText style={[styles.noteLabel, { color: colors.text }]}>
+                  Note:{" "}
+                </ThemedText>
+                {shift.note}
+              </ThemedText>
+            </View>
+          )}
+
           <BreakDetails breaks={shift.breaks || []} colors={colors} />
         </View>
       ))}
@@ -85,5 +97,21 @@ const styles = {
     fontSize: 12,
     marginTop: 4,
     fontWeight: "600" as const,
+  },
+  noteContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5EA",
+  },
+  noteText: {
+    fontSize: 13,
+    fontStyle: "italic" as const,
+    opacity: 0.7,
+  },
+  noteLabel: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    fontStyle: "italic" as const,
   },
 };
