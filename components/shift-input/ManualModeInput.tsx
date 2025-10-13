@@ -11,6 +11,7 @@ import { Alert, TextInput, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 import { styles } from "./ManualModeInput.styles";
 import { NoteModal } from "./NoteModal";
+import { TimeInput } from "./TimeInput";
 
 interface ManualModeInputProps {
   onAddShift: (startTime: string, endTime: string, note?: string) => void;
@@ -171,52 +172,18 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
 
   return (
     <>
-      <View style={styles.inputRow}>
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>Start Time</ThemedText>
-          <TextInput
-            style={[
-              styles.timeInput,
-              isValidTimeFormat(startTime) && styles.validInput,
-              !startTime || isValidTimeFormat(startTime)
-                ? styles.defaultInput
-                : styles.invalidInput,
-            ]}
-            value={startTime}
-            onChangeText={handleStartTimeChange}
-            placeholder="09:00"
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-            maxLength={5}
-            returnKeyType="next"
-            onSubmitEditing={() => endTimeRef.current?.focus()}
-            accessibilityLabel="Start time input"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>End Time</ThemedText>
-          <TextInput
-            ref={endTimeRef}
-            style={[
-              styles.timeInput,
-              isValidTimeFormat(endTime) && styles.validInput,
-              !endTime || isValidTimeFormat(endTime)
-                ? styles.defaultInput
-                : styles.invalidInput,
-            ]}
-            value={endTime}
-            onChangeText={handleEndTimeChange}
-            placeholder="17:00"
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-            maxLength={5}
-            returnKeyType="done"
-            onSubmitEditing={handleAddShift}
-            accessibilityLabel="End time input"
-          />
-        </View>
-      </View>
+      <TimeInput
+        startTime={startTime}
+        endTime={endTime}
+        onStartTimeChange={handleStartTimeChange}
+        onEndTimeChange={handleEndTimeChange}
+        showDuration={true}
+        startLabel="Start Time"
+        endLabel="End Time"
+        startPlaceholder="09:00"
+        endPlaceholder="17:00"
+        style={styles.timeInputContainer}
+      />
 
       {getDurationPreview() ? (
         <View style={styles.previewContainer}>

@@ -1,0 +1,320 @@
+import { shiftService } from "@/services/shiftService";
+import { notify } from "@/utils/notify";
+import React, { useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { DatePicker } from "../DatePicker";
+import { ThemedText } from "../ThemedText";
+import { ThemedView } from "../ThemedView";
+import { IconSymbol } from "../ui/IconSymbol";
+
+interface DuplicateSubmissionModalProps {
+  visible: boolean;
+  submission: {
+    id: string;
+    shifts: Array<{
+      id: string;
+      start: string;
+      end: string;
+      durationMinutes: number;
+      durationText: string;
+      note?: string;
+      createdAt?: number;
+      breaks?: Array<{
+        start: number;
+        end: number;
+        durationMinutes: number;
+        note?: string;
+      }>;
+    }>;
+    totalMinutes: number;
+    totalText: string;
+    submittedAt: number;
+  };
+  originalDate: string;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+export const DuplicateSubmissionModal: React.FC<
+  DuplicateSubmissionModalProps
+> = ({ visible, submission, originalDate, onClose, onSave }) => {
+  const [selectedDate, setSelectedDate] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const handleSave = async (): Promise<void> => {
+    if (!selectedDate) {
+      Alert.alert(
+        "No date selected",
+        "Please select a date for the duplicate."
+      );
+      return;
+    }
+
+    if (selectedDate === originalDate) {
+      Alert.alert(
+        "Same date",
+        "Please select a different date for the duplicate."
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Clone the shifts with new IDs and timestamps
+      const clonedShifts = submission.shifts.map((shift) => ({
+        ...shift,
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+        createdAt: Date.now(),
+      }));
+
+      // Use the existing submitDay method to create the duplicate
+      await shiftService.submitDay(selectedDate, clonedShifts);
+
+      notify.success(
+        "Submission duplicated",
+        `Shifts copied to ${selectedDate}`
+      );
+      onSave();
+      onClose();
+    } catch (error) {
+      console.error("Error duplicating submission:", error);
+      notify.error(
+        "Error",
+        "Failed to duplicate submission. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDateForDisplay = (dateString: string): string => {
+    if (!dateString) return "Select date";
+    try {
+      const [year, month, day] = dateString.split("-");
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ThemedView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <ThemedText style={styles.title}>Duplicate Submission</ThemedText>
+            <TouchableOpacity
+              onPress={handleSave}
+              style={[
+                styles.saveButton,
+                isLoading && styles.saveButtonDisabled,
+              ]}
+              disabled={isLoading || !selectedDate}
+            >
+              <ThemedText style={styles.saveButtonText}>
+                {isLoading ? "Duplicating..." : "Duplicate"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Original Date</ThemedText>
+              <ThemedText style={styles.originalDateText}>
+                {formatDateForDisplay(originalDate)}
+              </ThemedText>
+            </View>
+
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>
+                Duplicate To Date
+              </ThemedText>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <ThemedText style={styles.dateButtonText}>
+                  {formatDateForDisplay(selectedDate)}
+                </ThemedText>
+                <IconSymbol name="calendar" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>
+                Shifts to Duplicate
+              </ThemedText>
+              <View style={styles.shiftsList}>
+                {submission.shifts.map((shift, index) => (
+                  <View key={shift.id} style={styles.shiftItem}>
+                    <ThemedText style={styles.shiftNumber}>
+                      Shift {index + 1}
+                    </ThemedText>
+                    <ThemedText style={styles.shiftTimes}>
+                      {shift.start} - {shift.end}
+                    </ThemedText>
+                    <ThemedText style={styles.shiftDuration}>
+                      {shift.durationText}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.summary}>
+              <ThemedText style={styles.summaryTitle}>Total</ThemedText>
+              <ThemedText style={styles.summaryValue}>
+                {submission.totalText}
+              </ThemedText>
+            </View>
+          </View>
+        </ThemedView>
+      </KeyboardAvoidingView>
+
+      <DatePicker
+        visible={showDatePicker}
+        selectedDate={selectedDate || originalDate}
+        onDateSelect={setSelectedDate}
+        onClose={() => setShowDatePicker(false)}
+      />
+    </Modal>
+  );
+};
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5EA",
+  },
+  closeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: "#007AFF",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+  },
+  saveButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#C7C7CC",
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#FFFFFF",
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+    marginBottom: 12,
+  },
+  originalDateText: {
+    fontSize: 16,
+    color: "#666",
+    paddingVertical: 8,
+  },
+  dateButton: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: "#000000",
+  },
+  shiftsList: {
+    gap: 8,
+  },
+  shiftItem: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  shiftNumber: {
+    fontSize: 14,
+    fontWeight: "500" as const,
+    color: "#666",
+  },
+  shiftTimes: {
+    fontSize: 14,
+    color: "#000000",
+  },
+  shiftDuration: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "#007AFF",
+  },
+  summary: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5EA",
+    marginTop: 16,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+    color: "#007AFF",
+  },
+};

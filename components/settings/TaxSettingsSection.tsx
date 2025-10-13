@@ -2,12 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { TaxRules } from "@/types/settings";
 import React, { useState } from "react";
-import {
-    StyleSheet,
-    Switch,
-    TextInput,
-    View
-} from "react-native";
+import { StyleSheet, Switch, TextInput, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
 interface TaxSettingsSectionProps {
@@ -22,7 +17,7 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
   onSettingsChange,
 }) => {
   const { colors } = useTheme();
-  const [isEnabled, setIsEnabled] = useState(taxRules?.percentage !== undefined && taxRules?.percentage !== 0);
+  const [isEnabled, setIsEnabled] = useState(taxRules?.enabled ?? false);
   const [percentage, setPercentage] = useState(
     taxRules?.percentage?.toString() || "20"
   );
@@ -39,12 +34,14 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
     setIsEnabled(enabled);
     if (enabled) {
       await updateTaxRules({
+        enabled: true,
         type: "flat",
         percentage: parseFloat(percentage) || 20,
         personalAllowance: parseFloat(personalAllowance) || 12570,
       });
     } else {
       await updateTaxRules({
+        enabled: false,
         percentage: 0,
         personalAllowance: 0,
       });
@@ -57,7 +54,9 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
     await updateTaxRules({ percentage: numValue });
   };
 
-  const handlePersonalAllowanceChange = async (value: string): Promise<void> => {
+  const handlePersonalAllowanceChange = async (
+    value: string
+  ): Promise<void> => {
     setPersonalAllowance(value);
     const numValue = parseFloat(value) || 0;
     await updateTaxRules({ personalAllowance: numValue });
@@ -84,10 +83,7 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
         <ThemedText style={[styles.flex1, { color: colors.text }]}>
           Enable tax calculation
         </ThemedText>
-        <Switch
-          value={isEnabled}
-          onValueChange={handleEnabledChange}
-        />
+        <Switch value={isEnabled} onValueChange={handleEnabledChange} />
       </View>
 
       {isEnabled && (
@@ -109,7 +105,9 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
                   { color: colors.text, borderColor: colors.border },
                 ]}
               />
-              <ThemedText style={[styles.inputSuffix, { color: colors.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputSuffix, { color: colors.textSecondary }]}
+              >
                 %
               </ThemedText>
             </View>
@@ -120,7 +118,9 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
               Personal Allowance
             </ThemedText>
             <View style={styles.inputRow}>
-              <ThemedText style={[styles.inputPrefix, { color: colors.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputPrefix, { color: colors.textSecondary }]}
+              >
                 {currencySymbol}
               </ThemedText>
               <TextInput
@@ -136,7 +136,9 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
                 ]}
               />
             </View>
-            <ThemedText style={[styles.inputDescription, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={[styles.inputDescription, { color: colors.textSecondary }]}
+            >
               Amount deducted from gross before calculating tax
             </ThemedText>
           </View>

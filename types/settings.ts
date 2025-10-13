@@ -1,4 +1,4 @@
-export type PayRateType = "base" | "overtime" | "premium";
+export type PayRateType = "base" | "overtime";
 
 export interface PayRate {
   id: string;
@@ -53,12 +53,14 @@ export interface WeekendRules {
 }
 
 export interface TaxRules {
+  enabled?: boolean; // whether tax calculation is enabled
   type?: "flat"; // future: "banded"
   percentage?: number; // 0-100
   personalAllowance?: number; // currency units deducted from gross before tax
 }
 
 export interface NiRules {
+  enabled?: boolean; // whether NI calculation is enabled
   type?: "flat"; // future: "banded"
   percentage?: number; // 0-100
   threshold?: number; // gross above this is NI-chargeable

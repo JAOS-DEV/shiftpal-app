@@ -2,12 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { NiRules } from "@/types/settings";
 import React, { useState } from "react";
-import {
-    StyleSheet,
-    Switch,
-    TextInput,
-    View,
-} from "react-native";
+import { StyleSheet, Switch, TextInput, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
 interface NiSettingsSectionProps {
@@ -22,7 +17,7 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
   onSettingsChange,
 }) => {
   const { colors } = useTheme();
-  const [isEnabled, setIsEnabled] = useState(niRules?.percentage !== undefined && niRules?.percentage !== 0);
+  const [isEnabled, setIsEnabled] = useState(niRules?.enabled ?? false);
   const [percentage, setPercentage] = useState(
     niRules?.percentage?.toString() || "12"
   );
@@ -39,12 +34,14 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
     setIsEnabled(enabled);
     if (enabled) {
       await updateNiRules({
+        enabled: true,
         type: "flat",
         percentage: parseFloat(percentage) || 12,
         threshold: parseFloat(threshold) || 190,
       });
     } else {
       await updateNiRules({
+        enabled: false,
         percentage: 0,
         threshold: 0,
       });
@@ -84,10 +81,7 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
         <ThemedText style={[styles.flex1, { color: colors.text }]}>
           Enable NI calculation
         </ThemedText>
-        <Switch
-          value={isEnabled}
-          onValueChange={handleEnabledChange}
-        />
+        <Switch value={isEnabled} onValueChange={handleEnabledChange} />
       </View>
 
       {isEnabled && (
@@ -109,7 +103,9 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
                   { color: colors.text, borderColor: colors.border },
                 ]}
               />
-              <ThemedText style={[styles.inputSuffix, { color: colors.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputSuffix, { color: colors.textSecondary }]}
+              >
                 %
               </ThemedText>
             </View>
@@ -120,7 +116,9 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
               Weekly Threshold
             </ThemedText>
             <View style={styles.inputRow}>
-              <ThemedText style={[styles.inputPrefix, { color: colors.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputPrefix, { color: colors.textSecondary }]}
+              >
                 {currencySymbol}
               </ThemedText>
               <TextInput
@@ -136,7 +134,9 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
                 ]}
               />
             </View>
-            <ThemedText style={[styles.inputDescription, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={[styles.inputDescription, { color: colors.textSecondary }]}
+            >
               Gross pay above this amount per week is NI-chargeable
             </ThemedText>
           </View>

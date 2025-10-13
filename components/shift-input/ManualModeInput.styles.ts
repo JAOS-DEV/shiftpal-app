@@ -1,9 +1,8 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
-  inputRow: {
-    flexDirection: "row",
-    gap: 12,
+  timeInputContainer: {
+    marginBottom: 12,
   },
   inputContainer: {
     flex: 1,

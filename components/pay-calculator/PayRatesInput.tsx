@@ -1,12 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { PayRate } from "@/types/settings";
 import React from "react";
-import {
-    Platform,
-    StyleSheet,
-    TextInput,
-    View,
-} from "react-native";
+import { Platform, StyleSheet, TextInput, View } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
 
@@ -65,7 +60,7 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
           <TextInput
             style={[styles.rateInput, styles.flex1]}
             keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
-            placeholder={`${currencySymbol} base / hr`}
+            placeholder={`${currencySymbol} standard / hr`}
             placeholderTextColor="#6B7280"
             selectionColor="#007AFF"
             value={manualBaseRate}
@@ -131,4 +126,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

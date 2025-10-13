@@ -1,15 +1,15 @@
 import { getFirebase } from "@/lib/firebase";
 import {
-    AllowanceItem,
-    AppSettings,
-    HoursAndMinutes,
-    NotificationsPrefs,
-    PayBreakdown,
-    PayCalculationEntry,
-    PayCalculationInput,
-    PayRate,
-    PayRules,
-    Preferences,
+  AllowanceItem,
+  AppSettings,
+  HoursAndMinutes,
+  NotificationsPrefs,
+  PayBreakdown,
+  PayCalculationEntry,
+  PayCalculationInput,
+  PayRate,
+  PayRules,
+  Preferences,
 } from "@/types/settings";
 import { timeToMinutes } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -512,21 +512,27 @@ class SettingsService {
     const taxRules = settings.payRules?.tax;
     const niRules = settings.payRules?.ni;
 
-    let taxableBase = gross;
-    if (typeof taxRules?.personalAllowance === "number") {
-      taxableBase = Math.max(0, taxableBase - taxRules.personalAllowance);
+    let tax = 0;
+    if (taxRules?.enabled) {
+      let taxableBase = gross;
+      if (typeof taxRules?.personalAllowance === "number") {
+        taxableBase = Math.max(0, taxableBase - taxRules.personalAllowance);
+      }
+      const taxPct =
+        typeof taxRules?.percentage === "number" ? taxRules.percentage : 0;
+      tax = (taxPct / 100) * taxableBase;
     }
-    const taxPct =
-      typeof taxRules?.percentage === "number" ? taxRules.percentage : 0;
-    const tax = (taxPct / 100) * taxableBase;
 
-    let niBase = gross;
-    if (typeof niRules?.threshold === "number") {
-      niBase = Math.max(0, niBase - niRules.threshold);
+    let ni = 0;
+    if (niRules?.enabled) {
+      let niBase = gross;
+      if (typeof niRules?.threshold === "number") {
+        niBase = Math.max(0, niBase - niRules.threshold);
+      }
+      const niPct =
+        typeof niRules?.percentage === "number" ? niRules.percentage : 0;
+      ni = (niPct / 100) * niBase;
     }
-    const niPct =
-      typeof niRules?.percentage === "number" ? niRules.percentage : 0;
-    const ni = (niPct / 100) * niBase;
 
     const total = gross - tax - ni;
     return {

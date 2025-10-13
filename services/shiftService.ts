@@ -637,6 +637,152 @@ class ShiftService {
       submittedAt: day.submittedAt,
     };
   }
+
+  /**
+   * Update an existing submission
+   */
+  async updateSubmission(
+    date: string,
+    submissionId: string,
+    updatedShifts: Shift[]
+  ): Promise<Day> {
+    try {
+      // Load current days
+      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
+
+      const existingDay = allDays[date];
+      if (!existingDay || !existingDay.submissions) {
+        throw new Error("Day or submission not found");
+      }
+
+      // Find and update the submission
+      const submissionIndex = existingDay.submissions.findIndex(
+        (s) => s.id === submissionId
+      );
+      if (submissionIndex === -1) {
+        throw new Error("Submission not found");
+      }
+
+      // Calculate new totals for the submission
+      const { totalMinutes, totalText } = this.calculateDayTotal(updatedShifts);
+
+      // Update the submission
+      const updatedSubmission: Submission = {
+        ...existingDay.submissions[submissionIndex],
+        shifts: updatedShifts,
+        totalMinutes,
+        totalText,
+      };
+
+      // Update the day's submissions array
+      const updatedSubmissions = [...existingDay.submissions];
+      updatedSubmissions[submissionIndex] = updatedSubmission;
+
+      // Recalculate day totals
+      const dayTotalMinutes = updatedSubmissions.reduce(
+        (sum, s) => sum + s.totalMinutes,
+        0
+      );
+
+      const updatedDay: Day = {
+        ...existingDay,
+        submissions: updatedSubmissions,
+        totalMinutes: dayTotalMinutes,
+        totalText: formatDurationText(dayTotalMinutes),
+        submittedAt: updatedSubmission.submittedAt,
+      };
+
+      // Save to AsyncStorage
+      allDays[date] = updatedDay;
+      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+
+      // Sync to Firebase
+      try {
+        await this.syncToFirebase(updatedDay);
+        console.log("Successfully synced to Firebase");
+      } catch (firebaseError) {
+        console.warn(
+          "Firebase sync failed, but data saved locally:",
+          firebaseError
+        );
+      }
+
+      return updatedDay;
+    } catch (error) {
+      console.error("Error updating submission:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a submission
+   */
+  async deleteSubmission(date: string, submissionId: string): Promise<void> {
+    try {
+      // Load current days
+      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
+
+      const existingDay = allDays[date];
+      if (!existingDay || !existingDay.submissions) {
+        throw new Error("Day or submission not found");
+      }
+
+      // Remove the submission
+      const updatedSubmissions = existingDay.submissions.filter(
+        (s) => s.id !== submissionId
+      );
+
+      if (updatedSubmissions.length === 0) {
+        // If no submissions left, remove the day entirely
+        delete allDays[date];
+      } else {
+        // Recalculate day totals
+        const dayTotalMinutes = updatedSubmissions.reduce(
+          (sum, s) => sum + s.totalMinutes,
+          0
+        );
+
+        const updatedDay: Day = {
+          ...existingDay,
+          submissions: updatedSubmissions,
+          totalMinutes: dayTotalMinutes,
+          totalText: formatDurationText(dayTotalMinutes),
+          submittedAt: updatedSubmissions[0]?.submittedAt,
+        };
+
+        allDays[date] = updatedDay;
+      }
+
+      // Save to AsyncStorage
+      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+
+      // Sync to Firebase
+      try {
+        if (updatedSubmissions.length === 0) {
+          // Delete from Firebase
+          const { firestore } = getFirebase();
+          const userId = this.getUserId();
+          if (userId) {
+            const dayRef = doc(firestore, "users", userId, "days", date);
+            await deleteDoc(dayRef);
+          }
+        } else {
+          await this.syncToFirebase(allDays[date]);
+        }
+        console.log("Successfully synced to Firebase");
+      } catch (firebaseError) {
+        console.warn(
+          "Firebase sync failed, but data saved locally:",
+          firebaseError
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      throw error;
+    }
+  }
 }
 
 export const shiftService = new ShiftService();

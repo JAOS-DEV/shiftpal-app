@@ -4,11 +4,11 @@ import { settingsService } from "@/services/settingsService";
 import { Preferences } from "@/types/settings";
 import React from "react";
 import {
-    Alert,
-    StyleSheet,
-    Switch,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
 
@@ -24,7 +24,9 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
   const { colors } = useTheme();
   const { signOutUser } = useAuth();
 
-  const updatePreferences = async (updates: Partial<Preferences>): Promise<void> => {
+  const updatePreferences = async (
+    updates: Partial<Preferences>
+  ): Promise<void> => {
     await settingsService.setPreferences(updates);
     onSettingsChange();
   };
@@ -61,7 +63,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
 
         <View style={styles.toggleRow}>
           <ThemedText style={[styles.flex1, { color: colors.text }]}>
-            Stacking (apply Night/Weekend on top of Base/OT)
+            Stacking (apply Night/Weekend on top of Standard/OT)
           </ThemedText>
           <Switch
             value={(settings?.preferences?.stackingRule || "stack") === "stack"}
@@ -193,4 +195,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-

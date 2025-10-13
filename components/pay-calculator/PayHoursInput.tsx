@@ -1,11 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { HoursAndMinutes } from "@/types/settings";
 import React from "react";
-import {
-    StyleSheet,
-    TextInput,
-    View,
-} from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
 interface PayHoursInputProps {
@@ -68,10 +64,13 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
 
     const parts: string[] = [];
     if (trackerHint?.split) {
-      parts.push(`Base: ${formatHMClock(trackerHint.split.base)}`);
+      parts.push(`Standard: ${formatHMClock(trackerHint.split.base)}`);
       parts.push(`Overtime: ${formatHMClock(trackerHint.split.overtime)}`);
     }
-    if (trackerHint?.night && (trackerHint.night.base || trackerHint.night.ot)) {
+    if (
+      trackerHint?.night &&
+      (trackerHint.night.base || trackerHint.night.ot)
+    ) {
       const nb = trackerHint.night.base || { hours: 0, minutes: 0 };
       const no = trackerHint.night.ot || { hours: 0, minutes: 0 };
       const totalMinutes =
@@ -101,7 +100,7 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
         Hours
       </ThemedText>
       <View style={styles.row}>
-        <ThemedText style={styles.rowLabel}>Worked</ThemedText>
+        <ThemedText style={styles.rowLabel}>Standard</ThemedText>
         <View style={styles.inline}>
           <TextInput
             style={styles.numInput}
@@ -146,42 +145,20 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
           <ThemedText>m</ThemedText>
         </View>
       </View>
-      {showNightInputs && onNightBaseHoursChange && onNightBaseMinutesChange && (
-        <>
-          <View style={styles.row}>
-            <ThemedText style={styles.rowLabel}>Night (base)</ThemedText>
-            <View style={styles.inline}>
-              <TextInput
-                style={styles.numInput}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor="#6B7280"
-                value={nightBaseHours}
-                onChangeText={onNightBaseHoursChange}
-              />
-              <ThemedText>h</ThemedText>
-              <TextInput
-                style={styles.numInput}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor="#6B7280"
-                value={nightBaseMinutes}
-                onChangeText={onNightBaseMinutesChange}
-              />
-              <ThemedText>m</ThemedText>
-            </View>
-          </View>
-          {onNightOvertimeHoursChange && onNightOvertimeMinutesChange && (
+      {showNightInputs &&
+        onNightBaseHoursChange &&
+        onNightBaseMinutesChange && (
+          <>
             <View style={styles.row}>
-              <ThemedText style={styles.rowLabel}>Night (OT)</ThemedText>
+              <ThemedText style={styles.rowLabel}>Night (base)</ThemedText>
               <View style={styles.inline}>
                 <TextInput
                   style={styles.numInput}
                   keyboardType="number-pad"
                   placeholder="0"
                   placeholderTextColor="#6B7280"
-                  value={nightOvertimeHours}
-                  onChangeText={onNightOvertimeHoursChange}
+                  value={nightBaseHours}
+                  onChangeText={onNightBaseHoursChange}
                 />
                 <ThemedText>h</ThemedText>
                 <TextInput
@@ -189,15 +166,39 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
                   keyboardType="number-pad"
                   placeholder="0"
                   placeholderTextColor="#6B7280"
-                  value={nightOvertimeMinutes}
-                  onChangeText={onNightOvertimeMinutesChange}
+                  value={nightBaseMinutes}
+                  onChangeText={onNightBaseMinutesChange}
                 />
                 <ThemedText>m</ThemedText>
               </View>
             </View>
-          )}
-        </>
-      )}
+            {onNightOvertimeHoursChange && onNightOvertimeMinutesChange && (
+              <View style={styles.row}>
+                <ThemedText style={styles.rowLabel}>Night (OT)</ThemedText>
+                <View style={styles.inline}>
+                  <TextInput
+                    style={styles.numInput}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor="#6B7280"
+                    value={nightOvertimeHours}
+                    onChangeText={onNightOvertimeHoursChange}
+                  />
+                  <ThemedText>h</ThemedText>
+                  <TextInput
+                    style={styles.numInput}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor="#6B7280"
+                    value={nightOvertimeMinutes}
+                    onChangeText={onNightOvertimeMinutesChange}
+                  />
+                  <ThemedText>m</ThemedText>
+                </View>
+              </View>
+            )}
+          </>
+        )}
       {renderTrackerHints()}
     </View>
   );
@@ -245,4 +246,3 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
-

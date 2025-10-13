@@ -254,6 +254,11 @@ export default function HomeScreen() {
     }
   };
 
+  const handleSubmissionUpdated = async (): Promise<void> => {
+    // Refresh the submitted days when a submission is updated
+    await loadSubmittedDays();
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ThemedView style={styles.container}>
@@ -306,6 +311,7 @@ export default function HomeScreen() {
                 days={submittedDays}
                 onDeleteDay={handleDeleteDay}
                 onDeleteSubmission={handleDeleteSubmission}
+                onSubmissionUpdated={handleSubmissionUpdated}
                 settings={settings}
               />
             )}

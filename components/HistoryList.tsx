@@ -5,12 +5,7 @@ import { Day } from "@/types/shift";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
-import {
-  Alert,
-  Platform,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Platform, TouchableOpacity, View } from "react-native";
 import { DayRow } from "./history/DayRow";
 import { styles } from "./HistoryList.styles";
 import { PeriodFilter } from "./PeriodFilter";
@@ -21,6 +16,7 @@ interface HistoryListProps {
   days: Day[];
   onDeleteDay: (date: string) => void;
   onDeleteSubmission?: (date: string, submissionId: string) => void;
+  onSubmissionUpdated?: () => void;
   loading?: boolean;
   errorMessage?: string | null;
   onRetry?: () => void;
@@ -31,6 +27,7 @@ export function HistoryList({
   days,
   onDeleteDay,
   onDeleteSubmission,
+  onSubmissionUpdated,
   loading = false,
   errorMessage = null,
   onRetry,
@@ -200,6 +197,7 @@ export function HistoryList({
             onToggle={() => toggleDayExpansion(day.id)}
             onDelete={() => handleDeleteDay(day.date)}
             onDeleteSubmission={onDeleteSubmission}
+            onSubmissionUpdated={onSubmissionUpdated}
           />
         ))}
       </View>

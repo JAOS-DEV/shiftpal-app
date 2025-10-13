@@ -2,21 +2,16 @@ import { DateSelector } from "@/components/DateSelector";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import {
-    AppSettings,
-    HoursAndMinutes,
-    PayBreakdown,
-    PayCalculationEntry,
-    PayCalculationInput,
+  AppSettings,
+  HoursAndMinutes,
+  PayBreakdown,
+  PayCalculationEntry,
+  PayCalculationInput,
 } from "@/types/settings";
 import { notify } from "@/utils/notify";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import React, { useEffect, useMemo, useState } from "react";
-import {
-    Alert,
-    Platform,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { Alert, Platform, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 import { ThemedView } from "../ThemedView";
 import { PayBreakdownCard } from "./PayBreakdownCard";
@@ -43,27 +38,32 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const [hourlyRateId, setHourlyRateId] = useState<string | null>(null);
   const [overtimeRateId, setOvertimeRateId] = useState<string | null>(null);
   const [manualBaseRateText, setManualBaseRateText] = useState<string>("");
-  const [manualOvertimeRateText, setManualOvertimeRateText] = useState<string>("");
+  const [manualOvertimeRateText, setManualOvertimeRateText] =
+    useState<string>("");
 
   // Tracker mode hours
-  const [trackerHoursWorked, setTrackerHoursWorked] = useState<HoursAndMinutes>({
-    hours: 0,
-    minutes: 0,
-  });
-  const [trackerOvertimeWorked, setTrackerOvertimeWorked] = useState<HoursAndMinutes>({
-    hours: 0,
-    minutes: 0,
-  });
+  const [trackerHoursWorked, setTrackerHoursWorked] = useState<HoursAndMinutes>(
+    {
+      hours: 0,
+      minutes: 0,
+    }
+  );
+  const [trackerOvertimeWorked, setTrackerOvertimeWorked] =
+    useState<HoursAndMinutes>({
+      hours: 0,
+      minutes: 0,
+    });
 
   // Manual mode hours
   const [manualHoursWorked, setManualHoursWorked] = useState<HoursAndMinutes>({
     hours: 0,
     minutes: 0,
   });
-  const [manualOvertimeWorked, setManualOvertimeWorked] = useState<HoursAndMinutes>({
-    hours: 0,
-    minutes: 0,
-  });
+  const [manualOvertimeWorked, setManualOvertimeWorked] =
+    useState<HoursAndMinutes>({
+      hours: 0,
+      minutes: 0,
+    });
 
   // Manual night allocation
   const [manualNightBase, setManualNightBase] = useState<HoursAndMinutes>({
@@ -77,6 +77,9 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
   const [breakdown, setBreakdown] = useState<PayBreakdown | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // State for tracking shifts and pay rates for warnings
+  const [hasShiftsForDate, setHasShiftsForDate] = useState(false);
 
   // Derived hints for tracker mode
   const [trackerDerivedSplit, setTrackerDerivedSplit] = useState<{
@@ -110,6 +113,10 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       if (mode === "tracker") {
         const hm = await settingsService.deriveTrackerHoursForDate(date);
         setTrackerHoursWorked(hm);
+
+        // Check if there are shifts for this date
+        const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
+        setHasShiftsForDate(hasShifts);
       }
     };
     void load();
@@ -200,11 +207,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
       const baseHours = Math.max(
         0,
-        ((hoursWorked.hours || 0) + (hoursWorked.minutes || 0) / 60)
+        (hoursWorked.hours || 0) + (hoursWorked.minutes || 0) / 60
       );
       const otHours = Math.max(
         0,
-        ((overtimeWorked.hours || 0) + (overtimeWorked.minutes || 0) / 60)
+        (overtimeWorked.hours || 0) + (overtimeWorked.minutes || 0) / 60
       );
 
       const basePay = safeBase * baseHours;
@@ -339,17 +346,17 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     }
   };
 
-  const resolveRateValue = (id: string | null | undefined): number | undefined => {
+  const resolveRateValue = (
+    id: string | null | undefined
+  ): number | undefined => {
     if (!id) return undefined;
     const list = settings?.payRates || [];
     return list.find((r) => r.id === id)?.value;
   };
 
-  const baseRates = (settings?.payRates || []).filter(
-    (r) => r.type === "base" || r.type === "premium"
-  );
+  const baseRates = (settings?.payRates || []).filter((r) => r.type === "base");
   const overtimeRates = (settings?.payRates || []).filter(
-    (r) => r.type === "overtime" || r.type === "premium"
+    (r) => r.type === "overtime"
   );
 
   if (loadingSettings) {
@@ -399,7 +406,10 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
           onPress={() => setMode("manual")}
         >
           <ThemedText
-            style={[styles.modeText, mode === "manual" && styles.modeTextActive]}
+            style={[
+              styles.modeText,
+              mode === "manual" && styles.modeTextActive,
+            ]}
           >
             Manual
           </ThemedText>
@@ -447,8 +457,17 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         currencySymbol={currencySymbol}
         isSaving={isSaving}
         onSave={handleSave}
+        hasShifts={hasShiftsForDate}
+        hasPayRates={baseRates.length > 0 || overtimeRates.length > 0}
+        hoursWorked={
+          mode === "tracker" ? trackerHoursWorked : manualHoursWorked
+        }
+        overtimeWorked={
+          mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked
+        }
+        baseRate={resolveRateValue(hourlyRateId)}
+        overtimeRate={resolveRateValue(overtimeRateId)}
       />
     </ThemedView>
   );
 };
-

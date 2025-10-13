@@ -2,12 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { PayRate, PayRateType } from "@/types/settings";
 import React, { useState } from "react";
-import {
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
 
@@ -94,11 +89,12 @@ export const PayRatesSection: React.FC<PayRatesSectionProps> = ({
               placeholder="Type"
               style={styles.typeDropdown}
               value={newRate.type}
-              onChange={(v) => setNewRate((p) => ({ ...p, type: v as PayRateType }))}
+              onChange={(v) =>
+                setNewRate((p) => ({ ...p, type: v as PayRateType }))
+              }
               items={[
-                { value: "base", label: "Base" },
+                { value: "base", label: "Standard" },
                 { value: "overtime", label: "Overtime" },
-                { value: "premium", label: "Premium" },
               ]}
             />
           </View>
@@ -229,4 +225,3 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 });
-

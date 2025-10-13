@@ -19,6 +19,7 @@ interface DayRowProps {
   onToggle: () => void;
   onDelete: () => void;
   onDeleteSubmission?: (date: string, submissionId: string) => void;
+  onSubmissionUpdated?: () => void;
 }
 
 export const DayRow: React.FC<DayRowProps> = ({
@@ -27,6 +28,7 @@ export const DayRow: React.FC<DayRowProps> = ({
   onToggle,
   onDelete,
   onDeleteSubmission,
+  onSubmissionUpdated,
 }) => {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -185,6 +187,7 @@ export const DayRow: React.FC<DayRowProps> = ({
               date={day.date}
               submission={submission}
               onDeleteSubmission={onDeleteSubmission}
+              onSubmissionUpdated={onSubmissionUpdated}
             />
           ))}
 

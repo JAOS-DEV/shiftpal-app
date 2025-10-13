@@ -1,11 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { PayBreakdown } from "@/types/settings";
 import React from "react";
-import {
-    Platform, StyleSheet,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
 interface PayBreakdownCardProps {
@@ -13,6 +9,13 @@ interface PayBreakdownCardProps {
   currencySymbol: string;
   isSaving: boolean;
   onSave: () => void;
+  // New props for warnings and rate breakdown
+  hasShifts?: boolean;
+  hasPayRates?: boolean;
+  hoursWorked?: { hours: number; minutes: number };
+  overtimeWorked?: { hours: number; minutes: number };
+  baseRate?: number;
+  overtimeRate?: number;
 }
 
 export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
@@ -20,20 +23,86 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
   currencySymbol,
   isSaving,
   onSave,
+  hasShifts = false,
+  hasPayRates = true,
+  hoursWorked,
+  overtimeWorked,
+  baseRate,
+  overtimeRate,
 }) => {
   const { colors } = useTheme();
+
+  // Helper function to format hours and minutes
+  const formatHours = (hm?: { hours: number; minutes: number }): string => {
+    if (!hm) return "0:00";
+    const h = Math.max(0, hm.hours || 0);
+    const m = Math.max(0, hm.minutes || 0);
+    return `${h}:${String(m).padStart(2, "0")}`;
+  };
+
+  // Show warning if there are shifts but no pay rates
+  const showWarning = hasShifts && !hasPayRates;
 
   return (
     <View style={styles.card}>
       <ThemedText type="subtitle" style={styles.cardTitle}>
         Total Pay
       </ThemedText>
+
+      {/* Warning for shifts without pay rates */}
+      {showWarning && (
+        <View style={styles.warningContainer}>
+          <ThemedText style={styles.warningText}>
+            ⚠️ You have shifts recorded but no pay rates set. Set your rates
+            above to calculate pay.
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Rate breakdown display */}
+      {hasShifts && hasPayRates && hoursWorked && baseRate && (
+        <View style={styles.rateBreakdownContainer}>
+          <ThemedText style={styles.rateBreakdownTitle}>
+            Hours Breakdown
+          </ThemedText>
+          <View style={styles.rateBreakdownRow}>
+            <ThemedText style={styles.rateBreakdownLabel}>
+              Standard {formatHours(hoursWorked)} @ {currencySymbol}
+              {baseRate.toFixed(2)}
+            </ThemedText>
+            <ThemedText style={styles.rateBreakdownValue}>
+              {currencySymbol}
+              {(
+                (hoursWorked.hours + hoursWorked.minutes / 60) *
+                baseRate
+              ).toFixed(2)}
+            </ThemedText>
+          </View>
+          {overtimeWorked &&
+            (overtimeWorked.hours > 0 || overtimeWorked.minutes > 0) &&
+            overtimeRate && (
+              <View style={styles.rateBreakdownRow}>
+                <ThemedText style={styles.rateBreakdownLabel}>
+                  Overtime {formatHours(overtimeWorked)} @ {currencySymbol}
+                  {overtimeRate.toFixed(2)}
+                </ThemedText>
+                <ThemedText style={styles.rateBreakdownValue}>
+                  {currencySymbol}
+                  {(
+                    (overtimeWorked.hours + overtimeWorked.minutes / 60) *
+                    overtimeRate
+                  ).toFixed(2)}
+                </ThemedText>
+              </View>
+            )}
+        </View>
+      )}
       <ThemedText style={styles.totalText}>
         {currencySymbol}
         {(breakdown?.total ?? 0).toFixed(2)}
       </ThemedText>
       <View style={styles.breakdownRow}>
-        <ThemedText>Base</ThemedText>
+        <ThemedText>Standard</ThemedText>
         <ThemedText>
           {currencySymbol}
           {(breakdown?.base ?? 0).toFixed(2)}
@@ -136,5 +205,43 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontWeight: "600",
   },
+  warningContainer: {
+    backgroundColor: "#FFF3CD",
+    borderColor: "#FFEAA7",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  warningText: {
+    color: "#856404",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  rateBreakdownContainer: {
+    backgroundColor: "#F8F9FA",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  rateBreakdownTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#495057",
+  },
+  rateBreakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  rateBreakdownLabel: {
+    fontSize: 14,
+    color: "#6C757D",
+  },
+  rateBreakdownValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#28A745",
+  },
 });
-

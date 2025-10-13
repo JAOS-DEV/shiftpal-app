@@ -14,21 +14,27 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { DuplicateSubmissionModal } from "./DuplicateSubmissionModal";
+import { EditSubmissionModal } from "./EditSubmissionModal";
 import { ShiftDetails } from "./ShiftDetails";
 
 interface SubmissionBlockProps {
   date: string;
   submission: Submission;
   onDeleteSubmission?: (date: string, submissionId: string) => void;
+  onSubmissionUpdated?: () => void;
 }
 
 export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
   date,
   submission,
   onDeleteSubmission,
+  onSubmissionUpdated,
 }) => {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [duplicateModalVisible, setDuplicateModalVisible] = useState(false);
   const [anchor, setAnchor] = useState<{
     x: number;
     y: number;
@@ -168,6 +174,7 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
                 style={styles.menuItem}
                 onPress={() => {
                   setMenuVisible(false);
+                  setEditModalVisible(true);
                 }}
               >
                 <ThemedText
@@ -180,6 +187,7 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
                 style={styles.menuItem}
                 onPress={() => {
                   setMenuVisible(false);
+                  setDuplicateModalVisible(true);
                 }}
               >
                 <ThemedText
@@ -207,6 +215,26 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
             </View>
           </Pressable>
         </Modal>
+
+        <EditSubmissionModal
+          visible={editModalVisible}
+          submission={submission}
+          originalDate={date}
+          onClose={() => setEditModalVisible(false)}
+          onSave={() => {
+            onSubmissionUpdated?.();
+          }}
+        />
+
+        <DuplicateSubmissionModal
+          visible={duplicateModalVisible}
+          submission={submission}
+          originalDate={date}
+          onClose={() => setDuplicateModalVisible(false)}
+          onSave={() => {
+            onSubmissionUpdated?.();
+          }}
+        />
       </View>
     </View>
   );
