@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { PayRateType } from "@/types/settings";
+import { PayRate, PayRateType } from "@/types/settings";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -24,6 +24,7 @@ interface RateDropdownProps {
   label?: string;
   value?: string | null;
   items: RateDropdownItem[];
+  rates?: PayRate[]; // Full rate objects for display
   onChange: (value: string) => void;
   onCustomChange?: (value: string) => void;
   placeholder?: string;
@@ -38,6 +39,7 @@ export function RateDropdown({
   label,
   value,
   items,
+  rates,
   onChange,
   onCustomChange,
   placeholder,
@@ -57,8 +59,17 @@ export function RateDropdown({
     if (value === "custom") {
       return customValue ? `${currencySymbol}${customValue}` : "Add Rate";
     }
-    return items.find((i) => i.value === value)?.label;
-  }, [items, value, customValue, currencySymbol]);
+    const selectedItem = items.find((i) => i.value === value);
+    if (selectedItem && rates) {
+      const selectedRate = rates.find((r) => r.id === value);
+      if (selectedRate) {
+        return `${
+          selectedRate.label
+        } (${currencySymbol}${selectedRate.value.toFixed(2)})`;
+      }
+    }
+    return selectedItem?.label;
+  }, [items, value, customValue, currencySymbol, rates]);
 
   const handleOpen = useCallback(() => {
     setOpen(true);
@@ -175,26 +186,33 @@ export function RateDropdown({
             style={[styles.sheet, { backgroundColor: colors.surface }]}
           >
             <ScrollView style={styles.scrollView}>
-              {items.map((item) => (
-                <TouchableOpacity
-                  key={item.value}
-                  style={[
-                    styles.option,
-                    { borderBottomColor: colors.border },
-                    value === item.value && [
-                      styles.optionActive,
-                      { backgroundColor: colors.card },
-                    ],
-                  ]}
-                  onPress={() => handleItemSelect(item.value)}
-                >
-                  <ThemedText
-                    style={[styles.optionText, { color: colors.text }]}
+              {items.map((item) => {
+                const rate = rates?.find((r) => r.id === item.value);
+                const displayText = rate
+                  ? `${rate.label} (${currencySymbol}${rate.value.toFixed(2)})`
+                  : item.label;
+
+                return (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={[
+                      styles.option,
+                      { borderBottomColor: colors.border },
+                      value === item.value && [
+                        styles.optionActive,
+                        { backgroundColor: colors.card },
+                      ],
+                    ]}
+                    onPress={() => handleItemSelect(item.value)}
                   >
-                    {item.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
+                    <ThemedText
+                      style={[styles.optionText, { color: colors.text }]}
+                    >
+                      {displayText}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
 
               {/* Custom input section */}
               <View

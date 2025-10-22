@@ -44,24 +44,11 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
     return `${h}:${String(m).padStart(2, "0")}`;
   };
 
-  // Show warning if there are shifts but no pay rates
-  const showWarning = hasShifts && !hasPayRates;
-
   return (
     <View style={styles.card}>
       <ThemedText type="subtitle" style={styles.cardTitle}>
         Total Pay
       </ThemedText>
-
-      {/* Warning for shifts without pay rates */}
-      {showWarning && (
-        <View style={styles.warningContainer}>
-          <ThemedText style={styles.warningText}>
-            ⚠️ You have shifts recorded but no pay rates set. Set your rates
-            above to calculate pay.
-          </ThemedText>
-        </View>
-      )}
 
       {/* Comprehensive breakdown in circled style */}
       <View style={styles.comprehensiveBreakdown}>
@@ -297,18 +284,5 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: "#007AFF",
     fontWeight: "600",
-  },
-  warningContainer: {
-    backgroundColor: "#FFF3CD",
-    borderColor: "#FFEAA7",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  warningText: {
-    color: "#856404",
-    fontSize: 14,
-    fontWeight: "500",
   },
 });
