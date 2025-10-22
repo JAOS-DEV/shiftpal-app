@@ -2,12 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { PayPeriodConfig } from "@/types/settings";
 import React, { useState } from "react";
-import {
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
 
@@ -17,12 +12,12 @@ interface PayPeriodSettingsSectionProps {
   onSettingsChange: () => void;
 }
 
-export const PayPeriodSettingsSection: React.FC<PayPeriodSettingsSectionProps> = ({
-  payPeriod,
-  onOpenWeekStartPicker,
-  onSettingsChange,
-}) => {
+export const PayPeriodSettingsSection: React.FC<
+  PayPeriodSettingsSectionProps
+> = ({ payPeriod, onOpenWeekStartPicker, onSettingsChange }) => {
   const { colors } = useTheme();
+
+  // Initialize state from props, but never update from props to avoid interfering with user input
   const [cycle, setCycle] = useState<PayPeriodConfig["cycle"]>(
     payPeriod?.cycle || "weekly"
   );
@@ -30,18 +25,39 @@ export const PayPeriodSettingsSection: React.FC<PayPeriodSettingsSectionProps> =
     payPeriod?.startDate?.toString() || "1"
   );
 
-  const updatePayPeriod = async (updates: Partial<PayPeriodConfig>): Promise<void> => {
-    await settingsService.setPayRules({ 
-      payPeriod: { ...payPeriod, ...updates } 
+  const updatePayPeriod = async (
+    updates: Partial<PayPeriodConfig>
+  ): Promise<void> => {
+    await settingsService.setPayRules({
+      payPeriod: {
+        cycle: "weekly",
+        startDate: 1,
+        ...payPeriod,
+        ...updates,
+      },
     });
     onSettingsChange();
   };
 
-  const handleCycleChange = async (value: PayPeriodConfig["cycle"]): Promise<void> => {
+  const handleCycleChange = async (
+    value: PayPeriodConfig["cycle"]
+  ): Promise<void> => {
     setCycle(value);
-    await updatePayPeriod({ cycle: value });
-  };
 
+    if (value === "monthly") {
+      // When switching to monthly, initialize startDate with prop value if available
+      if (payPeriod?.startDate) {
+        setStartDate(payPeriod.startDate.toString());
+      }
+      await updatePayPeriod({ cycle: value });
+    } else if (value === "weekly") {
+      // When switching to weekly, reset monthly start date to default
+      setStartDate("1");
+      await updatePayPeriod({ cycle: value, startDate: 1 });
+    } else {
+      await updatePayPeriod({ cycle: value });
+    }
+  };
 
   const handleStartDateChange = async (value: string): Promise<void> => {
     setStartDate(value);
@@ -49,11 +65,41 @@ export const PayPeriodSettingsSection: React.FC<PayPeriodSettingsSectionProps> =
     await updatePayPeriod({ startDate: numValue });
   };
 
+  const getCurrentPeriodPreview = (): string => {
+    const startDay = parseInt(startDate) || 1;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const currentDay = now.getDate();
+
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    if (currentDay >= startDay) {
+      // We're in the current month's period
+      periodStart = new Date(currentYear, currentMonth, startDay);
+      periodEnd = new Date(currentYear, currentMonth + 1, startDay - 1);
+    } else {
+      // We're in the previous month's period
+      periodStart = new Date(currentYear, currentMonth - 1, startDay);
+      periodEnd = new Date(currentYear, currentMonth, startDay - 1);
+    }
+
+    const startStr = periodStart.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    const endStr = periodEnd.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+
+    return `${startStr} - ${endStr}`;
+  };
 
   const getCycleOptions = () => {
     return [
       { value: "weekly", label: "Weekly" },
-      { value: "fortnightly", label: "Fortnightly" },
       { value: "monthly", label: "Monthly" },
     ];
   };
@@ -88,7 +134,7 @@ export const PayPeriodSettingsSection: React.FC<PayPeriodSettingsSectionProps> =
           />
         </View>
 
-        {(cycle === "weekly" || cycle === "fortnightly") && (
+        {cycle === "weekly" && (
           <View style={styles.inputGroup}>
             <ThemedText style={[styles.inputLabel, { color: colors.text }]}>
               Week Start Day
@@ -122,13 +168,24 @@ export const PayPeriodSettingsSection: React.FC<PayPeriodSettingsSectionProps> =
                   { color: colors.text, borderColor: colors.border },
                 ]}
               />
-              <ThemedText style={[styles.inputSuffix, { color: colors.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputSuffix, { color: colors.textSecondary }]}
+              >
                 (1-31)
               </ThemedText>
             </View>
-            <ThemedText style={[styles.inputDescription, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={[styles.inputDescription, { color: colors.textSecondary }]}
+            >
               Day of the month when pay period starts
             </ThemedText>
+            {startDate && parseInt(startDate) > 0 && (
+              <ThemedText
+                style={[styles.periodPreview, { color: colors.textSecondary }]}
+              >
+                Current period: {getCurrentPeriodPreview()}
+              </ThemedText>
+            )}
           </View>
         )}
       </View>
@@ -190,5 +247,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+  },
+  periodPreview: {
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: "italic",
   },
 });

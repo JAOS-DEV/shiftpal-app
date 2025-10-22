@@ -15,6 +15,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -93,66 +94,74 @@ export default function PaySettingsScreen() {
           onSettingsChange={refreshSettings}
         />
 
-        <ScrollView
+        <KeyboardAvoidingView
           style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + 60,
-            ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
-          }}
-          showsVerticalScrollIndicator={false}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <View
-            style={[
-              styles.container,
-              Platform.OS === "web" && {
-                width: "100%",
-                maxWidth: 1200,
-                alignSelf: "center",
-              },
-            ]}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingBottom: insets.bottom + 60,
+              ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
+            }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={styles.backButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <IconSymbol
-                  name="chevron.left"
-                  size={28}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-              <ThemedText
-                type="title"
-                style={[styles.title, { color: colors.text }]}
-              >
-                Pay & Rates
-              </ThemedText>
-            </View>
+            <View
+              style={[
+                styles.container,
+                Platform.OS === "web" && {
+                  width: "100%",
+                  maxWidth: 1200,
+                  alignSelf: "center",
+                },
+              ]}
+            >
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  style={styles.backButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <IconSymbol
+                    name="chevron.left"
+                    size={28}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+                <ThemedText
+                  type="title"
+                  style={[styles.title, { color: colors.text }]}
+                >
+                  Pay & Rates
+                </ThemedText>
+              </View>
 
-            <PayRatesSection
-              payRates={settings?.payRates || []}
-              onRatesChange={refreshSettings}
-              currencySymbol={currencySymbol}
-            />
-            <PayRulesSummarySection
-              payRules={settings?.payRules}
-              currencySymbol={currencySymbol}
-              onEditOvertime={() => openModal("showOvertimeSheet")}
-              onEditNight={() => openModal("showNightSheet")}
-              onEditWeekend={() => openModal("showWeekendSheet")}
-              onEditWeekStart={() => openModal("showWeekStartPicker")}
-              onHelp={openHelp}
-            />
-            <PayPeriodSettingsSection
-              payPeriod={settings?.payRules?.payPeriod}
-              onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
-              onSettingsChange={refreshSettings}
-            />
-          </View>
-        </ScrollView>
+              <PayRatesSection
+                payRates={settings?.payRates || []}
+                onRatesChange={refreshSettings}
+                currencySymbol={currencySymbol}
+              />
+              <PayRulesSummarySection
+                payRules={settings?.payRules}
+                currencySymbol={currencySymbol}
+                onEditOvertime={() => openModal("showOvertimeSheet")}
+                onEditNight={() => openModal("showNightSheet")}
+                onEditWeekend={() => openModal("showWeekendSheet")}
+                onEditWeekStart={() => openModal("showWeekStartPicker")}
+                onHelp={openHelp}
+              />
+              <PayPeriodSettingsSection
+                key={`${settings?.payRules?.payPeriod?.cycle || "weekly"}`}
+                payPeriod={settings?.payRules?.payPeriod}
+                onOpenWeekStartPicker={() => openModal("showWeekStartPicker")}
+                onSettingsChange={refreshSettings}
+              />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </ThemedView>
     </SafeAreaView>
   );

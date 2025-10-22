@@ -17,12 +17,6 @@ export function SubmitButton({
   onSubmit,
   isSubmitting = false,
 }: SubmitButtonProps): React.JSX.Element {
-  console.log("SubmitButton: Component rendered with props:", {
-    shiftsLength: shifts.length,
-    isSubmitting,
-    onSubmit: typeof onSubmit,
-  });
-
   const totalMinutes = shifts.reduce(
     (sum, shift) => sum + shift.durationMinutes,
     0
@@ -34,10 +28,6 @@ export function SubmitButton({
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       }
     } catch {}
-    console.log("SubmitButton: handleSubmit called");
-    console.log("SubmitButton: Platform =", Platform.OS);
-    console.log("SubmitButton: shifts.length =", shifts.length);
-    console.log("SubmitButton: isSubmitting =", isSubmitting);
 
     if (shifts.length === 0) {
       if (Platform.OS === "web") {
@@ -73,21 +63,16 @@ export function SubmitButton({
           isSubmitting && styles.submittingButton,
         ]}
         onPress={() => {
-          console.log("SubmitButton: TouchableOpacity onPress called");
-          console.log(
-            "SubmitButton: Button disabled?",
-            shifts.length === 0 || isSubmitting
-          );
           handleSubmit();
         }}
         disabled={shifts.length === 0 || isSubmitting}
         accessibilityLabel="Submit day's shifts"
         // Add web-specific props
         {...(Platform.OS === "web" && {
-          onMouseDown: () => console.log("SubmitButton: onMouseDown called"),
-          onMouseUp: () => console.log("SubmitButton: onMouseUp called"),
-          onMouseEnter: () => console.log("SubmitButton: onMouseEnter called"),
-          onMouseLeave: () => console.log("SubmitButton: onMouseLeave called"),
+          onMouseDown: () => {},
+          onMouseUp: () => {},
+          onMouseEnter: () => {},
+          onMouseLeave: () => {},
         })}
       >
         <ThemedText

@@ -1,4 +1,6 @@
+import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";
+import { formatDate } from "@/utils/formatUtils";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -16,6 +18,7 @@ export function DateSelector({
   onDateChange,
 }: DateSelectorProps): React.JSX.Element {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handlePreviousDay = () => {
@@ -88,7 +91,7 @@ export function DateSelector({
           <ThemedText
             style={[styles.dateSubtext, { color: colors.textSecondary }]}
           >
-            {selectedDate}
+            {formatDate(selectedDate, settings)}
           </ThemedText>
         </TouchableOpacity>
 

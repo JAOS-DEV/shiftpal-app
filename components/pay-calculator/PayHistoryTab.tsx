@@ -48,10 +48,9 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
 
   const filteredHistory = useMemo(() => {
     if (currentPeriod === "all") return payHistory;
+    // Filter by the actual work date (entry.input.date), not creation date (createdAt)
     return payHistory.filter((e) => {
-      // Convert timestamp to date string for comparison
-      const dateString = new Date(e.createdAt).toISOString().split("T")[0];
-      return isInCurrentPeriod(dateString);
+      return isInCurrentPeriod(e.input.date);
     });
   }, [payHistory, currentPeriod, isInCurrentPeriod]);
 

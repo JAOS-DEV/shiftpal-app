@@ -171,8 +171,6 @@ export default function HomeScreen() {
     try {
       const submittedDay = await shiftService.submitDay(selectedDate, shifts);
 
-      console.log("Successfully submitted day:", submittedDay);
-
       setShifts([]);
 
       // Show success message with details

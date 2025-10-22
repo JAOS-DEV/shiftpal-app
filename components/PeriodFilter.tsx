@@ -1,11 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppSettings } from "@/types/settings";
 import React from "react";
-import {
-    StyleSheet,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "./ThemedText";
 
 export type PeriodType = "week" | "month" | "all";
@@ -34,28 +30,64 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const formatDateRange = (start: string, end: string, period: PeriodType): string => {
+  const formatDateRange = (
+    start: string,
+    end: string,
+    period: PeriodType
+  ): string => {
     try {
       if (period === "month") {
-        // For month view, just show the month name
+        // For month view, show custom period if it's not a standard calendar month
         const startDate = new Date(start + "T00:00:00");
-        return startDate.toLocaleDateString("en-US", { 
-          month: "long", 
-          year: "numeric" 
-        });
+        const endDate = new Date(end + "T00:00:00");
+        const monthlyStartDate = settings?.payRules?.payPeriod?.startDate;
+
+        // Check if this is a custom monthly period (not starting on 1st)
+        if (monthlyStartDate && monthlyStartDate !== 1) {
+          const startDay = startDate.getDate();
+          const startMonth = startDate.toLocaleDateString("en-US", {
+            month: "short",
+          });
+          const startYear = startDate.getFullYear();
+          const endDay = endDate.getDate();
+          const endMonth = endDate.toLocaleDateString("en-US", {
+            month: "short",
+          });
+          const endYear = endDate.getFullYear();
+
+          if (startYear === endYear && startMonth === endMonth) {
+            return `${startDay}-${endDay} ${startMonth} ${startYear}`;
+          } else {
+            return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${endYear}`;
+          }
+        } else {
+          // Standard calendar month
+          return startDate.toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          });
+        }
       } else {
         // For week view, show the date range
         const startDate = new Date(start + "T00:00:00");
         const endDate = new Date(end + "T00:00:00");
-        
-        const startDay = startDate.toLocaleDateString("en-US", { weekday: "short" });
-        const startMonth = startDate.toLocaleDateString("en-US", { month: "short" });
+
+        const startDay = startDate.toLocaleDateString("en-US", {
+          weekday: "short",
+        });
+        const startMonth = startDate.toLocaleDateString("en-US", {
+          month: "short",
+        });
         const startDayNum = startDate.getDate();
-        
-        const endDay = endDate.toLocaleDateString("en-US", { weekday: "short" });
-        const endMonth = endDate.toLocaleDateString("en-US", { month: "short" });
+
+        const endDay = endDate.toLocaleDateString("en-US", {
+          weekday: "short",
+        });
+        const endMonth = endDate.toLocaleDateString("en-US", {
+          month: "short",
+        });
         const endDayNum = endDate.getDate();
-        
+
         if (startMonth === endMonth) {
           return `${startDay} ${startDayNum} - ${endDay} ${endDayNum} ${startMonth}`;
         } else {
@@ -94,7 +126,12 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       {/* Period Label */}
       <ThemedText style={[styles.periodLabel, { color: colors.textSecondary }]}>
         {getPeriodLabel()}
@@ -110,7 +147,10 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
               { borderColor: colors.border },
               activePeriod === period && [
                 styles.activePeriodButton,
-                { backgroundColor: colors.primary, borderColor: colors.primary },
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primary,
+                },
               ],
             ]}
             onPress={() => onPeriodChange(period)}
@@ -149,7 +189,9 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
             style={[styles.currentButton, { borderColor: colors.border }]}
             onPress={onJumpToCurrent}
           >
-            <ThemedText style={[styles.currentButtonText, { color: colors.text }]}>
+            <ThemedText
+              style={[styles.currentButtonText, { color: colors.text }]}
+            >
               {getCurrentButtonText()}
             </ThemedText>
           </TouchableOpacity>
@@ -157,7 +199,11 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
           {/* Date Range Display */}
           <View style={styles.dateRangeContainer}>
             <ThemedText style={[styles.dateRangeText, { color: colors.text }]}>
-              {formatDateRange(currentDateRange.start, currentDateRange.end, activePeriod)}
+              {formatDateRange(
+                currentDateRange.start,
+                currentDateRange.end,
+                activePeriod
+              )}
             </ThemedText>
           </View>
 

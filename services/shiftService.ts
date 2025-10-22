@@ -418,7 +418,6 @@ class ShiftService {
       // Best-effort sync to Firebase
       try {
         await this.syncToFirebase(updatedDay);
-        console.log("Successfully synced to Firebase");
       } catch (firebaseError) {
         console.warn(
           "Firebase sync failed, but data saved locally:",
@@ -550,7 +549,6 @@ class ShiftService {
           const firestore = this.getFirestore();
           const dayRef = doc(firestore, "users", userId, "days", date);
           await deleteDoc(dayRef);
-          console.log("Successfully deleted day from Firebase:", date);
         }
       } catch (firebaseError) {
         console.warn(
@@ -558,8 +556,6 @@ class ShiftService {
           firebaseError
         );
       }
-
-      console.log("Successfully deleted day:", date);
     } catch (error) {
       console.error("Error deleting day:", error);
       throw error;
@@ -573,7 +569,6 @@ class ShiftService {
     try {
       const userId = this.getUserId();
       if (!userId) {
-        console.log("No user logged in, skipping Firebase sync");
         return;
       }
 
@@ -586,8 +581,6 @@ class ShiftService {
         userId,
         syncedAt: Date.now(),
       });
-
-      console.log("Successfully synced day to Firebase:", day.date);
     } catch (error) {
       console.error("Error syncing to Firebase:", error);
       // Don't throw error - local storage is the primary storage
@@ -601,7 +594,6 @@ class ShiftService {
     try {
       const userId = this.getUserId();
       if (!userId) {
-        console.log("No user logged in, skipping Firebase load");
         return [];
       }
 
@@ -724,7 +716,6 @@ class ShiftService {
       // Sync to Firebase
       try {
         await this.syncToFirebase(updatedDay);
-        console.log("Successfully synced to Firebase");
       } catch (firebaseError) {
         console.warn(
           "Firebase sync failed, but data saved locally:",
@@ -800,7 +791,6 @@ class ShiftService {
         } else {
           await this.syncToFirebase(allDays[date]);
         }
-        console.log("Successfully synced to Firebase");
       } catch (firebaseError) {
         console.warn(
           "Firebase sync failed, but data saved locally:",

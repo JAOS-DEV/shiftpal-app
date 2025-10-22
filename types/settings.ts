@@ -74,7 +74,7 @@ export interface AllowanceItem {
 }
 
 export interface PayPeriodConfig {
-  cycle: "weekly" | "fortnightly" | "monthly";
+  cycle: "weekly" | "monthly";
   startDay?: string; // Monday, etc.
   startDate?: number; // 1-31 when monthly
 }
