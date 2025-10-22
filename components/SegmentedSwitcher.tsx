@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "./ThemedText";
@@ -20,13 +21,21 @@ export function SegmentedSwitcher({
   activeId,
   onChange,
 }: SegmentedSwitcherProps): React.JSX.Element {
+  const { colors } = useTheme();
+
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.card }]}>
         {items.map((item) => (
           <TouchableOpacity
             key={item.id}
-            style={[styles.tab, activeId === item.id && styles.activeTab]}
+            style={[
+              styles.tab,
+              activeId === item.id && [
+                styles.activeTab,
+                { backgroundColor: colors.surface },
+              ],
+            ]}
             onPress={() => onChange(item.id)}
             accessibilityLabel={`${item.label} tab`}
           >
@@ -34,12 +43,18 @@ export function SegmentedSwitcher({
               <ThemedText
                 style={[
                   styles.tabText,
-                  activeId === item.id && styles.activeTabText,
+                  { color: colors.textSecondary },
+                  activeId === item.id && [
+                    styles.activeTabText,
+                    { color: colors.primary },
+                  ],
                 ]}
               >
                 {item.label}
               </ThemedText>
-              {item.showDot && <View style={styles.dot} />}
+              {item.showDot && (
+                <View style={[styles.dot, { backgroundColor: colors.error }]} />
+              )}
             </View>
           </TouchableOpacity>
         ))}
@@ -53,11 +68,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
+    borderBottomColor: "#E5E5EA", // This will be overridden by theme
   },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#F2F2F7",
     borderRadius: 12,
     padding: 4,
   },
@@ -69,7 +83,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   activeTab: {
-    backgroundColor: "white",
     boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -85,10 +98,8 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#666",
   },
   activeTabText: {
-    color: "#007AFF",
     fontWeight: "600",
   },
   dot: {
@@ -98,6 +109,5 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#FF3B30",
   },
 });

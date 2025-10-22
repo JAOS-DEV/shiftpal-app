@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import { Shift } from "@/types/shift";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -23,6 +24,7 @@ export function ShiftEntriesList({
   onRemoveShift,
   embedded = false,
 }: ShiftEntriesListProps): React.JSX.Element {
+  const { colors } = useTheme();
   const handleRemoveShift = (shiftId: string, shiftInfo: string) => {
     Alert.alert(
       "Remove Shift",
@@ -120,6 +122,8 @@ const ShiftRow = React.memo(function ShiftRow({
   index,
   onRemove,
 }: ShiftRowProps) {
+  const { colors } = useTheme();
+
   const breakText = useMemo(() => {
     if (typeof shift.breakMinutes !== "number" || shift.breakMinutes <= 0) {
       return null;
@@ -133,31 +137,55 @@ const ShiftRow = React.memo(function ShiftRow({
   }, [shift.breakMinutes, shift.breakCount, shift.includeBreaks]);
 
   return (
-    <View style={styles.shiftRow}>
+    <View
+      style={[
+        styles.shiftRow,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.shiftInfo}>
         <View style={styles.timeContainer}>
-          <ThemedText style={styles.timeText}>
+          <ThemedText style={[styles.timeText, { color: colors.text }]}>
             {shift.start} - {shift.end}
           </ThemedText>
-          <ThemedText style={styles.shiftNumber}>#{index + 1}</ThemedText>
+          <ThemedText
+            style={[
+              styles.shiftNumber,
+              { backgroundColor: colors.border, color: colors.textSecondary },
+            ]}
+          >
+            #{index + 1}
+          </ThemedText>
         </View>
 
         <View style={styles.durationContainer}>
-          <ThemedText style={styles.durationText}>
+          <ThemedText style={[styles.durationText, { color: colors.success }]}>
             {shift.durationText}
           </ThemedText>
           {breakText && (
-            <ThemedText style={styles.breakText}>{breakText}</ThemedText>
+            <ThemedText
+              style={[styles.breakText, { color: colors.textSecondary }]}
+            >
+              {breakText}
+            </ThemedText>
           )}
-          <ThemedText style={styles.minutesText}>
+          <ThemedText
+            style={[styles.minutesText, { color: colors.textSecondary }]}
+          >
             ({shift.durationMinutes} min)
           </ThemedText>
         </View>
 
         {shift.note && (
-          <View style={styles.noteContainer}>
-            <ThemedText style={styles.noteText}>
-              <ThemedText style={styles.noteLabel}>Note: </ThemedText>
+          <View
+            style={[styles.noteContainer, { borderTopColor: colors.border }]}
+          >
+            <ThemedText
+              style={[styles.noteText, { color: colors.textSecondary }]}
+            >
+              <ThemedText style={[styles.noteLabel, { color: colors.text }]}>
+                Note:{" "}
+              </ThemedText>
               {shift.note}
             </ThemedText>
           </View>

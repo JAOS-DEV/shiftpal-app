@@ -23,16 +23,16 @@ export const styles = StyleSheet.create({
     textAlign: "center",
   },
   defaultInput: {
-    borderColor: "#E5E5EA",
-    backgroundColor: "#F8F8F8",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "#F8F8F8", // Will be overridden by theme
   },
   validInput: {
-    borderColor: "#34C759",
-    backgroundColor: "#F0F9F4",
+    borderColor: "#34C759", // Will be overridden by theme
+    backgroundColor: "#F0F9F4", // Will be overridden by theme
   },
   invalidInput: {
-    borderColor: "#FF3B30",
-    backgroundColor: "#FFF5F5",
+    borderColor: "#FF3B30", // Will be overridden by theme
+    backgroundColor: "#FFF5F5", // Will be overridden by theme
   },
   previewContainer: {
     marginTop: 12,
@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
   },
   addButton: {
     flex: 1,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF", // Will be overridden by theme
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -54,16 +54,16 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
   disabledButton: {
-    backgroundColor: "#E5E5EA",
+    backgroundColor: "#E5E5EA", // Will be overridden by theme
     opacity: 0.5,
   },
   addButtonText: {
-    color: "white",
+    color: "white", // Will be overridden by theme
     fontSize: 16,
     fontWeight: "600",
   },
   disabledButtonText: {
-    color: "#999",
+    color: "#999", // Will be overridden by theme
   },
   helpContainer: {
     marginTop: 12,
@@ -81,18 +81,18 @@ export const styles = StyleSheet.create({
   },
   noteButton: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
+    backgroundColor: "#F2F2F7", // Will be overridden by theme
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
     minHeight: 48,
     justifyContent: "center",
   },
   noteButtonText: {
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
     fontSize: 16,
     fontWeight: "600",
   },

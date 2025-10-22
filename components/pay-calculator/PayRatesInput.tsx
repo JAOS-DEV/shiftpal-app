@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import { PayRate } from "@/types/settings";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -36,6 +37,8 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
   hasShifts = false,
   hasPayRates = true,
 }) => {
+  const { colors } = useTheme();
+
   // Handle base rate change
   const handleBaseRateChange = (id: string) => {
     onBaseRateChange(id);
@@ -50,15 +53,28 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
   const showWarning = hasShifts && !hasPayRates;
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       <ThemedText type="subtitle" style={styles.cardTitle}>
         Rates
       </ThemedText>
 
       {/* Warning for shifts without pay rates */}
       {showWarning && (
-        <View style={styles.warningContainer}>
-          <ThemedText style={styles.warningText}>
+        <View
+          style={[
+            styles.warningContainer,
+            {
+              backgroundColor: colors.warning + "20",
+              borderColor: colors.warning + "40",
+            },
+          ]}
+        >
+          <ThemedText style={[styles.warningText, { color: colors.warning }]}>
             ⚠️ You have shifts recorded but no pay rates set. Set your rates
             below to calculate pay.
           </ThemedText>
@@ -67,7 +83,11 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
 
       <View style={styles.rateInputs}>
         <View style={styles.flex1}>
-          <ThemedText style={styles.rateLabel}>Standard Rate</ThemedText>
+          <ThemedText
+            style={[styles.rateLabel, { color: colors.textSecondary }]}
+          >
+            Standard Rate
+          </ThemedText>
           <RateDropdown
             compact
             placeholder="Select base rate"
@@ -86,7 +106,11 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
         </View>
 
         <View style={styles.flex1}>
-          <ThemedText style={styles.rateLabel}>Overtime Rate</ThemedText>
+          <ThemedText
+            style={[styles.rateLabel, { color: colors.textSecondary }]}
+          >
+            Overtime Rate
+          </ThemedText>
           <RateDropdown
             compact
             placeholder="Select overtime rate"
@@ -115,8 +139,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
   },
   cardTitle: {
     marginBottom: 12,
@@ -128,7 +152,7 @@ const styles = StyleSheet.create({
   },
   rateInput: {
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -139,19 +163,16 @@ const styles = StyleSheet.create({
   rateLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#495057",
+    color: "#495057", // Will be overridden by theme
     marginBottom: 6,
   },
   warningContainer: {
-    backgroundColor: "#FFF3CD",
-    borderColor: "#FFEAA7",
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
   warningText: {
-    color: "#856404",
     fontSize: 14,
     fontWeight: "500",
   },

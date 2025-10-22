@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import { Shift } from "@/types/shift";
 import { formatDurationText } from "@/utils/timeUtils";
 import React from "react";
@@ -10,6 +11,7 @@ interface DailyTotalsProps {
 }
 
 export function DailyTotals({ shifts }: DailyTotalsProps): React.JSX.Element {
+  const { colors } = useTheme();
   const totalMinutes = shifts.reduce(
     (sum, shift) => sum + shift.durationMinutes,
     0
@@ -35,10 +37,19 @@ export function DailyTotals({ shifts }: DailyTotalsProps): React.JSX.Element {
         Daily Total
       </ThemedText>
 
-      <View style={styles.totalsContainer}>
+      <View
+        style={[
+          styles.totalsContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <View style={styles.totalRow}>
-          <ThemedText style={styles.totalLabel}>Total Time:</ThemedText>
-          <ThemedText style={styles.totalValue}>
+          <ThemedText
+            style={[styles.totalLabel, { color: colors.textSecondary }]}
+          >
+            Total Time:
+          </ThemedText>
+          <ThemedText style={[styles.totalValue, { color: colors.primary }]}>
             {totalText} / {totalMinutes} min
           </ThemedText>
         </View>
@@ -88,11 +99,11 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   totalsContainer: {
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#F8F8F8", // Will be overridden by theme
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
   },
   totalRow: {
     flexDirection: "row",
@@ -107,7 +118,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   totalMinutesValue: {
     fontSize: 16,

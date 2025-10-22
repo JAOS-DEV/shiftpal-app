@@ -28,22 +28,22 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "#F8F8F8",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "#F8F8F8", // Will be overridden by theme
     minHeight: 44,
     justifyContent: "center",
     alignItems: "center",
   },
   modeButtonActive: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: "#007AFF", // Will be overridden by theme
+    borderColor: "#007AFF", // Will be overridden by theme
   },
   modeText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111",
+    color: "#111", // Will be overridden by theme
   },
   modeTextActive: {
-    color: "#fff",
+    color: "#fff", // Will be overridden by theme
   },
 });

@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import { shiftService } from "@/services/shiftService";
 import { notify } from "@/utils/notify";
 import React, { useState } from "react";
@@ -45,6 +46,7 @@ interface DuplicateSubmissionModalProps {
 export const DuplicateSubmissionModal: React.FC<
   DuplicateSubmissionModalProps
 > = ({ visible, submission, originalDate, onClose, onSave }) => {
+  const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -116,17 +118,29 @@ export const DuplicateSubmissionModal: React.FC<
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ThemedView style={styles.container}>
-          <View style={styles.header}>
+        <ThemedView
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+              <ThemedText
+                style={[styles.closeButtonText, { color: colors.primary }]}
+              >
+                Cancel
+              </ThemedText>
             </TouchableOpacity>
-            <ThemedText style={styles.title}>Duplicate Submission</ThemedText>
+            <ThemedText style={[styles.title, { color: colors.text }]}>
+              Duplicate Submission
+            </ThemedText>
             <TouchableOpacity
               onPress={handleSave}
               style={[
                 styles.saveButton,
-                isLoading && styles.saveButtonDisabled,
+                { backgroundColor: colors.primary },
+                isLoading && [
+                  styles.saveButtonDisabled,
+                  { backgroundColor: colors.border },
+                ],
               ]}
               disabled={isLoading || !selectedDate}
             >
@@ -138,41 +152,75 @@ export const DuplicateSubmissionModal: React.FC<
 
           <View style={styles.content}>
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Original Date</ThemedText>
-              <ThemedText style={styles.originalDateText}>
+              <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+                Original Date
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.originalDateText,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 {formatDateForDisplay(originalDate)}
               </ThemedText>
             </View>
 
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
+              <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
                 Duplicate To Date
               </ThemedText>
               <TouchableOpacity
-                style={styles.dateButton}
+                style={[
+                  styles.dateButton,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
                 onPress={() => setShowDatePicker(true)}
               >
-                <ThemedText style={styles.dateButtonText}>
+                <ThemedText
+                  style={[styles.dateButtonText, { color: colors.text }]}
+                >
                   {formatDateForDisplay(selectedDate)}
                 </ThemedText>
-                <IconSymbol name="calendar" size={16} color="#666" />
+                <IconSymbol
+                  name="calendar"
+                  size={16}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
 
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
+              <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
                 Shifts to Duplicate
               </ThemedText>
               <View style={styles.shiftsList}>
                 {submission.shifts.map((shift, index) => (
-                  <View key={shift.id} style={styles.shiftItem}>
-                    <ThemedText style={styles.shiftNumber}>
+                  <View
+                    key={shift.id}
+                    style={[
+                      styles.shiftItem,
+                      { backgroundColor: colors.surface },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.shiftNumber,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Shift {index + 1}
                     </ThemedText>
-                    <ThemedText style={styles.shiftTimes}>
+                    <ThemedText
+                      style={[styles.shiftTimes, { color: colors.text }]}
+                    >
                       {shift.start} - {shift.end}
                     </ThemedText>
-                    <ThemedText style={styles.shiftDuration}>
+                    <ThemedText
+                      style={[styles.shiftDuration, { color: colors.primary }]}
+                    >
                       {shift.durationText}
                     </ThemedText>
                   </View>
@@ -180,9 +228,13 @@ export const DuplicateSubmissionModal: React.FC<
               </View>
             </View>
 
-            <View style={styles.summary}>
-              <ThemedText style={styles.summaryTitle}>Total</ThemedText>
-              <ThemedText style={styles.summaryValue}>
+            <View style={[styles.summary, { borderTopColor: colors.border }]}>
+              <ThemedText style={[styles.summaryTitle, { color: colors.text }]}>
+                Total
+              </ThemedText>
+              <ThemedText
+                style={[styles.summaryValue, { color: colors.primary }]}
+              >
                 {submission.totalText}
               </ThemedText>
             </View>
@@ -203,7 +255,7 @@ export const DuplicateSubmissionModal: React.FC<
 const styles = {
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // Will be overridden by theme
   },
   header: {
     flexDirection: "row" as const,
@@ -212,7 +264,7 @@ const styles = {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
+    borderBottomColor: "#E5E5EA", // Will be overridden by theme
   },
   closeButton: {
     paddingVertical: 8,
@@ -220,20 +272,20 @@ const styles = {
   },
   closeButtonText: {
     fontSize: 16,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   title: {
     fontSize: 18,
     fontWeight: "600" as const,
   },
   saveButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF", // Will be overridden by theme
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: "#C7C7CC",
+    backgroundColor: "#C7C7CC", // Will be overridden by theme
   },
   saveButtonText: {
     fontSize: 16,
@@ -255,7 +307,7 @@ const styles = {
   },
   originalDateText: {
     fontSize: 16,
-    color: "#666",
+    color: "#666", // Will be overridden by theme
     paddingVertical: 8,
   },
   dateButton: {
@@ -263,15 +315,15 @@ const styles = {
     justifyContent: "space-between" as const,
     alignItems: "center" as const,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#D1D5DB", // Will be overridden by theme
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // Will be overridden by theme
   },
   dateButtonText: {
     fontSize: 16,
-    color: "#000000",
+    color: "#000000", // Will be overridden by theme
   },
   shiftsList: {
     gap: 8,
@@ -280,7 +332,7 @@ const styles = {
     flexDirection: "row" as const,
     justifyContent: "space-between" as const,
     alignItems: "center" as const,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F8F9FA", // Will be overridden by theme
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -288,16 +340,16 @@ const styles = {
   shiftNumber: {
     fontSize: 14,
     fontWeight: "500" as const,
-    color: "#666",
+    color: "#666", // Will be overridden by theme
   },
   shiftTimes: {
     fontSize: 14,
-    color: "#000000",
+    color: "#000000", // Will be overridden by theme
   },
   shiftDuration: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   summary: {
     flexDirection: "row" as const,
@@ -305,7 +357,7 @@ const styles = {
     alignItems: "center" as const,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
+    borderTopColor: "#E5E5EA", // Will be overridden by theme
     marginTop: 16,
   },
   summaryTitle: {
@@ -315,6 +367,6 @@ const styles = {
   summaryValue: {
     fontSize: 18,
     fontWeight: "600" as const,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
 };

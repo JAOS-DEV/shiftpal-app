@@ -38,7 +38,12 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
   const { colors } = useTheme();
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       <ThemedText type="subtitle" style={styles.cardTitle}>
         Total Pay
       </ThemedText>
@@ -60,12 +65,13 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
       <TouchableOpacity
         style={[
           styles.saveBtn,
+          { borderColor: colors.primary },
           Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
         ]}
         onPress={onSave}
         disabled={isSaving}
       >
-        <ThemedText style={styles.saveBtnText}>
+        <ThemedText style={[styles.saveBtnText, { color: colors.primary }]}>
           {isSaving ? "Saving..." : "Save Pay"}
         </ThemedText>
       </TouchableOpacity>
@@ -80,8 +86,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
   },
   cardTitle: {
     marginBottom: 12,
@@ -91,11 +97,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#007AFF",
+    borderColor: "#007AFF", // Will be overridden by theme
     borderRadius: 8,
   },
   saveBtnText: {
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
     fontWeight: "600",
   },
 });

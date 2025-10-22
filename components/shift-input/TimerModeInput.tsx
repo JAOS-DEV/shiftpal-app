@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import React, { useState } from "react";
 import { StyleSheet, Switch, View } from "react-native";
 import { useTimer } from "../../hooks/useTimer";
@@ -19,6 +20,7 @@ export const TimerModeInput: React.FC<TimerModeInputProps> = ({
   onShiftListRefresh,
   selectedDate,
 }) => {
+  const { colors } = useTheme();
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteText, setNoteText] = useState("");
 
@@ -54,14 +56,25 @@ export const TimerModeInput: React.FC<TimerModeInputProps> = ({
   return (
     <>
       <View style={styles.timerContainer}>
-        <ThemedText style={styles.timerElapsed}>
+        <ThemedText style={[styles.timerElapsed, { color: colors.primary }]}>
           {formatTimeFromMs(timerState.elapsedMs)}
         </ThemedText>
 
         {timerState.paused && typeof timerState.currentBreakMs === "number" ? (
-          <View style={styles.breakTimerContainer}>
-            <ThemedText style={styles.breakTimerLabel}>Break time</ThemedText>
-            <ThemedText style={styles.breakTimerValue}>
+          <View
+            style={[
+              styles.breakTimerContainer,
+              { backgroundColor: colors.surface },
+            ]}
+          >
+            <ThemedText
+              style={[styles.breakTimerLabel, { color: colors.textSecondary }]}
+            >
+              Break time
+            </ThemedText>
+            <ThemedText
+              style={[styles.breakTimerValue, { color: colors.warning }]}
+            >
               {formatTimeFromMs(timerState.currentBreakMs)}
             </ThemedText>
           </View>
@@ -73,7 +86,7 @@ export const TimerModeInput: React.FC<TimerModeInputProps> = ({
         />
 
         <View style={styles.breakToggleRow}>
-          <ThemedText style={styles.breakToggleLabel}>
+          <ThemedText style={[styles.breakToggleLabel, { color: colors.text }]}>
             Include breaks in total
           </ThemedText>
           <Switch value={includeBreaks} onValueChange={onIncludeBreaksChange} />
@@ -112,25 +125,25 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: "700",
     textAlign: "center",
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
     lineHeight: 56, // Ensure proper line height for large text
   },
   breakTimerContainer: {
     alignItems: "center",
     paddingVertical: 8,
-    backgroundColor: "#F2F2F7",
+    backgroundColor: "#F2F2F7", // Will be overridden by theme
     borderRadius: 8,
   },
   breakTimerLabel: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#666",
+    color: "#666", // Will be overridden by theme
     marginBottom: 2,
   },
   breakTimerValue: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#FF9500",
+    color: "#FF9500", // Will be overridden by theme
   },
   breakToggleRow: {
     flexDirection: "row",

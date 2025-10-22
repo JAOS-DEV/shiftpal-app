@@ -1,9 +1,7 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import { AppSettings } from "@/types/settings";
 import React from "react";
-import {
-    StyleSheet,
-    View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 import { GoalProgressBar } from "./GoalProgressBar";
 
@@ -32,6 +30,8 @@ export const PaySummaryCard: React.FC<PaySummaryCardProps> = ({
   period,
   settings,
 }) => {
+  const { colors } = useTheme();
+
   const minutesToHMText = (minutes: number): string => {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -39,14 +39,20 @@ export const PaySummaryCard: React.FC<PaySummaryCardProps> = ({
   };
 
   const showGoal = period === "week" || period === "month";
-  const goal = period === "week"
-    ? settings?.preferences?.weeklyGoal || 0
-    : period === "month"
-    ? settings?.preferences?.monthlyGoal || 0
-    : 0;
+  const goal =
+    period === "week"
+      ? settings?.preferences?.weeklyGoal || 0
+      : period === "month"
+      ? settings?.preferences?.monthlyGoal || 0
+      : 0;
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       {/* Goal progress */}
       {showGoal && (
         <View style={styles.goalSection}>
@@ -61,53 +67,81 @@ export const PaySummaryCard: React.FC<PaySummaryCardProps> = ({
 
       <View style={styles.summaryGrid}>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
             Total Standard Pay
           </ThemedText>
-          <ThemedText style={styles.summaryValue}>
+          <ThemedText style={[styles.summaryValue, { color: colors.text }]}>
             {currencySymbol}
             {summary.base.toFixed(2)}
           </ThemedText>
         </View>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
             Total Overtime Pay
           </ThemedText>
-          <ThemedText style={styles.summaryValue}>
+          <ThemedText style={[styles.summaryValue, { color: colors.text }]}>
             {currencySymbol}
             {summary.overtime.toFixed(2)}
           </ThemedText>
         </View>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>Total Tax</ThemedText>
-          <ThemedText style={styles.summaryNegValue}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
+            Total Tax
+          </ThemedText>
+          <ThemedText style={[styles.summaryNegValue, { color: colors.error }]}>
             {currencySymbol}
             {summary.tax.toFixed(2)}
           </ThemedText>
         </View>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>Total NI</ThemedText>
-          <ThemedText style={styles.summaryNegValue}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
+            Total NI
+          </ThemedText>
+          <ThemedText style={[styles.summaryNegValue, { color: colors.error }]}>
             {currencySymbol}
             {summary.ni.toFixed(2)}
           </ThemedText>
         </View>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>Total Hours</ThemedText>
-          <ThemedText style={styles.summaryValue}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
+            Total Hours
+          </ThemedText>
+          <ThemedText style={[styles.summaryValue, { color: colors.text }]}>
             {minutesToHMText(summary.minutes)}
           </ThemedText>
         </View>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>Gross Total</ThemedText>
-          <ThemedText style={styles.summaryPositive}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
+            Gross Total
+          </ThemedText>
+          <ThemedText
+            style={[styles.summaryPositive, { color: colors.success }]}
+          >
             {currencySymbol}
             {summary.gross.toFixed(2)}
           </ThemedText>
         </View>
         <View style={styles.summaryCell}>
-          <ThemedText style={styles.summaryLabel}>Final Total</ThemedText>
-          <ThemedText style={styles.summaryPositive}>
+          <ThemedText
+            style={[styles.summaryLabel, { color: colors.textSecondary }]}
+          >
+            Final Total
+          </ThemedText>
+          <ThemedText
+            style={[styles.summaryPositive, { color: colors.success }]}
+          >
             {currencySymbol}
             {summary.total.toFixed(2)}
           </ThemedText>
@@ -124,8 +158,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
   },
   goalSection: {
     marginBottom: 12,
@@ -148,11 +182,8 @@ const styles = StyleSheet.create({
   },
   summaryPositive: {
     fontWeight: "700",
-    color: "#28A745",
   },
   summaryNegValue: {
     fontWeight: "700",
-    color: "#FF3B30",
   },
 });
-

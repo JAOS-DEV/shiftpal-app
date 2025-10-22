@@ -33,7 +33,10 @@ export const BreakDetails: React.FC<BreakDetailsProps> = ({
       {breaks.map((b, i) => (
         <View
           key={b.start}
-          style={[styles.breakDetailRow, { borderColor: colors.border }]}
+          style={[
+            styles.breakDetailRow,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
           <View style={styles.breakDetailHeader}>
             <ThemedText
@@ -62,18 +65,35 @@ export const BreakDetails: React.FC<BreakDetailsProps> = ({
                   )
                 : "ongoing"}
             </ThemedText>
-            <View style={styles.breakDurationChip}>
-              <ThemedText style={styles.breakDurationChipText}>
+            <View
+              style={[
+                styles.breakDurationChip,
+                { backgroundColor: colors.border },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.breakDurationChipText,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 {b.durationMinutes}m
               </ThemedText>
             </View>
           </View>
           {b.note ? (
-            <View style={[styles.breakNoteBox, { borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.breakNoteBox,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <ThemedText
                 style={[styles.breakDetailNote, { color: colors.text }]}
               >
-                <ThemedText style={styles.breakDetailNoteLabel}>
+                <ThemedText
+                  style={[styles.breakDetailNoteLabel, { color: colors.text }]}
+                >
                   Note:{" "}
                 </ThemedText>
                 {b.note}
@@ -95,6 +115,7 @@ const styles = {
     borderWidth: 1,
     borderRadius: 8,
     padding: 8,
+    backgroundColor: "white", // Will be overridden by theme
   },
   breakDetailHeader: {
     flexDirection: "row" as const,
@@ -111,7 +132,7 @@ const styles = {
     flex: 1,
   },
   breakDurationChip: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: "#F2F2F7", // Will be overridden by theme
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -119,14 +140,14 @@ const styles = {
   breakDurationChipText: {
     fontSize: 12,
     fontWeight: "600" as const,
-    color: "#666",
+    color: "#666", // Will be overridden by theme
   },
   breakNoteBox: {
     marginTop: 4,
     padding: 6,
     borderWidth: 1,
     borderRadius: 4,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#F8F8F8", // Will be overridden by theme
   },
   breakDetailNote: {
     fontSize: 12,

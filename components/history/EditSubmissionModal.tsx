@@ -1,4 +1,5 @@
 import { useSettings } from "@/hooks/useSettings";
+import { useTheme } from "@/providers/ThemeProvider";
 import { shiftService } from "@/services/shiftService";
 import { formatDate } from "@/utils/formatUtils";
 import { notify } from "@/utils/notify";
@@ -55,6 +56,7 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { colors } = useTheme();
   const { settings } = useSettings();
   const [selectedDate, setSelectedDate] = useState(originalDate);
   const [shifts, setShifts] = useState<
@@ -207,17 +209,29 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ThemedView style={styles.container}>
-          <View style={styles.header}>
+        <ThemedView
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+              <ThemedText
+                style={[styles.closeButtonText, { color: colors.primary }]}
+              >
+                Cancel
+              </ThemedText>
             </TouchableOpacity>
-            <ThemedText style={styles.title}>Edit Submission</ThemedText>
+            <ThemedText style={[styles.title, { color: colors.text }]}>
+              Edit Submission
+            </ThemedText>
             <TouchableOpacity
               onPress={handleSave}
               style={[
                 styles.saveButton,
-                isLoading && styles.saveButtonDisabled,
+                { backgroundColor: colors.primary },
+                isLoading && [
+                  styles.saveButtonDisabled,
+                  { backgroundColor: colors.border },
+                ],
               ]}
               disabled={isLoading}
             >
@@ -234,12 +248,22 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Date</ThemedText>
+              <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+                Date
+              </ThemedText>
               <TouchableOpacity
-                style={styles.dateButton}
+                style={[
+                  styles.dateButton,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
                 onPress={() => setShowDatePicker(true)}
               >
-                <ThemedText style={styles.dateButtonText}>
+                <ThemedText
+                  style={[styles.dateButtonText, { color: colors.text }]}
+                >
                   {formatDate(selectedDate, settings)}
                 </ThemedText>
               </TouchableOpacity>
@@ -247,22 +271,39 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <ThemedText style={styles.sectionTitle}>Shifts</ThemedText>
+                <ThemedText
+                  style={[styles.sectionTitle, { color: colors.text }]}
+                >
+                  Shifts
+                </ThemedText>
                 <TouchableOpacity
                   onPress={handleAddShift}
-                  style={styles.addButton}
+                  style={[styles.addButton, { backgroundColor: colors.border }]}
                 >
-                  <IconSymbol name="plus" size={16} color="#007AFF" />
-                  <ThemedText style={styles.addButtonText}>
+                  <IconSymbol name="plus" size={16} color={colors.primary} />
+                  <ThemedText
+                    style={[styles.addButtonText, { color: colors.primary }]}
+                  >
                     Add Shift
                   </ThemedText>
                 </TouchableOpacity>
               </View>
 
               {shifts.map((shift, index) => (
-                <View key={shift.id} style={styles.shiftCard}>
+                <View
+                  key={shift.id}
+                  style={[
+                    styles.shiftCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
                   <View style={styles.shiftHeader}>
-                    <ThemedText style={styles.shiftNumber}>
+                    <ThemedText
+                      style={[styles.shiftNumber, { color: colors.text }]}
+                    >
                       Shift {index + 1}
                     </ThemedText>
                     {shifts.length > 1 && (
@@ -270,7 +311,11 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
                         onPress={() => handleRemoveShift(shift.id)}
                         style={styles.removeButton}
                       >
-                        <IconSymbol name="trash" size={16} color="#FF3B30" />
+                        <IconSymbol
+                          name="trash"
+                          size={16}
+                          color={colors.error}
+                        />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -293,25 +338,45 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
                   />
 
                   <View style={styles.durationDisplay}>
-                    <ThemedText style={styles.durationLabel}>
+                    <ThemedText
+                      style={[
+                        styles.durationLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Duration
                     </ThemedText>
-                    <ThemedText style={styles.durationValue}>
+                    <ThemedText
+                      style={[styles.durationValue, { color: colors.primary }]}
+                    >
                       {shift.durationText}
                     </ThemedText>
                   </View>
 
                   <View style={styles.noteInput}>
-                    <ThemedText style={styles.noteLabel}>
+                    <ThemedText
+                      style={[
+                        styles.noteLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Note (optional)
                     </ThemedText>
                     <TextInput
-                      style={styles.noteInputField}
+                      style={[
+                        styles.noteInputField,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                          color: colors.text,
+                        },
+                      ]}
                       value={shift.note || ""}
                       onChangeText={(value) =>
                         handleShiftNoteChange(shift.id, value)
                       }
                       placeholder="Add a note for this shift..."
+                      placeholderTextColor={colors.textSecondary}
                       multiline
                       numberOfLines={2}
                     />
@@ -320,9 +385,15 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
               ))}
             </View>
 
-            <View style={styles.summary}>
-              <ThemedText style={styles.summaryTitle}>Total</ThemedText>
-              <ThemedText style={styles.summaryValue}>{totalText}</ThemedText>
+            <View style={[styles.summary, { borderTopColor: colors.border }]}>
+              <ThemedText style={[styles.summaryTitle, { color: colors.text }]}>
+                Total
+              </ThemedText>
+              <ThemedText
+                style={[styles.summaryValue, { color: colors.primary }]}
+              >
+                {totalText}
+              </ThemedText>
             </View>
           </ScrollView>
         </ThemedView>
@@ -341,7 +412,7 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
 const styles = {
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // Will be overridden by theme
   },
   header: {
     flexDirection: "row" as const,
@@ -350,7 +421,7 @@ const styles = {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
+    borderBottomColor: "#E5E5EA", // Will be overridden by theme
   },
   closeButton: {
     paddingVertical: 8,
@@ -358,20 +429,20 @@ const styles = {
   },
   closeButtonText: {
     fontSize: 16,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   title: {
     fontSize: 18,
     fontWeight: "600" as const,
   },
   saveButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF", // Will be overridden by theme
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: "#C7C7CC",
+    backgroundColor: "#C7C7CC", // Will be overridden by theme
   },
   saveButtonText: {
     fontSize: 16,
@@ -405,22 +476,22 @@ const styles = {
     alignItems: "center" as const,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: "#F2F2F7",
+    backgroundColor: "#F2F2F7", // Will be overridden by theme
     borderRadius: 6,
     gap: 4,
   },
   addButtonText: {
     fontSize: 14,
     fontWeight: "500" as const,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   shiftCard: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F8F9FA", // Will be overridden by theme
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
   },
   shiftHeader: {
     flexDirection: "row" as const,
@@ -447,13 +518,13 @@ const styles = {
   },
   durationLabel: {
     fontSize: 12,
-    color: "#666",
+    color: "#666", // Will be overridden by theme
     marginBottom: 2,
   },
   durationValue: {
     fontSize: 16,
     fontWeight: "600" as const,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   noteInput: {
     marginTop: 8,
@@ -462,16 +533,16 @@ const styles = {
     fontSize: 14,
     fontWeight: "500" as const,
     marginBottom: 4,
-    color: "#666",
+    color: "#666", // Will be overridden by theme
   },
   noteInputField: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#D1D5DB", // Will be overridden by theme
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // Will be overridden by theme
     minHeight: 60,
     textAlignVertical: "top" as const,
   },
@@ -481,7 +552,7 @@ const styles = {
     alignItems: "center" as const,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
+    borderTopColor: "#E5E5EA", // Will be overridden by theme
     marginTop: 16,
   },
   summaryTitle: {
@@ -491,18 +562,18 @@ const styles = {
   summaryValue: {
     fontSize: 18,
     fontWeight: "600" as const,
-    color: "#007AFF",
+    color: "#007AFF", // Will be overridden by theme
   },
   dateButton: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#D1D5DB", // Will be overridden by theme
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // Will be overridden by theme
   },
   dateButtonText: {
     fontSize: 16,
-    color: "#000000",
+    color: "#000000", // Will be overridden by theme
   },
 };

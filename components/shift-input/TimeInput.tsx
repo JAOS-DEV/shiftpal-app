@@ -159,19 +159,34 @@ export const TimeInput: React.FC<TimeInputProps> = ({
     <View style={style}>
       <View style={styles.inputRow}>
         <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>{startLabel}</ThemedText>
+          <ThemedText
+            style={[styles.inputLabel, { color: colors.textSecondary }]}
+          >
+            {startLabel}
+          </ThemedText>
           <TextInput
             style={[
               styles.timeInput,
-              isValidTimeFormat(startTime) && styles.validInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+              isValidTimeFormat(startTime) && {
+                borderColor: colors.success,
+                backgroundColor: colors.success + "20",
+              },
               !startTime || isValidTimeFormat(startTime)
-                ? styles.defaultInput
-                : styles.invalidInput,
+                ? {}
+                : {
+                    borderColor: colors.error,
+                    backgroundColor: colors.error + "20",
+                  },
             ]}
             value={displayStartTime}
             onChangeText={handleStartTimeChange}
             placeholder={is12Hour ? "9:00 AM" : startPlaceholder}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
             maxLength={is12Hour ? 8 : 5}
             returnKeyType="next"
@@ -181,20 +196,35 @@ export const TimeInput: React.FC<TimeInputProps> = ({
         </View>
 
         <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>{endLabel}</ThemedText>
+          <ThemedText
+            style={[styles.inputLabel, { color: colors.textSecondary }]}
+          >
+            {endLabel}
+          </ThemedText>
           <TextInput
             ref={endTimeRef}
             style={[
               styles.timeInput,
-              isValidTimeFormat(endTime) && styles.validInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+              isValidTimeFormat(endTime) && {
+                borderColor: colors.success,
+                backgroundColor: colors.success + "20",
+              },
               !endTime || isValidTimeFormat(endTime)
-                ? styles.defaultInput
-                : styles.invalidInput,
+                ? {}
+                : {
+                    borderColor: colors.error,
+                    backgroundColor: colors.error + "20",
+                  },
             ]}
             value={displayEndTime}
             onChangeText={handleEndTimeChange}
             placeholder={is12Hour ? "5:00 PM" : endPlaceholder}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
             maxLength={is12Hour ? 8 : 5}
             returnKeyType="done"
@@ -205,7 +235,9 @@ export const TimeInput: React.FC<TimeInputProps> = ({
 
       {showDuration && getDurationPreview() ? (
         <View style={styles.previewContainer}>
-          <ThemedText style={styles.previewText}>
+          <ThemedText
+            style={[styles.previewText, { color: colors.textSecondary }]}
+          >
             Duration: {getDurationPreview()}
           </ThemedText>
         </View>
@@ -226,7 +258,7 @@ const styles = {
     fontSize: 14,
     fontWeight: "500" as const,
     marginBottom: 6,
-    color: "#374151",
+    color: "#374151", // Will be overridden by theme
   },
   timeInput: {
     borderWidth: 1,
@@ -237,16 +269,16 @@ const styles = {
     textAlign: "center" as const,
   },
   defaultInput: {
-    borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF",
+    borderColor: "#D1D5DB", // Will be overridden by theme
+    backgroundColor: "#FFFFFF", // Will be overridden by theme
   },
   validInput: {
-    borderColor: "#10B981",
-    backgroundColor: "#F0FDF4",
+    borderColor: "#10B981", // Will be overridden by theme
+    backgroundColor: "#F0FDF4", // Will be overridden by theme
   },
   invalidInput: {
-    borderColor: "#EF4444",
-    backgroundColor: "#FEF2F2",
+    borderColor: "#EF4444", // Will be overridden by theme
+    backgroundColor: "#FEF2F2", // Will be overridden by theme
   },
   previewContainer: {
     marginTop: 8,
@@ -254,7 +286,7 @@ const styles = {
   },
   previewText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#6B7280", // Will be overridden by theme
     textAlign: "center" as const,
   },
 };

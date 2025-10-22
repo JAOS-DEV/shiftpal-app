@@ -99,7 +99,12 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
   const totalMinutes = baseMinutes + overtimeMinutes;
 
   return (
-    <View style={styles.entryCard}>
+    <View
+      style={[
+        styles.entryCard,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       <TouchableOpacity
         style={[
           styles.entryHeader,
@@ -110,22 +115,34 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
       >
         <View style={styles.entryHeaderContent}>
           <View style={styles.entrySummary}>
-            <ThemedText style={styles.entryTime}>
+            <ThemedText
+              style={[styles.entryTime, { color: colors.textSecondary }]}
+            >
               Submitted at: {formatTimeOfDay(entry.createdAt)}
             </ThemedText>
-            <ThemedText style={styles.entryHours}>
+            <ThemedText
+              style={[styles.entryHours, { color: colors.textSecondary }]}
+            >
               Hours: {minutesToHMText(totalMinutes)}
             </ThemedText>
           </View>
           <View style={styles.entryTotal}>
-            <ThemedText style={styles.entryTotalLabel}>Total</ThemedText>
-            <ThemedText style={styles.entryTotalValue}>
+            <ThemedText
+              style={[styles.entryTotalLabel, { color: colors.textSecondary }]}
+            >
+              Total
+            </ThemedText>
+            <ThemedText
+              style={[styles.entryTotalValue, { color: colors.primary }]}
+            >
               {currencySymbol}
               {entry.calculatedPay.total.toFixed(2)}
             </ThemedText>
           </View>
         </View>
-        <ThemedText style={styles.expandIcon}>
+        <ThemedText
+          style={[styles.expandIcon, { color: colors.textSecondary }]}
+        >
           {isExpanded ? "▼" : "▶"}
         </ThemedText>
       </TouchableOpacity>
@@ -144,15 +161,20 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
             showTitle={false}
           />
 
-          <View style={styles.actionsRow}>
+          <View style={[styles.actionsRow, { borderTopColor: colors.border }]}>
             <TouchableOpacity
               style={[
                 styles.actionsBtn,
+                { borderColor: colors.border },
                 Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
               ]}
               onPress={handleDelete}
             >
-              <ThemedText style={styles.actionsBtnText}>Delete</ThemedText>
+              <ThemedText
+                style={[styles.actionsBtnText, { color: colors.primary }]}
+              >
+                Delete
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </>
@@ -168,8 +190,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -195,12 +217,10 @@ const styles = StyleSheet.create({
   },
   entryTime: {
     fontSize: 14,
-    color: "#6C757D",
     marginBottom: 4,
   },
   entryHours: {
     fontSize: 14,
-    color: "#6C757D",
   },
   entryTotal: {
     alignItems: "flex-end",
@@ -208,17 +228,14 @@ const styles = StyleSheet.create({
   },
   entryTotalLabel: {
     fontSize: 12,
-    color: "#6C757D",
     marginBottom: 2,
   },
   entryTotalValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#007AFF",
   },
   expandIcon: {
     fontSize: 16,
-    color: "#6C757D",
     marginLeft: 12,
   },
   actionsRow: {
@@ -226,17 +243,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F8F9FA",
   },
   actionsBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
   },
   actionsBtnText: {
-    color: "#007AFF",
     fontWeight: "600",
   },
 });

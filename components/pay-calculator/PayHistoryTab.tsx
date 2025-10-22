@@ -126,7 +126,12 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
 
   if (loadingHistory) {
     return (
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <ThemedText type="subtitle" style={styles.cardTitle}>
           Loading history…
         </ThemedText>
@@ -136,11 +141,16 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
 
   if (payHistory.length === 0) {
     return (
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <ThemedText type="subtitle" style={styles.cardTitle}>
           No history yet
         </ThemedText>
-        <ThemedText style={styles.emptyText}>
+        <ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>
           Save pay calculations to see them here
         </ThemedText>
       </View>
@@ -169,8 +179,15 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
       )}
 
       {filteredHistory.length === 0 ? (
-        <View style={styles.card}>
-          <ThemedText style={styles.emptyText}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <ThemedText
+            style={[styles.emptyText, { color: colors.textSecondary }]}
+          >
             No entries for this period
           </ThemedText>
         </View>
@@ -206,14 +223,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
   },
   cardTitle: {
     marginBottom: 12,
   },
   emptyText: {
-    color: "#8E8E93",
     textAlign: "center",
     marginTop: 8,
   },

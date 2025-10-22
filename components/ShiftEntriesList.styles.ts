@@ -29,11 +29,11 @@ export const styles = StyleSheet.create({
   shiftRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#F8F8F8", // Will be overridden by theme
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
   },
   shiftInfo: {
     flex: 1,
@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
   shiftNumber: {
     fontSize: 12,
     opacity: 0.6,
-    backgroundColor: "#E5E5EA",
+    backgroundColor: "#E5E5EA", // Will be overridden by theme
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
   durationText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#34C759",
+    color: "#34C759", // Will be overridden by theme
   },
   minutesText: {
     fontSize: 12,
@@ -79,13 +79,13 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
+    borderTopColor: "#E5E5EA", // Will be overridden by theme
   },
   noteText: {
     fontSize: 13,
     fontStyle: "italic",
     opacity: 0.7,
-    color: "#666",
+    color: "#666", // Will be overridden by theme
   },
   noteLabel: {
     fontSize: 12,

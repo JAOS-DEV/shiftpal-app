@@ -475,14 +475,29 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
   if (loadingSettings) {
     return (
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <ThemedText type="subtitle" style={styles.cardTitle}>
           Loading…
         </ThemedText>
         <View style={styles.loadingSkeleton}>
-          <View style={styles.skeletonLine} />
-          <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-          <View style={styles.skeletonBlock} />
+          <View
+            style={[styles.skeletonLine, { backgroundColor: colors.card }]}
+          />
+          <View
+            style={[
+              styles.skeletonLine,
+              styles.skeletonLineShort,
+              { backgroundColor: colors.card },
+            ]}
+          />
+          <View
+            style={[styles.skeletonBlock, { backgroundColor: colors.card }]}
+          />
         </View>
       </View>
     );
@@ -493,12 +508,16 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       <DateSelector selectedDate={date} onDateChange={setDate} />
 
       {/* Mode toggle */}
-      <View style={styles.modeRow}>
+      <View style={[styles.modeRow, { borderColor: colors.border }]}>
         <TouchableOpacity
           style={[
             styles.modeButton,
+            { backgroundColor: colors.surface },
             Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
-            mode === "tracker" && styles.modeButtonActive,
+            mode === "tracker" && [
+              styles.modeButtonActive,
+              { backgroundColor: colors.primary },
+            ],
           ]}
           onPress={async () => {
             setMode("tracker");
@@ -520,7 +539,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
           <ThemedText
             style={[
               styles.modeText,
-              mode === "tracker" && styles.modeTextActive,
+              { color: colors.textSecondary },
+              mode === "tracker" && [
+                styles.modeTextActive,
+                { color: colors.surface },
+              ],
             ]}
           >
             Tracker
@@ -529,15 +552,23 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         <TouchableOpacity
           style={[
             styles.modeButton,
+            { backgroundColor: colors.surface },
             Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
-            mode === "manual" && styles.modeButtonActive,
+            mode === "manual" && [
+              styles.modeButtonActive,
+              { backgroundColor: colors.primary },
+            ],
           ]}
           onPress={() => setMode("manual")}
         >
           <ThemedText
             style={[
               styles.modeText,
-              mode === "manual" && styles.modeTextActive,
+              { color: colors.textSecondary },
+              mode === "manual" && [
+                styles.modeTextActive,
+                { color: colors.surface },
+              ],
             ]}
           >
             Manual

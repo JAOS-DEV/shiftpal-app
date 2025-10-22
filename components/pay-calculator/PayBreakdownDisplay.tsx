@@ -49,22 +49,35 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
 
       {/* Comprehensive breakdown in circled style */}
       <View
-        style={[styles.comprehensiveBreakdown, { borderColor: colors.primary }]}
+        style={[
+          styles.comprehensiveBreakdown,
+          {
+            borderColor: colors.primary,
+            backgroundColor: colors.card,
+          },
+        ]}
       >
         {/* Hours breakdown section */}
         {hoursWorked &&
           baseRate &&
           (hoursWorked.hours > 0 || hoursWorked.minutes > 0) && (
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
+              <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
                 Hours Breakdown
               </ThemedText>
               <View style={styles.breakdownRow}>
-                <ThemedText style={styles.breakdownLabel}>
+                <ThemedText
+                  style={[
+                    styles.breakdownLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   Standard {formatHours(hoursWorked)} @ {currencySymbol}
                   {baseRate.toFixed(2)}
                 </ThemedText>
-                <ThemedText style={styles.breakdownValue}>
+                <ThemedText
+                  style={[styles.breakdownValue, { color: colors.success }]}
+                >
                   {currencySymbol}
                   {(
                     (hoursWorked.hours + hoursWorked.minutes / 60) *
@@ -76,11 +89,18 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                 (overtimeWorked.hours > 0 || overtimeWorked.minutes > 0) &&
                 overtimeRate && (
                   <View style={styles.breakdownRow}>
-                    <ThemedText style={styles.breakdownLabel}>
+                    <ThemedText
+                      style={[
+                        styles.breakdownLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Overtime {formatHours(overtimeWorked)} @ {currencySymbol}
                       {overtimeRate.toFixed(2)}
                     </ThemedText>
-                    <ThemedText style={styles.breakdownValue}>
+                    <ThemedText
+                      style={[styles.breakdownValue, { color: colors.success }]}
+                    >
                       {currencySymbol}
                       {(
                         (overtimeWorked.hours + overtimeWorked.minutes / 60) *
@@ -95,10 +115,18 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
         {/* Uplifts section */}
         {(breakdown?.uplifts ?? 0) > 0 && (
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Uplifts</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+              Uplifts
+            </ThemedText>
             <View style={styles.breakdownRow}>
-              <ThemedText style={styles.breakdownLabel}>Night Shift</ThemedText>
-              <ThemedText style={styles.breakdownValue}>
+              <ThemedText
+                style={[styles.breakdownLabel, { color: colors.textSecondary }]}
+              >
+                Night Shift
+              </ThemedText>
+              <ThemedText
+                style={[styles.breakdownValue, { color: colors.success }]}
+              >
                 {currencySymbol}
                 {(breakdown?.uplifts ?? 0).toFixed(2)}
               </ThemedText>
@@ -109,7 +137,9 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
         {/* Allowances section */}
         {allowanceItems.length > 0 && (breakdown?.allowances ?? 0) > 0 && (
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Allowances</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+              Allowances
+            </ThemedText>
             {allowanceItems.map((allowance) => {
               // Calculate the amount for this allowance
               let amount = 0;
@@ -123,10 +153,17 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
 
               return (
                 <View key={allowance.id} style={styles.breakdownRow}>
-                  <ThemedText style={styles.breakdownLabel}>
+                  <ThemedText
+                    style={[
+                      styles.breakdownLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {allowance.type}
                   </ThemedText>
-                  <ThemedText style={styles.breakdownValue}>
+                  <ThemedText
+                    style={[styles.breakdownValue, { color: colors.success }]}
+                  >
                     {currencySymbol}
                     {amount.toFixed(2)}
                   </ThemedText>
@@ -138,17 +175,31 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
 
         {/* Deductions section */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Deductions</ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+            Deductions
+          </ThemedText>
           <View style={styles.breakdownRow}>
-            <ThemedText style={styles.breakdownLabel}>Tax</ThemedText>
-            <ThemedText style={styles.deductionValue}>
+            <ThemedText
+              style={[styles.breakdownLabel, { color: colors.textSecondary }]}
+            >
+              Tax
+            </ThemedText>
+            <ThemedText
+              style={[styles.deductionValue, { color: colors.error }]}
+            >
               -{currencySymbol}
               {(breakdown?.tax ?? 0).toFixed(2)}
             </ThemedText>
           </View>
           <View style={styles.breakdownRow}>
-            <ThemedText style={styles.breakdownLabel}>NI</ThemedText>
-            <ThemedText style={styles.deductionValue}>
+            <ThemedText
+              style={[styles.breakdownLabel, { color: colors.textSecondary }]}
+            >
+              NI
+            </ThemedText>
+            <ThemedText
+              style={[styles.deductionValue, { color: colors.error }]}
+            >
               -{currencySymbol}
               {(breakdown?.ni ?? 0).toFixed(2)}
             </ThemedText>
@@ -156,17 +207,21 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
         </View>
 
         {/* Total section */}
-        <View style={styles.totalSection}>
+        <View style={[styles.totalSection, { borderTopColor: colors.border }]}>
           <View style={styles.breakdownRow}>
-            <ThemedText style={styles.grossLabel}>Gross</ThemedText>
-            <ThemedText style={styles.grossValue}>
+            <ThemedText style={[styles.grossLabel, { color: colors.text }]}>
+              Gross
+            </ThemedText>
+            <ThemedText style={[styles.grossValue, { color: colors.success }]}>
               {currencySymbol}
               {(breakdown?.gross ?? 0).toFixed(2)}
             </ThemedText>
           </View>
-          <View style={styles.totalRow}>
-            <ThemedText style={styles.totalLabel}>Total</ThemedText>
-            <ThemedText style={styles.totalValue}>
+          <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+            <ThemedText style={[styles.totalLabel, { color: colors.text }]}>
+              Total
+            </ThemedText>
+            <ThemedText style={[styles.totalValue, { color: colors.primary }]}>
               {currencySymbol}
               {(breakdown?.total ?? 0).toFixed(2)}
             </ThemedText>
@@ -185,7 +240,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   comprehensiveBreakdown: {
-    backgroundColor: "#F8F9FA",
     borderRadius: 12,
     padding: 16,
     borderWidth: 2,
@@ -197,7 +251,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#495057",
   },
   breakdownRow: {
     flexDirection: "row",
@@ -207,34 +260,28 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 14,
-    color: "#6C757D",
     flex: 1,
   },
   breakdownValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#28A745",
   },
   deductionValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FF3B30",
   },
   totalSection: {
     borderTopWidth: 1,
-    borderTopColor: "#DEE2E6",
     paddingTop: 12,
     marginTop: 8,
   },
   grossLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#495057",
   },
   grossValue: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#28A745",
   },
   totalRow: {
     flexDirection: "row",
@@ -243,16 +290,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#DEE2E6",
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#212529",
   },
   totalValue: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#007AFF",
   },
 });

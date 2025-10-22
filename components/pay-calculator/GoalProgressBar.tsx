@@ -1,9 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import React, { useMemo } from "react";
-import {
-    StyleSheet,
-    View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
 interface GoalProgressBarProps {
@@ -21,37 +18,42 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const periodText = useMemo(() => ({
-    adjective: period === "week" ? "weekly" : "monthly",
-    title: period === "week" ? "Weekly Goal" : "Monthly Goal",
-  }), [period]);
+  const periodText = useMemo(
+    () => ({
+      adjective: period === "week" ? "weekly" : "monthly",
+      title: period === "week" ? "Weekly Goal" : "Monthly Goal",
+    }),
+    [period]
+  );
 
   if (!goal || goal <= 0) {
     return (
       <ThemedText style={styles.goalHintText}>
-        Set a {periodText.adjective} goal in Settings →
-        Preferences to track progress.
+        Set a {periodText.adjective} goal in Settings → Preferences to track
+        progress.
       </ThemedText>
     );
   }
 
   const percent = Math.max(0, Math.min(200, (achieved / goal) * 100));
-  const fillColor = percent >= 100 ? "#28A745" : "#007AFF";
+  const fillColor = percent >= 100 ? colors.success : colors.primary;
   const remaining = Math.max(0, goal - achieved);
 
   return (
     <>
       <View style={styles.goalHeaderRow}>
-        <ThemedText style={styles.goalTitle}>
+        <ThemedText style={[styles.goalTitle, { color: colors.text }]}>
           {periodText.title}
         </ThemedText>
-        <ThemedText style={styles.goalAmounts}>
+        <ThemedText style={[styles.goalAmounts, { color: colors.text }]}>
           {currencySymbol}
           {achieved.toFixed(2)} / {currencySymbol}
           {goal.toFixed(2)}
         </ThemedText>
       </View>
-      <View style={styles.progressBarTrack}>
+      <View
+        style={[styles.progressBarTrack, { backgroundColor: colors.border }]}
+      >
         <View
           style={[
             styles.progressBarFill,
@@ -63,12 +65,19 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({
         />
       </View>
       <View style={styles.goalMetaRow}>
-        <View style={styles.percentBadge}>
-          <ThemedText style={styles.percentBadgeText}>
+        <View
+          style={[
+            styles.percentBadge,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <ThemedText style={[styles.percentBadgeText, { color: colors.text }]}>
             {Math.round(percent)}%
           </ThemedText>
         </View>
-        <ThemedText style={styles.remainingText}>
+        <ThemedText
+          style={[styles.remainingText, { color: colors.textSecondary }]}
+        >
           {remaining > 0
             ? `${currencySymbol}${remaining.toFixed(2)} to go`
             : `+${currencySymbol}${(achieved - goal).toFixed(2)} over goal`}
@@ -98,7 +107,6 @@ const styles = StyleSheet.create({
   progressBarTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#E5E5EA",
     overflow: "hidden",
   },
   progressBarFill: {
@@ -115,9 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: "#E5E5EA",
   },
   percentBadgeText: {
     fontWeight: "700",
@@ -126,4 +132,3 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 });
-

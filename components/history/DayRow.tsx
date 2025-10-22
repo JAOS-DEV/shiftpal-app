@@ -102,7 +102,12 @@ export const DayRow: React.FC<DayRowProps> = ({
   };
 
   return (
-    <View style={styles.dayCard}>
+    <View
+      style={[
+        styles.dayCard,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       <TouchableOpacity
         style={styles.dayHeader}
         onPress={onToggle}
@@ -110,21 +115,31 @@ export const DayRow: React.FC<DayRowProps> = ({
       >
         <View style={styles.dayHeaderContent}>
           <View style={styles.daySummary}>
-            <ThemedText style={styles.dayDate}>
+            <ThemedText style={[styles.dayDate, { color: colors.text }]}>
               {formatDateDisplay(day.date)}
             </ThemedText>
-            <ThemedText style={styles.daySubtext}>
+            <ThemedText
+              style={[styles.daySubtext, { color: colors.textSecondary }]}
+            >
               {formatDate(day.date, settings)}
             </ThemedText>
           </View>
           <View style={styles.dayTotal}>
-            <ThemedText style={styles.dayTotalLabel}>Total</ThemedText>
-            <ThemedText style={styles.dayTotalValue}>
+            <ThemedText
+              style={[styles.dayTotalLabel, { color: colors.textSecondary }]}
+            >
+              Total
+            </ThemedText>
+            <ThemedText
+              style={[styles.dayTotalValue, { color: colors.primary }]}
+            >
               {day.totalText}
             </ThemedText>
           </View>
         </View>
-        <ThemedText style={styles.expandIcon}>
+        <ThemedText
+          style={[styles.expandIcon, { color: colors.textSecondary }]}
+        >
           {isExpanded ? "▼" : "▶"}
         </ThemedText>
       </TouchableOpacity>
@@ -132,7 +147,9 @@ export const DayRow: React.FC<DayRowProps> = ({
       {isExpanded && (
         <>
           <View style={styles.shiftsContainer}>
-            <ThemedText style={styles.submissionCount}>
+            <ThemedText
+              style={[styles.submissionCount, { color: colors.textSecondary }]}
+            >
               {day.submissions.length} submission
               {day.submissions.length === 1 ? "" : "s"}
             </ThemedText>
@@ -147,21 +164,33 @@ export const DayRow: React.FC<DayRowProps> = ({
               />
             ))}
 
-            <View style={styles.submissionTotalRow}>
-              <ThemedText style={styles.submissionTotalLabel}>
+            <View
+              style={[
+                styles.submissionTotalRow,
+                { borderTopColor: colors.border },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.submissionTotalLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 Day Total:
               </ThemedText>
-              <ThemedText style={styles.submissionTotalValue}>
+              <ThemedText
+                style={[styles.submissionTotalValue, { color: colors.text }]}
+              >
                 {day.totalText} ({day.totalMinutes} min)
               </ThemedText>
             </View>
             {computeBreaksSummary()}
           </View>
 
-          <View style={styles.actionsRow}>
+          <View style={[styles.actionsRow, { borderTopColor: colors.border }]}>
             <TouchableOpacity
               ref={actionsRef}
-              style={styles.actionsBtn}
+              style={[styles.actionsBtn, { borderColor: colors.border }]}
               onPress={() => {
                 actionsRef.current?.measureInWindow?.(
                   (x: number, y: number, w: number, h: number) => {
@@ -174,7 +203,11 @@ export const DayRow: React.FC<DayRowProps> = ({
                 day.date
               )}`}
             >
-              <ThemedText style={styles.actionsBtnText}>Actions</ThemedText>
+              <ThemedText
+                style={[styles.actionsBtnText, { color: colors.primary }]}
+              >
+                Actions
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </>

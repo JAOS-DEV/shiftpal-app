@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import { notify } from "@/utils/notify";
 import {
   calculateDuration,
@@ -25,6 +26,7 @@ const STORAGE_KEYS = {
 export const ManualModeInput: React.FC<ManualModeInputProps> = ({
   onAddShift,
 }) => {
+  const { colors } = useTheme();
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isValid, setIsValid] = useState(false);
@@ -162,14 +164,6 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
     setNoteText("");
   };
 
-  const getDurationPreview = (): string => {
-    if (isValid && startTime && endTime) {
-      const duration = calculateDuration(startTime, endTime);
-      return formatDurationText(duration);
-    }
-    return "";
-  };
-
   return (
     <>
       <TimeInput
@@ -185,17 +179,13 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
         style={styles.timeInputContainer}
       />
 
-      {getDurationPreview() ? (
-        <View style={styles.previewContainer}>
-          <ThemedText style={styles.previewText}>
-            Duration: {getDurationPreview()}
-          </ThemedText>
-        </View>
-      ) : null}
-
       <View style={styles.buttonRow}>
         <TouchableOpacity
-          style={[styles.noteButton, !isValid && styles.disabledButton]}
+          style={[
+            styles.noteButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            !isValid && styles.disabledButton,
+          ]}
           onPress={handleAddNote}
           disabled={!isValid}
           accessibilityLabel="Add note"
@@ -203,6 +193,7 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
           <ThemedText
             style={[
               styles.noteButtonText,
+              { color: colors.primary },
               !isValid && styles.disabledButtonText,
             ]}
           >
@@ -211,7 +202,11 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.addButton, !isValid && styles.disabledButton]}
+          style={[
+            styles.addButton,
+            { backgroundColor: colors.primary },
+            !isValid && styles.disabledButton,
+          ]}
           onPress={handleAddShift}
           disabled={!isValid}
           accessibilityLabel="Add shift"
@@ -219,6 +214,7 @@ export const ManualModeInput: React.FC<ManualModeInputProps> = ({
           <ThemedText
             style={[
               styles.addButtonText,
+              { color: colors.surface },
               !isValid && styles.disabledButtonText,
             ]}
           >

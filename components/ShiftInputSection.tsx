@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
@@ -23,6 +24,7 @@ export function ShiftInputSection({
   onShiftListRefresh,
   selectedDate,
 }: ShiftInputSectionProps): React.JSX.Element {
+  const { colors } = useTheme();
   const [mode, setMode] = useState<"manual" | "timer">("manual");
   const [includeBreaks, setIncludeBreaks] = useState(false);
 
@@ -77,14 +79,25 @@ export function ShiftInputSection({
           <TouchableOpacity
             style={[
               styles.modeButton,
-              mode === "manual" && styles.modeButtonActive,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              mode === "manual" && [
+                styles.modeButtonActive,
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primary,
+                },
+              ],
             ]}
             onPress={handleManualMode}
           >
             <ThemedText
               style={[
                 styles.modeText,
-                mode === "manual" && styles.modeTextActive,
+                { color: colors.text },
+                mode === "manual" && [
+                  styles.modeTextActive,
+                  { color: colors.surface },
+                ],
               ]}
             >
               Manual
@@ -93,14 +106,25 @@ export function ShiftInputSection({
           <TouchableOpacity
             style={[
               styles.modeButton,
-              mode === "timer" && styles.modeButtonActive,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              mode === "timer" && [
+                styles.modeButtonActive,
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primary,
+                },
+              ],
             ]}
             onPress={handleTimerMode}
           >
             <ThemedText
               style={[
                 styles.modeText,
-                mode === "timer" && styles.modeTextActive,
+                { color: colors.text },
+                mode === "timer" && [
+                  styles.modeTextActive,
+                  { color: colors.surface },
+                ],
               ]}
             >
               Timer

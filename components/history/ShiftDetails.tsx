@@ -40,7 +40,10 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
       {shifts.map((shift, idx) => (
         <View
           key={`${shift.start}-${shift.end}-${idx}`}
-          style={[styles.shiftRow, { borderColor: colors.border }]}
+          style={[
+            styles.shiftRow,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
           <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
             {formatTime(shift.start, settings)} -{" "}
@@ -66,7 +69,9 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
           )}
 
           {shift.note && (
-            <View style={styles.noteContainer}>
+            <View
+              style={[styles.noteContainer, { borderTopColor: colors.border }]}
+            >
               <ThemedText style={[styles.noteText, { color: colors.text }]}>
                 <ThemedText style={[styles.noteLabel, { color: colors.text }]}>
                   Note:{" "}
@@ -89,6 +94,7 @@ const styles = {
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
+    backgroundColor: "white", // Will be overridden by theme
   },
   shiftTime: {
     fontSize: 16,
@@ -107,7 +113,7 @@ const styles = {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
+    borderTopColor: "#E5E5EA", // Will be overridden by theme
   },
   noteText: {
     fontSize: 13,

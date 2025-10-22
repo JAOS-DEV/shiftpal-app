@@ -153,18 +153,32 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
   const showNightInputs = mode === "manual"; // For now, only show in manual mode
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
       <ThemedText type="subtitle" style={styles.cardTitle}>
         Hours
       </ThemedText>
       <View style={styles.row}>
-        <ThemedText style={styles.rowLabel}>Standard</ThemedText>
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+          Standard
+        </ThemedText>
         <View style={styles.inline}>
           <TextInput
-            style={styles.numInput}
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textSecondary}
             value={
               getCurrentHours(mode, "base").hours === 0
                 ? ""
@@ -181,10 +195,17 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
           />
           <ThemedText>h</ThemedText>
           <TextInput
-            style={styles.numInput}
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textSecondary}
             value={
               getCurrentHours(mode, "base").minutes === 0
                 ? ""
@@ -203,13 +224,22 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
         </View>
       </View>
       <View style={styles.row}>
-        <ThemedText style={styles.rowLabel}>Overtime</ThemedText>
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+          Overtime
+        </ThemedText>
         <View style={styles.inline}>
           <TextInput
-            style={styles.numInput}
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textSecondary}
             value={
               getCurrentHours(mode, "overtime").hours === 0
                 ? ""
@@ -226,10 +256,17 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
           />
           <ThemedText>h</ThemedText>
           <TextInput
-            style={styles.numInput}
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textSecondary}
             value={
               getCurrentHours(mode, "overtime").minutes === 0
                 ? ""
@@ -250,13 +287,22 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
       {showNightInputs && (
         <>
           <View style={styles.row}>
-            <ThemedText style={styles.rowLabel}>Night (base)</ThemedText>
+            <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+              Night (base)
+            </ThemedText>
             <View style={styles.inline}>
               <TextInput
-                style={styles.numInput}
+                style={[
+                  styles.numInput,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textSecondary}
                 value={
                   getCurrentNightHours("base").hours === 0
                     ? ""
@@ -272,10 +318,17 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
               />
               <ThemedText>h</ThemedText>
               <TextInput
-                style={styles.numInput}
+                style={[
+                  styles.numInput,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textSecondary}
                 value={
                   getCurrentNightHours("base").minutes === 0
                     ? ""
@@ -293,13 +346,22 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
             </View>
           </View>
           <View style={styles.row}>
-            <ThemedText style={styles.rowLabel}>Night (OT)</ThemedText>
+            <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+              Night (OT)
+            </ThemedText>
             <View style={styles.inline}>
               <TextInput
-                style={styles.numInput}
+                style={[
+                  styles.numInput,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textSecondary}
                 value={
                   getCurrentNightHours("overtime").hours === 0
                     ? ""
@@ -315,10 +377,17 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
               />
               <ThemedText>h</ThemedText>
               <TextInput
-                style={styles.numInput}
+                style={[
+                  styles.numInput,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textSecondary}
                 value={
                   getCurrentNightHours("overtime").minutes === 0
                     ? ""
@@ -349,8 +418,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
   },
   cardTitle: {
     marginBottom: 12,
@@ -373,7 +442,7 @@ const styles = StyleSheet.create({
   numInput: {
     width: 60,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,

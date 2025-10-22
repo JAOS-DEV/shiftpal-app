@@ -7,8 +7,8 @@ export const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "white",
+    borderColor: "#E5E5EA", // Will be overridden by theme
+    backgroundColor: "white", // Will be overridden by theme
   },
   cardTitle: {
     marginBottom: 12,
@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
   },
   skeletonLine: {
     height: 14,
-    backgroundColor: "#EDEDED",
+    backgroundColor: "#EDEDED", // Will be overridden by theme
     borderRadius: 8,
   },
   skeletonLineShort: {
@@ -26,7 +26,7 @@ export const styles = StyleSheet.create({
   },
   skeletonBlock: {
     height: 120,
-    backgroundColor: "#F3F3F3",
+    backgroundColor: "#F3F3F3", // Will be overridden by theme
     borderRadius: 12,
     marginTop: 8,
   },
@@ -36,23 +36,23 @@ export const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
     overflow: "hidden",
   },
   modeButton: {
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: "white", // Will be overridden by theme
   },
   modeButtonActive: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF", // Will be overridden by theme
   },
   modeText: {
     fontWeight: "600",
-    color: "#8E8E93",
+    color: "#8E8E93", // Will be overridden by theme
   },
   modeTextActive: {
-    color: "white",
+    color: "white", // Will be overridden by theme
   },
 });
