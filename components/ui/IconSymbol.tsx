@@ -22,6 +22,8 @@ const MAPPING = {
   // Map SF Symbol fallback names to Material Icons for non-iOS
   "gearshape.fill": "settings",
   "sterlingsign.circle.fill": "currency-pound",
+  "dollarsign.circle.fill": "attach-money",
+  "eurosign.circle.fill": "euro",
 } as IconMapping;
 
 /**

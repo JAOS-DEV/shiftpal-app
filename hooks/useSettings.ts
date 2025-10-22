@@ -24,6 +24,13 @@ export const useSettings = () => {
 
   useEffect(() => {
     void loadSettings();
+
+    // Subscribe to live settings changes
+    const unsubscribe = settingsService.subscribe((newSettings) => {
+      setSettings(newSettings);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return {

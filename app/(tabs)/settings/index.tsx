@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -23,11 +24,16 @@ interface SettingsItem {
   route: string;
 }
 
-const settingsItems: SettingsItem[] = [
+const getSettingsItems = (currency: string): SettingsItem[] => [
   {
     key: "pay",
     label: "Pay & Rates",
-    icon: "sterlingsign.circle.fill",
+    icon:
+      currency === "USD"
+        ? "dollarsign.circle.fill"
+        : currency === "EUR"
+        ? "eurosign.circle.fill"
+        : "sterlingsign.circle.fill",
     route: "/settings/pay",
   },
   {
@@ -58,8 +64,13 @@ const settingsItems: SettingsItem[] = [
 
 export default function SettingsIndexScreen() {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const settingsItems = getSettingsItems(
+    settings?.preferences?.currency || "GBP"
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
