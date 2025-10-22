@@ -18,8 +18,6 @@ import { PayBreakdownDisplay } from "./PayBreakdownDisplay";
 interface PayHistoryEntryProps {
   entry: PayCalculationEntry;
   currencySymbol: string;
-  isStale: boolean;
-  onRecalculate: (entry: PayCalculationEntry) => void;
   onDelete: (id: string) => void;
   resolveRateValue: (id: string | null | undefined) => number | undefined;
   settings?: AppSettings | null;
@@ -28,8 +26,6 @@ interface PayHistoryEntryProps {
 export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
   entry,
   currencySymbol,
-  isStale,
-  onRecalculate,
   onDelete,
   resolveRateValue,
   settings,
@@ -144,26 +140,6 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
           />
 
           <View style={styles.actionsRow}>
-            {isStale && (
-              <View style={styles.staleWarning}>
-                <ThemedText style={styles.staleText}>
-                  Updated tax settings available
-                </ThemedText>
-                <TouchableOpacity
-                  style={[
-                    styles.recalcBtn,
-                    Platform.OS === "web"
-                      ? ({ cursor: "pointer" } as any)
-                      : null,
-                  ]}
-                  onPress={() => onRecalculate(entry)}
-                >
-                  <ThemedText style={styles.recalcBtnText}>
-                    Recalculate with current settings
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            )}
             <TouchableOpacity
               style={[
                 styles.actionsBtn,
@@ -246,25 +222,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: "#F8F9FA",
-  },
-  staleWarning: {
-    marginBottom: 8,
-  },
-  staleText: {
-    color: "#8E8E93",
-  },
-  recalcBtn: {
-    marginTop: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    alignSelf: "flex-start",
-  },
-  recalcBtnText: {
-    color: "#007AFF",
-    fontWeight: "600",
   },
   actionsBtn: {
     paddingHorizontal: 12,

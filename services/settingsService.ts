@@ -69,7 +69,6 @@ function defaultSettings(): AppSettings {
 class SettingsService {
   // Simple in-memory listeners so other screens can react immediately to changes
   private settingsListeners = new Set<(s: AppSettings) => void>();
-  private versionListeners = new Set<(v: string) => void>();
   // In-memory cache to avoid async races across rapid updates (especially on iOS)
   private cachedSettings: AppSettings | null = null;
   // Track current user to detect user changes
@@ -80,22 +79,10 @@ class SettingsService {
     return () => this.settingsListeners.delete(listener);
   }
 
-  subscribeVersion(listener: (v: string) => void): () => void {
-    this.versionListeners.add(listener);
-    return () => this.versionListeners.delete(listener);
-  }
-
   private notifySettingsChanged(next: AppSettings) {
     for (const cb of this.settingsListeners) {
       try {
         cb(next);
-      } catch {}
-    }
-    // Also notify version listeners
-    const v = this.computeSettingsVersion(next);
-    for (const cb of this.versionListeners) {
-      try {
-        cb(v);
       } catch {}
     }
   }
@@ -254,19 +241,6 @@ class SettingsService {
       merged.payRules = { ...merged.payRules, night: nextNight } as PayRules;
     } catch {}
     return merged;
-  }
-
-  // Versioning: capture only deduction-related and rounding fields that affect totals
-  computeSettingsVersion(s: AppSettings): string {
-    const payload = {
-      tax: s?.payRules?.tax || {},
-      ni: s?.payRules?.ni || {},
-    };
-    try {
-      return this.simpleHash(JSON.stringify(payload));
-    } catch {
-      return "v0";
-    }
   }
 
   private simpleHash(input: string): string {
@@ -746,72 +720,6 @@ class SettingsService {
     } catch {
       return [];
     }
-  }
-
-  // Recompute a single entry with current settings
-  async recomputeEntry(
-    entry: PayCalculationEntry
-  ): Promise<PayCalculationEntry> {
-    const settings = await this.getSettings();
-    const recalculated = this.computePay(entry.input, settings);
-    return {
-      ...entry,
-      calculatedPay: recalculated,
-      settingsVersion: this.computeSettingsVersion(settings),
-    };
-  }
-
-  async updateHistoryEntry(updated: PayCalculationEntry): Promise<void> {
-    const userId = getUserId();
-    const userPayHistoryKey = getUserPayHistoryKey(userId);
-    const data = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
-    const list: PayCalculationEntry[] = JSON.parse(data);
-    const idx = list.findIndex((e) => e.id === updated.id);
-    if (idx !== -1) {
-      list[idx] = updated;
-      await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify(list));
-    }
-  }
-
-  async recomputeMany(entryIds: string[]): Promise<PayCalculationEntry[]> {
-    const userId = getUserId();
-    const userPayHistoryKey = getUserPayHistoryKey(userId);
-    const data = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
-    const list: PayCalculationEntry[] = JSON.parse(data);
-    const settings = await this.getSettings();
-    const version = this.computeSettingsVersion(settings);
-    const map = new Map(list.map((e) => [e.id, e] as const));
-    const updated: PayCalculationEntry[] = [];
-    for (const id of entryIds) {
-      const original = map.get(id);
-      if (!original) continue;
-      const next = {
-        ...original,
-        calculatedPay: this.computePay(original.input, settings),
-        settingsVersion: version,
-      };
-      map.set(id, next);
-      updated.push(next);
-    }
-    const nextList = Array.from(map.values());
-    await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify(nextList));
-    // Best effort: sync updated entries to Firebase as well
-    try {
-      if (userId) {
-        const { firestore } = getFirebase();
-        const { doc, setDoc } = await import("firebase/firestore");
-        for (const entry of updated) {
-          const ref = doc(firestore, "users", userId, "payHistory", entry.id);
-          await setDoc(ref, { ...entry, userId }, { merge: true });
-        }
-      }
-    } catch {}
-    return updated;
-  }
-
-  async getHistorySettingsVersion(): Promise<string> {
-    const settings = await this.getSettings();
-    return this.computeSettingsVersion(settings);
   }
 
   async deletePayCalculation(entryId: string): Promise<void> {

@@ -28,7 +28,6 @@ export default function PayCalculatorScreen(): React.JSX.Element {
   const [loadingSettings, setLoadingSettings] = useState<boolean>(true);
   const [payHistory, setPayHistory] = useState<PayCalculationEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
-  const [currentVersion, setCurrentVersion] = useState<string>("");
 
   // Manual rate state lifted to persist across tab switches
   const [manualBaseRateText, setManualBaseRateText] = useState<string>("");
@@ -67,9 +66,6 @@ export default function PayCalculatorScreen(): React.JSX.Element {
     // Subscribe to live settings changes
     const unsub = settingsService.subscribe((next) => {
       setSettings(next);
-      try {
-        setCurrentVersion(settingsService.computeSettingsVersion(next));
-      } catch {}
     });
 
     return () => unsub();
@@ -82,8 +78,6 @@ export default function PayCalculatorScreen(): React.JSX.Element {
       setLoadingHistory(true);
       const list = await settingsService.getPayHistory();
       setPayHistory(list);
-      const v = await settingsService.getHistorySettingsVersion();
-      setCurrentVersion(v);
       setLoadingHistory(false);
     };
     void loadHistory();
@@ -92,10 +86,6 @@ export default function PayCalculatorScreen(): React.JSX.Element {
   const handleHistoryUpdated = async (): Promise<void> => {
     const fresh = await settingsService.getPayHistory();
     setPayHistory(fresh);
-    try {
-      const v = await settingsService.getHistorySettingsVersion();
-      setCurrentVersion(v);
-    } catch {}
   };
 
   const handlePaySaved = (): void => {
@@ -153,7 +143,6 @@ export default function PayCalculatorScreen(): React.JSX.Element {
                   settings={settings}
                   payHistory={payHistory}
                   loadingHistory={loadingHistory}
-                  currentVersion={currentVersion}
                   onHistoryUpdated={handleHistoryUpdated}
                 />
               )}

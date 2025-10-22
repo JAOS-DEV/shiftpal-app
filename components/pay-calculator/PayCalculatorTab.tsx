@@ -402,9 +402,6 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
             mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked,
         },
         calculatedPay: breakdown,
-        settingsVersion: settingsService.computeSettingsVersion(
-          settings as AppSettings
-        ),
         rateSnapshot:
           (settings?.payRates || []).length === 0 ||
           hourlyRateId === "custom" ||
