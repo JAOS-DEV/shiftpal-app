@@ -22,16 +22,64 @@ const SHIFTS_STORAGE_KEY = "shifts_data";
 const DAYS_STORAGE_KEY = "days_data";
 const TIMER_STORAGE_KEY = "running_timer";
 
+// Generate user-specific storage keys
+function getUserShiftsKey(userId?: string): string {
+  return userId ? `shifts_data.${userId}` : "shifts_data";
+}
+
+function getUserDaysKey(userId?: string): string {
+  return userId ? `days_data.${userId}` : "days_data";
+}
+
+function getUserTimerKey(userId?: string): string {
+  return userId ? `running_timer.${userId}` : "running_timer";
+}
+
 class ShiftService {
   private getFirestore() {
     const { firestore } = getFirebase();
     return firestore;
   }
 
+  private getUserId(): string | undefined {
+    try {
+      const { auth } = getFirebase();
+      return auth.currentUser?.uid;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private getStorageKey(baseKey: string): string {
+    const userId = this.getUserId();
+    return userId ? `${baseKey}.${userId}` : baseKey;
+  }
+
+  // Clear all user data
+  async clearUserData(): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      if (userId) {
+        const shiftsKey = this.getStorageKey(SHIFTS_STORAGE_KEY);
+        const daysKey = this.getStorageKey(DAYS_STORAGE_KEY);
+        const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+        await AsyncStorage.removeItem(shiftsKey);
+        await AsyncStorage.removeItem(daysKey);
+        await AsyncStorage.removeItem(timerKey);
+      }
+
+      // Also clear legacy global keys for backward compatibility
+      await AsyncStorage.removeItem(SHIFTS_STORAGE_KEY);
+      await AsyncStorage.removeItem(DAYS_STORAGE_KEY);
+      await AsyncStorage.removeItem(TIMER_STORAGE_KEY);
+    } catch {}
+  }
+
   // Timer helpers
   async getRunningTimer(): Promise<RunningTimer | null> {
     try {
-      const data = await AsyncStorage.getItem(TIMER_STORAGE_KEY);
+      const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(timerKey);
       return data ? (JSON.parse(data) as RunningTimer) : null;
     } catch {
       return null;
@@ -47,7 +95,8 @@ class ShiftService {
       pauses: [],
       lastUpdatedAt: Date.now(),
     };
-    await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+    await AsyncStorage.setItem(timerKey, JSON.stringify(timer));
     return timer;
   }
 
@@ -57,7 +106,8 @@ class ShiftService {
     timer.status = "paused";
     timer.pauses.push({ start: Date.now() });
     timer.lastUpdatedAt = Date.now();
-    await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+    await AsyncStorage.setItem(timerKey, JSON.stringify(timer));
     return timer;
   }
 
@@ -68,7 +118,8 @@ class ShiftService {
     if (last && !last.end) last.end = Date.now();
     timer.status = "running";
     timer.lastUpdatedAt = Date.now();
-    await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+    await AsyncStorage.setItem(timerKey, JSON.stringify(timer));
     return timer;
   }
 
@@ -84,7 +135,8 @@ class ShiftService {
       timer.pauses.pop();
       timer.status = "running";
       timer.lastUpdatedAt = Date.now();
-      await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+      const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+      await AsyncStorage.setItem(timerKey, JSON.stringify(timer));
       return timer;
     }
     return timer;
@@ -100,7 +152,8 @@ class ShiftService {
     if (last && !last.end) {
       last.note = note;
       timer.lastUpdatedAt = Date.now();
-      await AsyncStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+      const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+      await AsyncStorage.setItem(timerKey, JSON.stringify(timer));
     }
     return timer;
   }
@@ -141,7 +194,8 @@ class ShiftService {
       ? grossMinutes
       : grossMinutes - breakMinutes;
     if (totalMinutes <= 0) {
-      await AsyncStorage.removeItem(TIMER_STORAGE_KEY);
+      const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+      await AsyncStorage.removeItem(timerKey);
       return null;
     }
 
@@ -165,19 +219,16 @@ class ShiftService {
     };
 
     // Save under SHIFTS_STORAGE_KEY for the timer date
-    const data = await AsyncStorage.getItem(SHIFTS_STORAGE_KEY);
+    const shiftsKey = this.getStorageKey(SHIFTS_STORAGE_KEY);
+    const data = await AsyncStorage.getItem(shiftsKey);
     const allShifts: Record<string, Shift[]> = data ? JSON.parse(data) : {};
     if (!allShifts[timer.date]) allShifts[timer.date] = [];
     allShifts[timer.date].push(newShift);
-    await AsyncStorage.setItem(SHIFTS_STORAGE_KEY, JSON.stringify(allShifts));
+    await AsyncStorage.setItem(shiftsKey, JSON.stringify(allShifts));
 
-    await AsyncStorage.removeItem(TIMER_STORAGE_KEY);
+    const timerKey = this.getStorageKey(TIMER_STORAGE_KEY);
+    await AsyncStorage.removeItem(timerKey);
     return newShift;
-  }
-
-  private getUserId() {
-    const { auth } = getFirebase();
-    return auth.currentUser?.uid;
   }
 
   /**
@@ -185,7 +236,8 @@ class ShiftService {
    */
   async getShiftsForDate(date: string): Promise<Shift[]> {
     try {
-      const data = await AsyncStorage.getItem(SHIFTS_STORAGE_KEY);
+      const shiftsKey = this.getStorageKey(SHIFTS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(shiftsKey);
       const allShifts: Record<string, Shift[]> = data ? JSON.parse(data) : {};
       return allShifts[date] || [];
     } catch (error) {
@@ -217,7 +269,9 @@ class ShiftService {
     };
 
     try {
-      const data = await AsyncStorage.getItem(SHIFTS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(SHIFTS_STORAGE_KEY)
+      );
       const allShifts: Record<string, Shift[]> = data ? JSON.parse(data) : {};
 
       if (!allShifts[date]) {
@@ -225,7 +279,10 @@ class ShiftService {
       }
 
       allShifts[date].push(newShift);
-      await AsyncStorage.setItem(SHIFTS_STORAGE_KEY, JSON.stringify(allShifts));
+      await AsyncStorage.setItem(
+        this.getStorageKey(SHIFTS_STORAGE_KEY),
+        JSON.stringify(allShifts)
+      );
 
       return newShift;
     } catch (error) {
@@ -239,7 +296,9 @@ class ShiftService {
    */
   async removeShift(date: string, shiftId: string): Promise<void> {
     try {
-      const data = await AsyncStorage.getItem(SHIFTS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(SHIFTS_STORAGE_KEY)
+      );
       const allShifts: Record<string, Shift[]> = data ? JSON.parse(data) : {};
 
       if (allShifts[date]) {
@@ -290,7 +349,9 @@ class ShiftService {
 
     try {
       // Load current days
-      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(DAYS_STORAGE_KEY)
+      );
       const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
 
       // Initialize or append submission
@@ -336,15 +397,23 @@ class ShiftService {
       }
 
       allDays[date] = updatedDay;
-      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+      await AsyncStorage.setItem(
+        this.getStorageKey(DAYS_STORAGE_KEY),
+        JSON.stringify(allDays)
+      );
 
       // Clear shifts for this date since they're now submitted
-      const shiftsData = await AsyncStorage.getItem(SHIFTS_STORAGE_KEY);
+      const shiftsData = await AsyncStorage.getItem(
+        this.getStorageKey(SHIFTS_STORAGE_KEY)
+      );
       const allShifts: Record<string, Shift[]> = shiftsData
         ? JSON.parse(shiftsData)
         : {};
       delete allShifts[date];
-      await AsyncStorage.setItem(SHIFTS_STORAGE_KEY, JSON.stringify(allShifts));
+      await AsyncStorage.setItem(
+        this.getStorageKey(SHIFTS_STORAGE_KEY),
+        JSON.stringify(allShifts)
+      );
 
       // Best-effort sync to Firebase
       try {
@@ -373,7 +442,9 @@ class ShiftService {
   ): Promise<Day[]> {
     try {
       // Load from local storage first
-      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(DAYS_STORAGE_KEY)
+      );
       const localDays: Record<string, Day> = data ? JSON.parse(data) : {};
 
       // Try to load from Firebase, but don't fail if it doesn't work
@@ -462,10 +533,15 @@ class ShiftService {
   async deleteDay(date: string): Promise<void> {
     try {
       // Delete from local storage
-      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(DAYS_STORAGE_KEY)
+      );
       const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
       delete allDays[date];
-      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+      await AsyncStorage.setItem(
+        this.getStorageKey(DAYS_STORAGE_KEY),
+        JSON.stringify(allDays)
+      );
 
       // Try to delete from Firebase
       try {
@@ -486,63 +562,6 @@ class ShiftService {
       console.log("Successfully deleted day:", date);
     } catch (error) {
       console.error("Error deleting day:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete a single submission within a day
-   */
-  async deleteSubmission(date: string, submissionId: string): Promise<void> {
-    try {
-      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
-      const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
-      const day = allDays[date];
-      if (!day) return;
-
-      const safeDay = this.ensureDayHasSubmissions(day);
-      const remaining = safeDay.submissions.filter(
-        (s) => s.id !== submissionId
-      );
-
-      if (remaining.length === 0) {
-        delete allDays[date];
-      } else {
-        const totalMinutes = remaining.reduce(
-          (sum, s) => sum + s.totalMinutes,
-          0
-        );
-        allDays[date] = {
-          id: date,
-          date,
-          submissions: remaining,
-          totalMinutes,
-          totalText: formatDurationText(totalMinutes),
-          submittedAt: remaining[0]?.submittedAt,
-        };
-      }
-
-      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
-
-      // Try to sync to Firebase
-      try {
-        const updated = allDays[date];
-        if (updated) {
-          await this.syncToFirebase(updated);
-        } else {
-          // If day was deleted entirely, reuse deleteDay's Firebase logic
-          const userId = this.getUserId();
-          if (userId) {
-            const firestore = this.getFirestore();
-            const dayRef = doc(firestore, "users", userId, "days", date);
-            await deleteDoc(dayRef);
-          }
-        }
-      } catch (firebaseError) {
-        console.warn("Firebase submission delete sync failed:", firebaseError);
-      }
-    } catch (error) {
-      console.error("Error deleting submission:", error);
       throw error;
     }
   }
@@ -648,7 +667,9 @@ class ShiftService {
   ): Promise<Day> {
     try {
       // Load current days
-      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(DAYS_STORAGE_KEY)
+      );
       const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
 
       const existingDay = allDays[date];
@@ -695,7 +716,10 @@ class ShiftService {
 
       // Save to AsyncStorage
       allDays[date] = updatedDay;
-      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+      await AsyncStorage.setItem(
+        this.getStorageKey(DAYS_STORAGE_KEY),
+        JSON.stringify(allDays)
+      );
 
       // Sync to Firebase
       try {
@@ -721,7 +745,9 @@ class ShiftService {
   async deleteSubmission(date: string, submissionId: string): Promise<void> {
     try {
       // Load current days
-      const data = await AsyncStorage.getItem(DAYS_STORAGE_KEY);
+      const data = await AsyncStorage.getItem(
+        this.getStorageKey(DAYS_STORAGE_KEY)
+      );
       const allDays: Record<string, Day> = data ? JSON.parse(data) : {};
 
       const existingDay = allDays[date];
@@ -756,7 +782,10 @@ class ShiftService {
       }
 
       // Save to AsyncStorage
-      await AsyncStorage.setItem(DAYS_STORAGE_KEY, JSON.stringify(allDays));
+      await AsyncStorage.setItem(
+        this.getStorageKey(DAYS_STORAGE_KEY),
+        JSON.stringify(allDays)
+      );
 
       // Sync to Firebase
       try {

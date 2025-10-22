@@ -18,6 +18,15 @@ import { shiftService } from "./shiftService";
 const SETTINGS_KEY = "shiftpal.settings";
 const PAY_HISTORY_KEY = "shiftpal.pay_history";
 
+// Generate user-specific storage keys
+function getUserSettingsKey(userId?: string): string {
+  return userId ? `shiftpal.settings.${userId}` : "shiftpal.settings";
+}
+
+function getUserPayHistoryKey(userId?: string): string {
+  return userId ? `shiftpal.pay_history.${userId}` : "shiftpal.pay_history";
+}
+
 function getUserId(): string | undefined {
   try {
     const { auth } = getFirebase();
@@ -47,8 +56,8 @@ function defaultSettings(): AppSettings {
       dateFormat: "DD/MM/YYYY",
       timeFormat: "24h",
       stackingRule: "stack",
-      weeklyGoal: 1000,
-      monthlyGoal: 4000,
+      weeklyGoal: 0,
+      monthlyGoal: 0,
     },
     notifications: {
       remindSubmitShifts: true,
@@ -63,6 +72,8 @@ class SettingsService {
   private versionListeners = new Set<(v: string) => void>();
   // In-memory cache to avoid async races across rapid updates (especially on iOS)
   private cachedSettings: AppSettings | null = null;
+  // Track current user to detect user changes
+  private currentUserId: string | null = null;
 
   subscribe(listener: (s: AppSettings) => void): () => void {
     this.settingsListeners.add(listener);
@@ -89,11 +100,19 @@ class SettingsService {
     }
   }
   async getSettings(): Promise<AppSettings> {
+    const userId = getUserId();
+
+    // Check if user has changed - clear cache if so
+    if (this.currentUserId !== userId) {
+      this.cachedSettings = null;
+      this.currentUserId = userId ?? null;
+    }
+
     // Serve from cache if present
     if (this.cachedSettings) return this.cachedSettings;
+
     // Try Firebase first
     try {
-      const userId = getUserId();
       if (userId) {
         const { firestore } = getFirebase();
         const { doc, getDoc } = await import("firebase/firestore");
@@ -101,7 +120,8 @@ class SettingsService {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data() as AppSettings;
-          await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+          const userSettingsKey = getUserSettingsKey(userId);
+          await AsyncStorage.setItem(userSettingsKey, JSON.stringify(data));
           const norm = this.normalizeSettings(data);
           this.cachedSettings = norm;
           return norm;
@@ -110,14 +130,15 @@ class SettingsService {
     } catch {}
 
     // Fallback to local
-    const local = await AsyncStorage.getItem(SETTINGS_KEY);
+    const userSettingsKey = getUserSettingsKey(userId);
+    const local = await AsyncStorage.getItem(userSettingsKey);
     if (local) {
       const norm = this.normalizeSettings(JSON.parse(local));
       this.cachedSettings = norm;
       return norm;
     }
     const defaults = defaultSettings();
-    await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(defaults));
+    await AsyncStorage.setItem(userSettingsKey, JSON.stringify(defaults));
     this.cachedSettings = defaults;
     return defaults;
   }
@@ -266,10 +287,11 @@ class SettingsService {
     });
     // Update cache immediately to avoid toggle race conditions
     this.cachedSettings = next;
-    await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+    const userId = getUserId();
+    const userSettingsKey = getUserSettingsKey(userId);
+    await AsyncStorage.setItem(userSettingsKey, JSON.stringify(next));
     // Best-effort sync
     try {
-      const userId = getUserId();
       if (userId) {
         const { firestore } = getFirebase();
         const { doc, setDoc } = await import("firebase/firestore");
@@ -696,13 +718,14 @@ class SettingsService {
   }
 
   async savePayCalculation(entry: PayCalculationEntry): Promise<void> {
-    const data = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+    const userId = getUserId();
+    const userPayHistoryKey = getUserPayHistoryKey(userId);
+    const data = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
     const list: PayCalculationEntry[] = JSON.parse(data);
     list.unshift(entry);
-    await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(list));
+    await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify(list));
     // Best-effort sync to Firebase
     try {
-      const userId = getUserId();
       if (userId) {
         const { firestore } = getFirebase();
         const { collection, addDoc } = await import("firebase/firestore");
@@ -714,7 +737,9 @@ class SettingsService {
 
   async getPayHistory(): Promise<PayCalculationEntry[]> {
     try {
-      const local = await AsyncStorage.getItem(PAY_HISTORY_KEY);
+      const userId = getUserId();
+      const userPayHistoryKey = getUserPayHistoryKey(userId);
+      const local = await AsyncStorage.getItem(userPayHistoryKey);
       const list: PayCalculationEntry[] = local ? JSON.parse(local) : [];
       return list;
     } catch {
@@ -736,17 +761,21 @@ class SettingsService {
   }
 
   async updateHistoryEntry(updated: PayCalculationEntry): Promise<void> {
-    const data = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+    const userId = getUserId();
+    const userPayHistoryKey = getUserPayHistoryKey(userId);
+    const data = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
     const list: PayCalculationEntry[] = JSON.parse(data);
     const idx = list.findIndex((e) => e.id === updated.id);
     if (idx !== -1) {
       list[idx] = updated;
-      await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(list));
+      await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify(list));
     }
   }
 
   async recomputeMany(entryIds: string[]): Promise<PayCalculationEntry[]> {
-    const data = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+    const userId = getUserId();
+    const userPayHistoryKey = getUserPayHistoryKey(userId);
+    const data = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
     const list: PayCalculationEntry[] = JSON.parse(data);
     const settings = await this.getSettings();
     const version = this.computeSettingsVersion(settings);
@@ -764,10 +793,9 @@ class SettingsService {
       updated.push(next);
     }
     const nextList = Array.from(map.values());
-    await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(nextList));
+    await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify(nextList));
     // Best effort: sync updated entries to Firebase as well
     try {
-      const userId = getUserId();
       if (userId) {
         const { firestore } = getFirebase();
         const { doc, setDoc } = await import("firebase/firestore");
@@ -787,16 +815,42 @@ class SettingsService {
 
   async deletePayCalculation(entryId: string): Promise<void> {
     try {
-      const local = (await AsyncStorage.getItem(PAY_HISTORY_KEY)) || "[]";
+      const userId = getUserId();
+      const userPayHistoryKey = getUserPayHistoryKey(userId);
+      const local = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
       const list: PayCalculationEntry[] = JSON.parse(local);
       const next = list.filter((e) => e.id !== entryId);
-      await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify(next));
+      await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify(next));
     } catch {}
   }
 
   async clearPayHistory(): Promise<void> {
     try {
-      await AsyncStorage.setItem(PAY_HISTORY_KEY, JSON.stringify([]));
+      const userId = getUserId();
+      const userPayHistoryKey = getUserPayHistoryKey(userId);
+      await AsyncStorage.setItem(userPayHistoryKey, JSON.stringify([]));
+    } catch {}
+  }
+
+  // Clear all cached data for the current user
+  async clearUserData(): Promise<void> {
+    try {
+      // Clear in-memory cache
+      this.cachedSettings = null;
+      this.currentUserId = null;
+
+      // Clear user-specific AsyncStorage data
+      const userId = getUserId();
+      if (userId) {
+        const userSettingsKey = getUserSettingsKey(userId);
+        const userPayHistoryKey = getUserPayHistoryKey(userId);
+        await AsyncStorage.removeItem(userSettingsKey);
+        await AsyncStorage.removeItem(userPayHistoryKey);
+      }
+
+      // Also clear legacy global keys for backward compatibility
+      await AsyncStorage.removeItem(SETTINGS_KEY);
+      await AsyncStorage.removeItem(PAY_HISTORY_KEY);
     } catch {}
   }
 

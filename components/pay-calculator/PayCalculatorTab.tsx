@@ -10,6 +10,7 @@ import {
 } from "@/types/settings";
 import { notify } from "@/utils/notify";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Platform, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ThemedText";
@@ -33,6 +34,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   onPaySaved,
 }): React.JSX.Element => {
   const { colors } = useTheme();
+  const isFocused = useIsFocused();
   const [mode, setMode] = useState<Mode>("tracker");
   const [date, setDate] = useState<string>(getCurrentDateString());
   const [hourlyRateId, setHourlyRateId] = useState<string | null>(null);
@@ -107,8 +109,19 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       if (!settings) return;
       const base = settings.payRates.find((r) => r.type === "base");
       const ot = settings.payRates.find((r) => r.type === "overtime") || base;
-      setHourlyRateId(base?.id ?? null);
-      setOvertimeRateId(ot?.id ?? null);
+
+      // Only set rate IDs if we have valid rates
+      if (base) {
+        setHourlyRateId(base.id);
+      } else {
+        setHourlyRateId(null);
+      }
+
+      if (ot) {
+        setOvertimeRateId(ot.id);
+      } else {
+        setOvertimeRateId(null);
+      }
 
       if (mode === "tracker") {
         const hm = await settingsService.deriveTrackerHoursForDate(date);
@@ -121,6 +134,29 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     };
     void load();
   }, [mode, date, settings]);
+
+  // Refresh tracker data when the screen is focused
+  // This ensures that when users add shifts and navigate to pay calculator,
+  // the tracker mode will show updated data
+  useEffect(() => {
+    const refreshTrackerData = async (): Promise<void> => {
+      if (!isFocused || !settings || mode !== "tracker") return;
+
+      try {
+        const hm = await settingsService.deriveTrackerHoursForDate(date);
+        setTrackerHoursWorked(hm);
+
+        // Check if there are shifts for this date
+        const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
+        setHasShiftsForDate(hasShifts);
+      } catch (error) {
+        console.error("Error refreshing tracker data:", error);
+      }
+    };
+
+    // Refresh tracker data when screen is focused
+    void refreshTrackerData();
+  }, [isFocused, date, mode, settings]);
 
   // Recalculate pay whenever inputs change
   const recalc = async (): Promise<void> => {
@@ -184,26 +220,29 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
     let result = settingsService.computePay(input, settings);
 
-    // Manual override if needed
+    // Check if we have valid rates for calculation
     const savedBase = resolveRateValue(hourlyRateId);
     const savedOt = resolveRateValue(overtimeRateId) ?? savedBase;
     const manualBase = parseFloat(manualBaseRateText || "");
     const manualOt = parseFloat(manualOvertimeRateText || "");
-    const needManual =
-      !Number.isFinite(savedBase as number) ||
-      !Number.isFinite(savedOt as number);
 
-    if (needManual) {
-      const safeBase = Number.isFinite(savedBase as number)
-        ? (savedBase as number)
-        : Number.isFinite(manualBase)
-        ? manualBase
-        : 0;
-      const safeOt = Number.isFinite(savedOt as number)
-        ? (savedOt as number)
-        : Number.isFinite(manualOt)
-        ? manualOt
-        : safeBase;
+    // If no valid rates are available, show zero breakdown
+    if (!savedBase && !savedOt && manualBase <= 0 && manualOt <= 0) {
+      result = {
+        base: 0,
+        overtime: 0,
+        uplifts: 0,
+        allowances: 0,
+        gross: 0,
+        tax: 0,
+        ni: 0,
+        total: 0,
+      };
+    }
+    // If we have manual rates but no saved rates, use manual calculation
+    else if ((!savedBase || !savedOt) && (manualBase > 0 || manualOt > 0)) {
+      const baseRate = savedBase || manualBase || 0;
+      const otRate = savedOt || manualOt || baseRate;
 
       const baseHours = Math.max(
         0,
@@ -214,9 +253,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         (overtimeWorked.hours || 0) + (overtimeWorked.minutes || 0) / 60
       );
 
-      const basePay = safeBase * baseHours;
-      const otPay = safeOt * otHours;
+      const basePay = baseRate * baseHours;
+      const otPay = otRate * otHours;
       const gross = basePay + otPay;
+
+      // Apply tax and NI if configured
       const taxPct =
         typeof settings?.payRules?.tax?.percentage === "number"
           ? settings.payRules.tax.percentage
@@ -386,7 +427,22 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
             Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
             mode === "tracker" && styles.modeButtonActive,
           ]}
-          onPress={() => setMode("tracker")}
+          onPress={async () => {
+            setMode("tracker");
+            // Refresh tracker data when switching to tracker mode
+            if (settings) {
+              try {
+                const hm = await settingsService.deriveTrackerHoursForDate(
+                  date
+                );
+                setTrackerHoursWorked(hm);
+                const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
+                setHasShiftsForDate(hasShifts);
+              } catch (error) {
+                console.error("Error refreshing tracker data:", error);
+              }
+            }
+          }}
         >
           <ThemedText
             style={[

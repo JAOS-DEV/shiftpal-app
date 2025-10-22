@@ -1,17 +1,19 @@
 import { getFirebase } from "@/lib/firebase";
+import { settingsService } from "@/services/settingsService";
+import { shiftService } from "@/services/shiftService";
 import {
-    createUserWithEmailAndPassword,
-    onAuthStateChanged,
-    signInWithEmailAndPassword,
-    signOut,
-    User,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  User,
 } from "firebase/auth";
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 
 interface AuthContextValue {
@@ -49,6 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       async signOutUser() {
         await signOut(auth);
+        // Clear user data when signing out
+        await settingsService.clearUserData();
+        await shiftService.clearUserData();
       },
     }),
     [auth, user, initializing]
