@@ -1,6 +1,8 @@
 import { ThemedText } from "@/components/ThemedText";
+import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Day } from "@/types/shift";
+import { formatDate } from "@/utils/formatUtils";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useRef, useState } from "react";
 import {
@@ -31,6 +33,7 @@ export const DayRow: React.FC<DayRowProps> = ({
   onSubmissionUpdated,
 }) => {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [menuVisible, setMenuVisible] = useState(false);
   const [anchor, setAnchor] = useState<{
     x: number;
@@ -99,120 +102,82 @@ export const DayRow: React.FC<DayRowProps> = ({
   };
 
   return (
-    <View
-      style={[
-        styles.dayRow,
-        { backgroundColor: colors.card, borderColor: colors.border },
-      ]}
-    >
+    <View style={styles.dayCard}>
       <TouchableOpacity
         style={styles.dayHeader}
         onPress={onToggle}
         accessibilityLabel={`Toggle details for ${formatDateDisplay(day.date)}`}
       >
-        <View style={styles.dayInfo}>
-          <ThemedText style={styles.dayDate}>
-            {formatDateDisplay(day.date)}
-          </ThemedText>
-          <ThemedText
-            style={[styles.daySubtext, { color: colors.textSecondary }]}
-          >
-            {day.date}
-          </ThemedText>
-        </View>
-
-        <View style={styles.dayTotals}>
-          <ThemedText style={[styles.dayTotalText, { color: colors.success }]}>
-            {day.totalText}
-          </ThemedText>
-          <ThemedText
-            style={[styles.dayTotalMinutes, { color: colors.textSecondary }]}
-          >
-            ({day.totalMinutes} min)
-          </ThemedText>
-        </View>
-
-        <View style={styles.dayActions}>
-          <TouchableOpacity
-            ref={actionsRef}
-            style={styles.actionsTrigger}
-            onPress={(e) => {
-              e.stopPropagation();
-              actionsRef.current?.measureInWindow?.(
-                (x: number, y: number, w: number, h: number) => {
-                  setAnchor({ x, y, w, h });
-                  setMenuVisible(true);
-                }
-              );
-            }}
-            accessibilityLabel={`Open actions for ${formatDateDisplay(
-              day.date
-            )}`}
-          >
-            <ThemedText
-              style={[styles.actionsTriggerText, { color: colors.primary }]}
-            >
-              Actions
+        <View style={styles.dayHeaderContent}>
+          <View style={styles.daySummary}>
+            <ThemedText style={styles.dayDate}>
+              {formatDateDisplay(day.date)}
             </ThemedText>
-          </TouchableOpacity>
-
-          <ThemedText
-            style={[styles.expandIcon, { color: colors.textSecondary }]}
-          >
-            {isExpanded ? "▼" : "▶"}
-          </ThemedText>
+            <ThemedText style={styles.daySubtext}>
+              {formatDate(day.date, settings)}
+            </ThemedText>
+          </View>
+          <View style={styles.dayTotal}>
+            <ThemedText style={styles.dayTotalLabel}>Total</ThemedText>
+            <ThemedText style={styles.dayTotalValue}>
+              {day.totalText}
+            </ThemedText>
+          </View>
         </View>
+        <ThemedText style={styles.expandIcon}>
+          {isExpanded ? "▼" : "▶"}
+        </ThemedText>
       </TouchableOpacity>
 
       {isExpanded && (
-        <View
-          style={[
-            styles.shiftsContainer,
-            {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
-            },
-          ]}
-        >
-          <ThemedText
-            style={[styles.submissionCount, { color: colors.textSecondary }]}
-          >
-            {day.submissions.length} submission
-            {day.submissions.length === 1 ? "" : "s"}
-          </ThemedText>
-
-          {day.submissions.map((submission) => (
-            <SubmissionBlock
-              key={submission.id}
-              date={day.date}
-              submission={submission}
-              onDeleteSubmission={onDeleteSubmission}
-              onSubmissionUpdated={onSubmissionUpdated}
-            />
-          ))}
-
-          <View
-            style={[
-              styles.submissionTotalRow,
-              { borderTopColor: colors.border },
-            ]}
-          >
-            <ThemedText
-              style={[
-                styles.submissionTotalLabel,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Day Total:
+        <>
+          <View style={styles.shiftsContainer}>
+            <ThemedText style={styles.submissionCount}>
+              {day.submissions.length} submission
+              {day.submissions.length === 1 ? "" : "s"}
             </ThemedText>
-            <ThemedText
-              style={[styles.submissionTotalValue, { color: colors.text }]}
-            >
-              {day.totalText} ({day.totalMinutes} min)
-            </ThemedText>
+
+            {day.submissions.map((submission) => (
+              <SubmissionBlock
+                key={submission.id}
+                date={day.date}
+                submission={submission}
+                onDeleteSubmission={onDeleteSubmission}
+                onSubmissionUpdated={onSubmissionUpdated}
+              />
+            ))}
+
+            <View style={styles.submissionTotalRow}>
+              <ThemedText style={styles.submissionTotalLabel}>
+                Day Total:
+              </ThemedText>
+              <ThemedText style={styles.submissionTotalValue}>
+                {day.totalText} ({day.totalMinutes} min)
+              </ThemedText>
+            </View>
+            {computeBreaksSummary()}
           </View>
-          {computeBreaksSummary()}
-        </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              ref={actionsRef}
+              style={styles.actionsBtn}
+              onPress={() => {
+                actionsRef.current?.measureInWindow?.(
+                  (x: number, y: number, w: number, h: number) => {
+                    setAnchor({ x, y, w, h });
+                    setMenuVisible(true);
+                  }
+                );
+              }}
+              accessibilityLabel={`Open actions for ${formatDateDisplay(
+                day.date
+              )}`}
+            >
+              <ThemedText style={styles.actionsBtnText}>Actions</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
 
       <Modal

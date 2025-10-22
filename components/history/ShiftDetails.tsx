@@ -1,3 +1,5 @@
+import { useSettings } from "@/hooks/useSettings";
+import { formatTime } from "@/utils/formatUtils";
 import React from "react";
 import { View } from "react-native";
 import { ThemedText } from "../ThemedText";
@@ -31,6 +33,8 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
   shifts,
   colors,
 }) => {
+  const { settings } = useSettings();
+
   return (
     <>
       {shifts.map((shift, idx) => (
@@ -39,7 +43,8 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
           style={[styles.shiftRow, { borderColor: colors.border }]}
         >
           <ThemedText style={[styles.shiftTime, { color: colors.text }]}>
-            {shift.start} - {shift.end}
+            {formatTime(shift.start, settings)} -{" "}
+            {formatTime(shift.end, settings)}
           </ThemedText>
           <ThemedText
             style={[styles.shiftDuration, { color: colors.textSecondary }]}

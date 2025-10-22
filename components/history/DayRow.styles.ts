@@ -1,68 +1,78 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
-  dayRow: {
+  dayCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    overflow: "hidden",
+    borderColor: "#E5E5EA",
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   dayHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    justifyContent: "space-between",
   },
-  dayInfo: {
+  dayHeaderContent: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  daySummary: {
     flex: 1,
   },
   dayDate: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   daySubtext: {
-    fontSize: 12,
-    opacity: 0.6,
+    fontSize: 14,
+    color: "#6C757D",
   },
-  dayTotals: {
+  dayTotal: {
     alignItems: "flex-end",
-    marginRight: 12,
+    marginLeft: 16,
   },
-  dayTotalText: {
-    fontSize: 16,
+  dayTotalLabel: {
+    fontSize: 12,
+    color: "#6C757D",
+    marginBottom: 2,
+  },
+  dayTotalValue: {
+    fontSize: 18,
     fontWeight: "700",
-  },
-  dayTotalMinutes: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  dayActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  actionsTrigger: {},
-  actionsTriggerText: {
-    fontSize: 12,
-    fontWeight: "500",
+    color: "#007AFF",
   },
   expandIcon: {
-    fontSize: 12,
-    opacity: 0.6,
+    fontSize: 16,
+    color: "#6C757D",
+    marginLeft: 12,
   },
   shiftsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
+    marginTop: 16,
   },
   submissionCount: {
     fontSize: 12,
-    marginTop: 12,
+    color: "#6C757D",
     marginBottom: 8,
   },
   submissionTotalRow: {
     borderTopWidth: 1,
-    marginTop: 4,
-    paddingTop: 8,
+    borderTopColor: "#F8F9FA",
+    marginTop: 12,
+    paddingTop: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -70,14 +80,35 @@ export const styles = StyleSheet.create({
   submissionTotalLabel: {
     fontSize: 14,
     fontWeight: "600",
+    color: "#6C757D",
   },
   submissionTotalValue: {
     fontSize: 14,
     fontWeight: "600",
+    color: "#000",
   },
   breakSummaryText: {
     fontSize: 12,
-    marginTop: 4,
+    color: "#6C757D",
+    marginTop: 8,
+  },
+  actionsRow: {
+    marginTop: 16,
+    alignItems: "flex-end",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F8F9FA",
+  },
+  actionsBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  actionsBtnText: {
+    color: "#007AFF",
+    fontWeight: "600",
   },
   menuBackdrop: {
     flex: 1,

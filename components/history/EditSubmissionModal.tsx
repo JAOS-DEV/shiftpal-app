@@ -1,4 +1,6 @@
+import { useSettings } from "@/hooks/useSettings";
 import { shiftService } from "@/services/shiftService";
+import { formatDate } from "@/utils/formatUtils";
 import { notify } from "@/utils/notify";
 import { calculateDuration, formatDurationText } from "@/utils/timeUtils";
 import React, { useEffect, useState } from "react";
@@ -53,6 +55,7 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { settings } = useSettings();
   const [selectedDate, setSelectedDate] = useState(originalDate);
   const [shifts, setShifts] = useState<
     Array<{
@@ -237,7 +240,7 @@ export const EditSubmissionModal: React.FC<EditSubmissionModalProps> = ({
                 onPress={() => setShowDatePicker(true)}
               >
                 <ThemedText style={styles.dateButtonText}>
-                  {selectedDate}
+                  {formatDate(selectedDate, settings)}
                 </ThemedText>
               </TouchableOpacity>
             </View>

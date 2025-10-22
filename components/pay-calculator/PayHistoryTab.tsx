@@ -6,6 +6,7 @@ import {
   HoursAndMinutes,
   PayCalculationEntry,
 } from "@/types/settings";
+import { getCurrencySymbol } from "@/utils/formatUtils";
 import { notify } from "@/utils/notify";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useMemo } from "react";
@@ -43,15 +44,7 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
     isInCurrentPeriod,
   } = usePeriodFilter({ settings });
 
-  const currencySymbol = useMemo(
-    () =>
-      settings?.preferences?.currency === "USD"
-        ? "$"
-        : settings?.preferences?.currency === "EUR"
-        ? "€"
-        : "£",
-    [settings?.preferences?.currency]
-  );
+  const currencySymbol = useMemo(() => getCurrencySymbol(settings), [settings]);
 
   const filteredHistory = useMemo(() => {
     if (currentPeriod === "all") return payHistory;

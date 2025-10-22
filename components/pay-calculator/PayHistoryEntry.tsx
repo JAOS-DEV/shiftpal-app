@@ -4,6 +4,7 @@ import {
   HoursAndMinutes,
   PayCalculationEntry,
 } from "@/types/settings";
+import { formatTime } from "@/utils/formatUtils";
 import React, { useState } from "react";
 import {
   Alert,
@@ -54,7 +55,11 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
   const formatTimeOfDay = (ts: number): string => {
     try {
       const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const timeString = d.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return formatTime(timeString, settings);
     } catch {
       return "";
     }

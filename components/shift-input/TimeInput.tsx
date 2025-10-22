@@ -1,4 +1,6 @@
+import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";
+import { convertTo12Hour, convertTo24Hour } from "@/utils/formatUtils";
 import {
   calculateDuration,
   formatDurationText,
@@ -35,11 +37,25 @@ export const TimeInput: React.FC<TimeInputProps> = ({
   style,
 }) => {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [prevStartTime, setPrevStartTime] = useState(startTime);
   const [prevEndTime, setPrevEndTime] = useState(endTime);
   const endTimeRef = useRef<TextInput>(null);
 
+  const timeFormat = settings?.preferences?.timeFormat || "24h";
+  const is12Hour = timeFormat === "12h";
+
   const validateInputs = (start: string, end: string): boolean => {
+    if (is12Hour) {
+      // For 12-hour format, convert to 24-hour for validation
+      const start24 = convertTo24Hour(start);
+      const end24 = convertTo24Hour(end);
+      return (
+        isValidTimeFormat(start24) &&
+        isValidTimeFormat(end24) &&
+        isValidTimeRange(start24, end24)
+      );
+    }
     return (
       isValidTimeFormat(start) &&
       isValidTimeFormat(end) &&
@@ -48,41 +64,70 @@ export const TimeInput: React.FC<TimeInputProps> = ({
   };
 
   const formatTimeInput = (text: string, previousValue: string): string => {
-    const numbers = text.replace(/\D/g, "");
-    const prevNumbers = previousValue.replace(/\D/g, "");
+    if (is12Hour) {
+      // For 12-hour format, handle AM/PM
+      const cleanText = text.replace(/[^0-9APMapm]/g, "");
+      const prevClean = previousValue.replace(/[^0-9APMapm]/g, "");
 
-    // If user is deleting characters, don't auto-format
-    if (numbers.length < prevNumbers.length) {
+      // If user is deleting characters, don't auto-format
+      if (cleanText.length < prevClean.length) {
+        return cleanText;
+      }
+
+      // Auto-format with colon when we have exactly 2 digits
+      if (cleanText.length === 2 && cleanText.length > prevClean.length) {
+        return cleanText + ":";
+      } else if (cleanText.length > 2 && !cleanText.match(/[APMapm]/)) {
+        const hours = cleanText.slice(0, 2);
+        const minutes = cleanText.slice(2, 4);
+        return hours + ":" + minutes;
+      }
+
+      return cleanText;
+    } else {
+      // 24-hour format (existing logic)
+      const numbers = text.replace(/\D/g, "");
+      const prevNumbers = previousValue.replace(/\D/g, "");
+
+      // If user is deleting characters, don't auto-format
+      if (numbers.length < prevNumbers.length) {
+        return numbers;
+      }
+
+      // If user is trying to delete the colon
+      if (
+        text.length < previousValue.length &&
+        numbers.length === prevNumbers.length
+      ) {
+        return numbers;
+      }
+
+      // Auto-format with colon when we have exactly 2 digits
+      if (numbers.length === 2 && numbers.length > prevNumbers.length) {
+        return numbers + ":";
+      } else if (numbers.length > 2) {
+        const hours = numbers.slice(0, 2);
+        const minutes = numbers.slice(2, 4);
+        return hours + ":" + minutes;
+      }
+
       return numbers;
     }
-
-    // If user is trying to delete the colon
-    if (
-      text.length < previousValue.length &&
-      numbers.length === prevNumbers.length
-    ) {
-      return numbers;
-    }
-
-    // Auto-format with colon when we have exactly 2 digits
-    if (numbers.length === 2 && numbers.length > prevNumbers.length) {
-      return numbers + ":";
-    } else if (numbers.length > 2) {
-      const hours = numbers.slice(0, 2);
-      const minutes = numbers.slice(2, 4);
-      return hours + ":" + minutes;
-    }
-
-    return numbers;
   };
 
   const handleStartTimeChange = (text: string): void => {
     const formatted = formatTimeInput(text, prevStartTime);
     setPrevStartTime(formatted);
-    onStartTimeChange(formatted);
+
+    // Convert to 24-hour format for storage if needed
+    const timeToStore = is12Hour ? convertTo24Hour(formatted) : formatted;
+    onStartTimeChange(timeToStore);
 
     // Auto-focus end time when start time is valid
-    if (isValidTimeFormat(formatted) && endTimeRef.current) {
+    const isValid = is12Hour
+      ? isValidTimeFormat(convertTo24Hour(formatted))
+      : isValidTimeFormat(formatted);
+    if (isValid && endTimeRef.current) {
       endTimeRef.current.focus();
     }
   };
@@ -90,7 +135,10 @@ export const TimeInput: React.FC<TimeInputProps> = ({
   const handleEndTimeChange = (text: string): void => {
     const formatted = formatTimeInput(text, prevEndTime);
     setPrevEndTime(formatted);
-    onEndTimeChange(formatted);
+
+    // Convert to 24-hour format for storage if needed
+    const timeToStore = is12Hour ? convertTo24Hour(formatted) : formatted;
+    onEndTimeChange(timeToStore);
   };
 
   const getDurationPreview = (): string => {
@@ -102,6 +150,10 @@ export const TimeInput: React.FC<TimeInputProps> = ({
   };
 
   const isValid = validateInputs(startTime, endTime);
+
+  // Convert times for display if using 12-hour format
+  const displayStartTime = is12Hour ? convertTo12Hour(startTime) : startTime;
+  const displayEndTime = is12Hour ? convertTo12Hour(endTime) : endTime;
 
   return (
     <View style={style}>
@@ -116,12 +168,12 @@ export const TimeInput: React.FC<TimeInputProps> = ({
                 ? styles.defaultInput
                 : styles.invalidInput,
             ]}
-            value={startTime}
+            value={displayStartTime}
             onChangeText={handleStartTimeChange}
-            placeholder={startPlaceholder}
+            placeholder={is12Hour ? "9:00 AM" : startPlaceholder}
             placeholderTextColor="#999"
             keyboardType="numeric"
-            maxLength={5}
+            maxLength={is12Hour ? 8 : 5}
             returnKeyType="next"
             onSubmitEditing={() => endTimeRef.current?.focus()}
             accessibilityLabel="Start time input"
@@ -139,12 +191,12 @@ export const TimeInput: React.FC<TimeInputProps> = ({
                 ? styles.defaultInput
                 : styles.invalidInput,
             ]}
-            value={endTime}
+            value={displayEndTime}
             onChangeText={handleEndTimeChange}
-            placeholder={endPlaceholder}
+            placeholder={is12Hour ? "5:00 PM" : endPlaceholder}
             placeholderTextColor="#999"
             keyboardType="numeric"
-            maxLength={5}
+            maxLength={is12Hour ? 8 : 5}
             returnKeyType="done"
             accessibilityLabel="End time input"
           />

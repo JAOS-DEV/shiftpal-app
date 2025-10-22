@@ -1,3 +1,5 @@
+import { useSettings } from "@/hooks/useSettings";
+import { formatTime } from "@/utils/formatUtils";
 import React from "react";
 import { View } from "react-native";
 import { ThemedText } from "../ThemedText";
@@ -20,6 +22,8 @@ export const BreakDetails: React.FC<BreakDetailsProps> = ({
   breaks,
   colors,
 }) => {
+  const { settings } = useSettings();
+
   if (!breaks || breaks.length === 0) {
     return null;
   }
@@ -40,16 +44,22 @@ export const BreakDetails: React.FC<BreakDetailsProps> = ({
             <ThemedText
               style={[styles.breakDetailTime, { color: colors.text }]}
             >
-              {new Date(b.start).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatTime(
+                new Date(b.start).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                settings
+              )}
               {" - "}
               {b.end
-                ? new Date(b.end).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                ? formatTime(
+                    new Date(b.end).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                    settings
+                  )
                 : "ongoing"}
             </ThemedText>
             <View style={styles.breakDurationChip}>

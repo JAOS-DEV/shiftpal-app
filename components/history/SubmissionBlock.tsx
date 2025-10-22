@@ -1,6 +1,8 @@
 import { ThemedText } from "@/components/ThemedText";
+import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Submission } from "@/types/shift";
+import { formatTime } from "@/utils/formatUtils";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import * as Haptics from "expo-haptics";
 import React, { useRef, useState } from "react";
@@ -32,6 +34,7 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
   onSubmissionUpdated,
 }) => {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [menuVisible, setMenuVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [duplicateModalVisible, setDuplicateModalVisible] = useState(false);
@@ -108,10 +111,13 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
           style={[styles.submittedAt, { color: colors.textSecondary }]}
         >
           Submitted at{" "}
-          {new Date(submission.submittedAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {formatTime(
+            new Date(submission.submittedAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            settings
+          )}
         </ThemedText>
 
         <TouchableOpacity
