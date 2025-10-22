@@ -55,4 +55,22 @@ export const styles = StyleSheet.create({
   modeTextActive: {
     color: "white", // Will be overridden by theme
   },
+  existingCalculationBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FF9500", // Will be overridden by theme
+    backgroundColor: "#FF950020", // Will be overridden by theme
+  },
+  existingCalculationText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  existingCalculationSubtext: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
 });

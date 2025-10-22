@@ -459,22 +459,20 @@ class SettingsService {
     let nightUplift = 0;
     if (
       nightRules &&
-      (nightRules as any)?.enabled !== false &&
+      nightRules?.enabled === true &&
       (nightBaseHours > 0 || nightOvertimeHours > 0)
     ) {
       // Compute night uplift per-hour relative to base rate
       const nightUpliftPerHour = (() => {
+        const mode = nightRules.mode || "fixed";
         if (
-          nightRules.type === "percentage" &&
-          typeof nightRules.value === "number"
+          mode === "multiplier" &&
+          typeof nightRules.multiplier === "number"
         ) {
-          return (baseRate?.value ?? 0) * (nightRules.value / 100);
+          return (baseRate?.value ?? 0) * (nightRules.multiplier - 1);
         }
-        if (
-          nightRules.type === "fixed" &&
-          typeof nightRules.value === "number"
-        ) {
-          return nightRules.value;
+        if (mode === "fixed" && typeof nightRules.uplift === "number") {
+          return nightRules.uplift;
         }
         return 0;
       })();
@@ -495,8 +493,34 @@ class SettingsService {
       }
     }
 
-    // Uplifts (night/weekend) and allowances — placeholder totals (0) for now
-    const uplifts = nightUplift;
+    // Calculate Weekend uplift separately
+    let weekendUplift = 0;
+    if (
+      this.isWeekendDate(input.date, weekendRules) &&
+      weekendRules?.enabled === true
+    ) {
+      const weekendUpliftPerHour = (() => {
+        const mode = weekendRules.mode || "multiplier";
+        if (
+          mode === "multiplier" &&
+          typeof weekendRules.multiplier === "number"
+        ) {
+          return (baseRate?.value ?? 0) * (weekendRules.multiplier - 1);
+        }
+        if (mode === "fixed" && typeof weekendRules.uplift === "number") {
+          return weekendRules.uplift;
+        }
+        return 0;
+      })();
+
+      if (weekendUpliftPerHour > 0) {
+        // Apply weekend uplift to all hours (base + overtime)
+        weekendUplift = weekendUpliftPerHour * (baseHours + overtimeHours);
+      }
+    }
+
+    // Uplifts (night + weekend) and allowances
+    const uplifts = nightUplift + weekendUplift;
     const allowances = this.computeAllowances(
       settings.payRules?.allowances || [],
       baseHours + overtimeHours
@@ -535,6 +559,8 @@ class SettingsService {
       base: this.toMoney(basePay),
       overtime: this.toMoney(overtimePay),
       uplifts: this.toMoney(uplifts),
+      nightUplift: this.toMoney(nightUplift),
+      weekendUplift: this.toMoney(weekendUplift),
       allowances: this.toMoney(allowances),
       gross: this.toMoney(gross),
       tax: this.toMoney(tax),
@@ -551,30 +577,98 @@ class SettingsService {
     date: string,
     settings: AppSettings
   ): Promise<{ base: HoursAndMinutes; overtime: HoursAndMinutes }> {
-    // Collect all shifts for the date: unsubmitted + submitted
+    // Check if overtime rules are enabled
+    const ot = settings?.payRules?.overtime;
+    if (!ot || ot.enabled === false) {
+      // If overtime is disabled, return all hours as base (no overtime)
+      // Include both submitted and unsubmitted shifts for tracker mode
+      const unsubmitted = await shiftService.getShiftsForDate(date);
+
+      // Get submitted shifts for the same date
+      let submittedShifts: Array<{
+        start: string;
+        end: string;
+        durationMinutes?: number;
+      }> = [];
+      try {
+        const submittedDays = await shiftService.getSubmittedDays({
+          type: "all",
+        });
+        const dayData = submittedDays.find((d) => d.date === date);
+        if (dayData && dayData.submissions) {
+          // Flatten all submissions for this day
+          submittedShifts = dayData.submissions.flatMap((submission) =>
+            submission.shifts.map((shift) => ({
+              start: shift.start,
+              end: shift.end,
+              durationMinutes: shift.durationMinutes,
+            }))
+          );
+        }
+      } catch {
+        // If we can't get submitted days, just use unsubmitted
+      }
+
+      const allShifts = [...unsubmitted, ...submittedShifts] as any;
+      const totalMinutes = allShifts.reduce(
+        (sum: number, sh: any) => sum + (sh.durationMinutes ?? 0),
+        0
+      );
+      return {
+        base: {
+          hours: Math.floor(totalMinutes / 60),
+          minutes: totalMinutes % 60,
+        },
+        overtime: { hours: 0, minutes: 0 },
+      };
+    }
+
+    // Check if pay calculation already exists for this date
+    const hasCalculation = await this.hasPayCalculationForDate(date);
+    if (hasCalculation) {
+      // If pay has already been calculated for this date, return 0 hours
+      // to prevent double-counting
+      return {
+        base: { hours: 0, minutes: 0 },
+        overtime: { hours: 0, minutes: 0 },
+      };
+    }
+
+    // Include both submitted and unsubmitted shifts for tracker mode
+    // This allows users to calculate pay for all their hours for the day
+
+    // Get unsubmitted shifts
     const unsubmitted = await shiftService.getShiftsForDate(date);
+
+    // Get submitted shifts for the same date
     let submittedShifts: Array<{
       start: string;
       end: string;
       durationMinutes?: number;
     }> = [];
     try {
-      const days = await shiftService.getSubmittedDays({ type: "all" });
-      const day = days.find((d) => d.date === date);
-      if (day?.submissions?.length) {
-        for (const s of day.submissions) {
-          submittedShifts.push(...((s.shifts || []) as any));
-        }
+      const submittedDays = await shiftService.getSubmittedDays({
+        type: "all",
+      });
+      const dayData = submittedDays.find((d) => d.date === date);
+      if (dayData && dayData.submissions) {
+        // Flatten all submissions for this day
+        submittedShifts = dayData.submissions.flatMap((submission) =>
+          submission.shifts.map((shift) => ({
+            start: shift.start,
+            end: shift.end,
+            durationMinutes: shift.durationMinutes,
+          }))
+        );
       }
-    } catch {}
-    const allShifts: Array<{
-      start: string;
-      end: string;
-      durationMinutes?: number;
-    }> = [...unsubmitted, ...submittedShifts] as any;
+    } catch {
+      // If we can't get submitted days, just use unsubmitted
+    }
+
+    const allShifts = [...unsubmitted, ...submittedShifts] as any;
 
     const totalMinutes = allShifts.reduce(
-      (sum, sh) => sum + (sh.durationMinutes ?? 0),
+      (sum: number, sh: any) => sum + (sh.durationMinutes ?? 0),
       0
     );
     if (totalMinutes <= 0) {
@@ -585,10 +679,12 @@ class SettingsService {
     }
 
     // Determine base vs overtime minutes for the date according to active basis
-    const ot = (settings?.payRules?.overtime || {}) as any;
+    // (ot is already declared above)
     const active = ot?.active as "daily" | "weekly" | undefined;
     let baseMinutes = totalMinutes;
     let otMinutes = 0;
+
+    // Check new nested structure first
     if (active === "daily" && typeof ot?.daily?.threshold === "number") {
       const thresholdMin = Math.max(0, ot.daily.threshold * 60);
       baseMinutes = Math.min(totalMinutes, thresholdMin);
@@ -622,6 +718,61 @@ class SettingsService {
       }
     }
 
+    // Fallback: If active is undefined but we have daily rules, use them
+    if (
+      otMinutes === 0 &&
+      baseMinutes === totalMinutes &&
+      !active &&
+      typeof ot?.daily?.threshold === "number"
+    ) {
+      const thresholdMin = Math.max(0, ot.daily.threshold * 60);
+      baseMinutes = Math.min(totalMinutes, thresholdMin);
+      otMinutes = Math.max(0, totalMinutes - baseMinutes);
+
+      // Auto-fix: Set active to "daily" if it's undefined but daily rules exist
+      try {
+        await this.setPayRules({
+          overtime: {
+            ...ot,
+            active: "daily",
+          } as any,
+        });
+      } catch (error) {}
+    }
+
+    // Fallback to legacy fields if new structure not found
+    if (otMinutes === 0 && baseMinutes === totalMinutes) {
+      if (typeof ot.dailyThreshold === "number") {
+        const thresholdMin = Math.max(0, ot.dailyThreshold * 60);
+        baseMinutes = Math.min(totalMinutes, thresholdMin);
+        otMinutes = Math.max(0, totalMinutes - baseMinutes);
+      } else if (typeof ot.weeklyThreshold === "number") {
+        const thresholdMin = Math.max(0, ot.weeklyThreshold * 60);
+        const startDay = settings?.payRules?.payPeriod?.startDay || "Monday";
+        const weekInfo = await this.getWeekRange(date, startDay);
+        // Sum minutes before the given date in the same week
+        let prevMinutes = 0;
+        try {
+          const days = await shiftService.getSubmittedDays({ type: "all" });
+          for (const d of days) {
+            if (d.date >= weekInfo.start && d.date < date) {
+              prevMinutes += Math.max(0, d.totalMinutes || 0);
+            }
+          }
+        } catch {}
+        if (prevMinutes >= thresholdMin) {
+          baseMinutes = 0;
+          otMinutes = totalMinutes;
+        } else if (prevMinutes + totalMinutes <= thresholdMin) {
+          baseMinutes = totalMinutes;
+          otMinutes = 0;
+        } else {
+          baseMinutes = thresholdMin - prevMinutes;
+          otMinutes = Math.max(0, totalMinutes - baseMinutes);
+        }
+      }
+    }
+
     return {
       base: { hours: Math.floor(baseMinutes / 60), minutes: baseMinutes % 60 },
       overtime: { hours: Math.floor(otMinutes / 60), minutes: otMinutes % 60 },
@@ -629,15 +780,31 @@ class SettingsService {
   }
 
   private isWeekendDate(date: string, weekendRules: any): boolean {
+    // Validate inputs
+    if (!date || typeof date !== "string") {
+      console.warn("Invalid date format:", date);
+      return false;
+    }
+
+    if (!weekendRules || !weekendRules.days) {
+      return false;
+    }
+
     try {
       const d = new Date(date + "T00:00:00");
+      if (isNaN(d.getTime())) {
+        console.warn("Invalid date:", date);
+        return false;
+      }
+
       const day = d.getDay(); // 0=Sun,6=Sat
       const days: string[] = Array.isArray(weekendRules?.days)
         ? weekendRules.days
         : ["Sat", "Sun"];
       const map: Record<number, string> = { 0: "Sun", 6: "Sat" };
       return days.includes(map[day]);
-    } catch {
+    } catch (error) {
+      console.warn("Error checking weekend date:", error);
       return false;
     }
   }
@@ -648,31 +815,8 @@ class SettingsService {
     weekendRules: any,
     stackingWithOther: boolean
   ): number {
-    if (!rate) return 0;
-    if (!this.isWeekendDate(date, weekendRules)) return rate;
-    if (!weekendRules) return rate;
-    const mode = weekendRules?.mode as "multiplier" | "fixed" | undefined;
-    const multiplier = weekendRules?.multiplier;
-    const uplift = weekendRules?.uplift;
-    if (mode === "multiplier" && typeof multiplier === "number") {
-      return rate * multiplier;
-    }
-    if (mode === "fixed" && typeof uplift === "number") {
-      return rate + uplift;
-    }
-    // Legacy support: type/value
-    if (
-      weekendRules?.type === "percentage" &&
-      typeof weekendRules?.value === "number"
-    ) {
-      return rate * (1 + weekendRules.value / 100);
-    }
-    if (
-      weekendRules?.type === "fixed" &&
-      typeof weekendRules?.value === "number"
-    ) {
-      return rate + weekendRules.value;
-    }
+    // Weekend uplift is now calculated separately as an uplift line item
+    // Return the original rate without applying weekend uplift
     return rate;
   }
 
@@ -693,6 +837,14 @@ class SettingsService {
   }
 
   async savePayCalculation(entry: PayCalculationEntry): Promise<void> {
+    // Check if pay calculation already exists for this date
+    const hasExisting = await this.hasPayCalculationForDate(entry.input.date);
+    if (hasExisting) {
+      throw new Error(
+        `Pay calculation already exists for ${entry.input.date}. Please delete the existing calculation first.`
+      );
+    }
+
     const userId = getUserId();
     const userPayHistoryKey = getUserPayHistoryKey(userId);
     const data = (await AsyncStorage.getItem(userPayHistoryKey)) || "[]";
@@ -719,6 +871,45 @@ class SettingsService {
       return list;
     } catch {
       return [];
+    }
+  }
+
+  /**
+   * Check if pay calculation already exists for a specific date
+   */
+  async hasPayCalculationForDate(date: string): Promise<boolean> {
+    try {
+      const payHistory = await this.getPayHistory();
+      return payHistory.some((entry) => entry.input.date === date);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get the total hours that have already been calculated and saved to pay history for a date
+   */
+  async getCalculatedHoursForDate(
+    date: string
+  ): Promise<{ base: HoursAndMinutes; overtime: HoursAndMinutes }> {
+    try {
+      const payHistory = await this.getPayHistory();
+      const entry = payHistory.find((e) => e.input.date === date);
+      if (!entry) {
+        return {
+          base: { hours: 0, minutes: 0 },
+          overtime: { hours: 0, minutes: 0 },
+        };
+      }
+      return {
+        base: entry.input.hoursWorked,
+        overtime: entry.input.overtimeWorked,
+      };
+    } catch {
+      return {
+        base: { hours: 0, minutes: 0 },
+        overtime: { hours: 0, minutes: 0 },
+      };
     }
   }
 
@@ -760,20 +951,59 @@ class SettingsService {
       // Also clear legacy global keys for backward compatibility
       await AsyncStorage.removeItem(SETTINGS_KEY);
       await AsyncStorage.removeItem(PAY_HISTORY_KEY);
+
+      // Clear rate preference keys that persist across sessions
+      await AsyncStorage.removeItem("shiftpal.preferences.last_base_rate_id");
+      await AsyncStorage.removeItem(
+        "shiftpal.preferences.last_overtime_rate_id"
+      );
+
+      // Clear UI preference keys
+      await AsyncStorage.removeItem("shiftpal.ui.active_tab");
+
+      // Clear input mode and time preference keys
+      await AsyncStorage.removeItem("shiftpal.preferences.input_mode");
+      await AsyncStorage.removeItem("shiftpal.preferences.include_breaks");
+      await AsyncStorage.removeItem("shiftpal.preferences.manual_start_time");
+      await AsyncStorage.removeItem("shiftpal.preferences.manual_end_time");
+
+      // Clear theme preference
+      await AsyncStorage.removeItem("theme_mode");
     } catch {}
   }
 
   async deriveTrackerHoursForDate(date: string): Promise<HoursAndMinutes> {
-    // Sum unsubmitted + submitted totals for the same date (no double-counting between stores)
-    const shifts = await shiftService.getShiftsForDate(date);
-    const unsubmitted = shiftService.calculateDayTotal(shifts).totalMinutes;
-    let submitted = 0;
+    // Check if pay calculation already exists for this date
+    const hasCalculation = await this.hasPayCalculationForDate(date);
+    if (hasCalculation) {
+      // If pay has already been calculated for this date, return 0 hours
+      // to prevent double-counting
+      return { hours: 0, minutes: 0 };
+    }
+
+    // Include both submitted and unsubmitted hours for tracker mode
+    // This allows users to calculate pay for all their hours for the day
+
+    // Get unsubmitted shifts
+    const unsubmittedShifts = await shiftService.getShiftsForDate(date);
+    const unsubmittedMinutes =
+      shiftService.calculateDayTotal(unsubmittedShifts).totalMinutes;
+
+    // Get submitted shifts for the same date
+    let submittedMinutes = 0;
     try {
-      const days = await shiftService.getSubmittedDays({ type: "all" });
-      const day = days.find((d) => d.date === date);
-      submitted = Math.max(0, day?.totalMinutes || 0);
-    } catch {}
-    const totalMinutes = Math.max(0, (unsubmitted || 0) + (submitted || 0));
+      const submittedDays = await shiftService.getSubmittedDays({
+        type: "all",
+      });
+      const dayData = submittedDays.find((d) => d.date === date);
+      if (dayData) {
+        submittedMinutes = dayData.totalMinutes || 0;
+      }
+    } catch {
+      // If we can't get submitted days, just use unsubmitted
+    }
+
+    const totalMinutes = Math.max(0, unsubmittedMinutes + submittedMinutes);
     return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
   }
 
@@ -786,33 +1016,59 @@ class SettingsService {
     settings: AppSettings
   ): Promise<{ nightBase: HoursAndMinutes; nightOvertime: HoursAndMinutes }> {
     const night = settings?.payRules?.night;
-    if (!night || (!night.start && !night.end)) {
+    if (!night || night.enabled !== true || (!night.start && !night.end)) {
       return {
         nightBase: { hours: 0, minutes: 0 },
         nightOvertime: { hours: 0, minutes: 0 },
       };
     }
 
-    // Collect all shifts for the date: unsubmitted + submitted
+    // Check if pay calculation already exists for this date
+    const hasCalculation = await this.hasPayCalculationForDate(date);
+    if (hasCalculation) {
+      // If pay has already been calculated for this date, return 0 hours
+      // to prevent double-counting
+      return {
+        nightBase: { hours: 0, minutes: 0 },
+        nightOvertime: { hours: 0, minutes: 0 },
+      };
+    }
+
+    // Include both submitted and unsubmitted shifts for tracker mode
+    // This allows users to calculate pay for all their hours for the day
+
+    // Get unsubmitted shifts
     const unsubmitted = await shiftService.getShiftsForDate(date);
-    let submittedShifts: any[] = [];
-    try {
-      const days = await shiftService.getSubmittedDays({ type: "all" });
-      const day = days.find((d) => d.date === date);
-      if (day?.submissions?.length) {
-        for (const s of day.submissions) {
-          submittedShifts.push(...(s.shifts || []));
-        }
-      }
-    } catch {}
-    const allShifts: Array<{
+
+    // Get submitted shifts for the same date
+    let submittedShifts: Array<{
       start: string;
       end: string;
       durationMinutes?: number;
-    }> = [...unsubmitted, ...submittedShifts] as any;
+    }> = [];
+    try {
+      const submittedDays = await shiftService.getSubmittedDays({
+        type: "all",
+      });
+      const dayData = submittedDays.find((d) => d.date === date);
+      if (dayData && dayData.submissions) {
+        // Flatten all submissions for this day
+        submittedShifts = dayData.submissions.flatMap((submission) =>
+          submission.shifts.map((shift) => ({
+            start: shift.start,
+            end: shift.end,
+            durationMinutes: shift.durationMinutes,
+          }))
+        );
+      }
+    } catch {
+      // If we can't get submitted days, just use unsubmitted
+    }
+
+    const allShifts = [...unsubmitted, ...submittedShifts] as any;
 
     const totalMinutes = allShifts.reduce(
-      (sum, sh) => sum + (sh.durationMinutes ?? 0),
+      (sum: number, sh: any) => sum + (sh.durationMinutes ?? 0),
       0
     );
     if (totalMinutes <= 0) {
@@ -825,8 +1081,21 @@ class SettingsService {
     // Compute night window minutes overlapped by shifts
     const ns = typeof night.start === "string" ? timeToMinutes(night.start) : 0;
     const ne = typeof night.end === "string" ? timeToMinutes(night.end) : 0;
+
+    // Validate night time range
+    if (ns < 0 || ns >= 1440 || ne < 0 || ne >= 1440) {
+      console.warn("Invalid night time range:", {
+        start: night.start,
+        end: night.end,
+      });
+      return {
+        nightBase: { hours: 0, minutes: 0 },
+        nightOvertime: { hours: 0, minutes: 0 },
+      };
+    }
     const nightMinutes = allShifts.reduce(
-      (sum, sh) => sum + this.overlapWithNight(sh.start, sh.end, ns, ne),
+      (sum: number, sh: any) =>
+        sum + this.overlapWithNight(sh.start, sh.end, ns, ne),
       0
     );
 
@@ -876,48 +1145,17 @@ class SettingsService {
         nightOvertime: { hours: 0, minutes: 0 },
       };
     }
-    // Chronological allocation for daily basis: count night minutes falling after threshold as OT night
-    let nightBase = nightMinutes;
+    // Simplified proportional allocation: split night hours based on base/overtime ratio
+    let nightBase = 0;
     let nightOt = 0;
-    if (active === "daily" && typeof ot?.daily?.threshold === "number") {
-      // Build per-minute mask across the day for shifts and night window, then walk from 0..1440
-      // This avoids proportional splitting and matches real-time accumulation.
-      const thresholdMin = Math.max(0, ot.daily.threshold * 60);
-      // Create timeline occupancy for the day from recorded shifts
-      const occ: boolean[] = new Array(1440).fill(false);
-      for (const sh of allShifts) {
-        const s = timeToMinutes(sh.start);
-        let e = timeToMinutes(sh.end);
-        if (e <= s) e += 1440; // overnight
-        for (let m = s; m < e; m++) occ[m % 1440] = true;
-      }
-      // Night window minutes
-      const nightMask: boolean[] = new Array(1440).fill(false);
-      const intervals: Array<[number, number]> = [];
-      if (ne > ns) intervals.push([ns, ne]);
-      else intervals.push([ns, ne + 1440]);
-      for (const [a, b] of intervals) {
-        for (let m = a; m < b; m++) nightMask[m % 1440] = true;
-      }
-      // Walk day timeline to accumulate base vs OT minutes chronologically
-      let workedSoFar = 0;
-      let baseNight = 0;
-      let otNight = 0;
-      for (let minute = 0; minute < 1440; minute++) {
-        if (!occ[minute]) continue;
-        const isNight = nightMask[minute];
-        const isBase = workedSoFar < thresholdMin;
-        if (isNight) {
-          if (isBase) baseNight++;
-          else otNight++;
-        }
-        workedSoFar++;
-      }
-      nightBase = baseNight;
-      nightOt = otNight;
-    } else {
-      // Weekly or unspecified basis: fall back to proportional split to keep behavior reasonable across days
-      nightBase = Math.round((nightMinutes * baseMinutes) / totalMinutes);
+
+    if (totalMinutes > 0) {
+      // Calculate the proportion of base vs overtime hours
+      const baseRatio = baseMinutes / totalMinutes;
+      const overtimeRatio = otMinutes / totalMinutes;
+
+      // Allocate night hours proportionally
+      nightBase = Math.round(nightMinutes * baseRatio);
       nightOt = Math.max(0, nightMinutes - nightBase);
     }
     return {

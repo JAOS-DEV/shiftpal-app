@@ -1,13 +1,14 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { OvertimeRules, PayRules } from "@/types/settings";
+import { AppSettings, OvertimeRules, PayRules } from "@/types/settings";
 import React from "react";
 import {
-    Modal,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
@@ -42,21 +43,6 @@ export const OvertimeEditModal: React.FC<OvertimeEditModalProps> = ({
     return rule?.threshold != null ? String(rule.threshold) : "";
   };
 
-  const getMode = (): string => {
-    const ot: OvertimeRules = settings?.payRules?.overtime || {};
-    const active = getActiveBasis();
-    return (ot[active as keyof OvertimeRules] as any)?.mode || "fixed";
-  };
-
-  const getValue = (): string => {
-    const ot: OvertimeRules = settings?.payRules?.overtime || {};
-    const active = getActiveBasis();
-    const rule = ot[active as keyof OvertimeRules] as any;
-    return String(
-      (rule?.mode || "fixed") === "multiplier" ? rule?.multiplier ?? "" : rule?.uplift ?? ""
-    );
-  };
-
   const handleBasisChange = (v: string): void => {
     updatePayRules({
       overtime: {
@@ -74,37 +60,7 @@ export const OvertimeEditModal: React.FC<OvertimeEditModalProps> = ({
       overtime: {
         ...ot,
         [active]: { ...(ot[active] || {}), threshold: n },
-        enabled: true,
-      } as any,
-    });
-  };
-
-  const handleModeChange = (v: string): void => {
-    const ot: any = settings?.payRules?.overtime || {};
-    const active = getActiveBasis();
-    updatePayRules({
-      overtime: {
-        ...ot,
-        [active]: { ...(ot[active] || {}), mode: v as any },
-        enabled: true,
-      } as any,
-    });
-  };
-
-  const handleValueChange = (t: string): void => {
-    const ot: any = settings?.payRules?.overtime || {};
-    const active = getActiveBasis();
-    const r = ot[active] || {};
-    const isMul = (r.mode || "fixed") === "multiplier";
-    const n = parseFloat(t.replace(/[^0-9.]/g, ""));
-    updatePayRules({
-      overtime: {
-        ...ot,
-        [active]: {
-          ...r,
-          [isMul ? "multiplier" : "uplift"]: isNaN(n) ? undefined : n,
-        },
-        enabled: true,
+        enabled: settings?.payRules?.overtime?.enabled !== false,
       } as any,
     });
   };
@@ -129,6 +85,25 @@ export const OvertimeEditModal: React.FC<OvertimeEditModalProps> = ({
           >
             Edit Overtime
           </ThemedText>
+
+          {/* Enable Toggle */}
+          <View style={styles.enableRow}>
+            <ThemedText style={[styles.enableLabel, { color: colors.text }]}>
+              Enable Overtime
+            </ThemedText>
+            <Switch
+              value={Boolean(settings?.payRules?.overtime?.enabled)}
+              onValueChange={(val) => {
+                updatePayRules({
+                  overtime: {
+                    ...(settings?.payRules?.overtime as any),
+                    enabled: val,
+                  } as any,
+                });
+              }}
+            />
+          </View>
+
           <View style={styles.inlineInputs}>
             <Dropdown
               compact
@@ -153,30 +128,13 @@ export const OvertimeEditModal: React.FC<OvertimeEditModalProps> = ({
               ]}
             />
           </View>
-          <View style={styles.inlineInputs}>
-            <Dropdown
-              compact
-              placeholder="Mode"
-              value={getMode()}
-              onChange={handleModeChange}
-              items={[
-                { value: "fixed", label: "Fixed uplift" },
-                { value: "multiplier", label: "Multiplier" },
-              ]}
-            />
-            <TextInput
-              placeholder="Value"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              value={getValue()}
-              onChangeText={handleValueChange}
-              style={[
-                styles.input,
-                styles.flex1,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            />
-          </View>
+
+          <ThemedText
+            style={[styles.helpText, { color: colors.textSecondary }]}
+          >
+            Hours above this threshold will be calculated at your overtime pay
+            rate
+          </ThemedText>
           <TouchableOpacity
             style={[styles.modalButton, { borderColor: colors.primary }]}
             onPress={onClose}
@@ -190,6 +148,22 @@ export const OvertimeEditModal: React.FC<OvertimeEditModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  enableRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  enableLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  helpText: {
+    fontSize: 14,
+    fontStyle: "italic",
+    marginTop: 8,
+    textAlign: "center",
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -231,4 +205,3 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
-

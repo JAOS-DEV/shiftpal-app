@@ -111,8 +111,16 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const [breakdown, setBreakdown] = useState<PayBreakdown | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Store calculated hours for display
+  const [calculatedHoursWorked, setCalculatedHoursWorked] =
+    useState<HoursAndMinutes>({ hours: 0, minutes: 0 });
+  const [calculatedOvertimeWorked, setCalculatedOvertimeWorked] =
+    useState<HoursAndMinutes>({ hours: 0, minutes: 0 });
+
   // State for tracking shifts and pay rates for warnings
   const [hasShiftsForDate, setHasShiftsForDate] = useState(false);
+  const [hasExistingCalculation, setHasExistingCalculation] = useState(false);
+  const [isOverrideMode, setIsOverrideMode] = useState(false);
 
   // Derived hints for tracker mode
   const [trackerDerivedSplit, setTrackerDerivedSplit] = useState<{
@@ -205,6 +213,24 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     void load();
   }, [mode, date, settings]);
 
+  // Check for existing calculations whenever date changes
+  useEffect(() => {
+    const checkExistingCalculation = async (): Promise<void> => {
+      if (!settings) return;
+
+      try {
+        const hasCalculation = await settingsService.hasPayCalculationForDate(
+          date
+        );
+        setHasExistingCalculation(hasCalculation);
+      } catch (error) {
+        console.error("Error checking existing calculation:", error);
+      }
+    };
+
+    void checkExistingCalculation();
+  }, [date, settings]);
+
   // Refresh tracker data when the screen is focused
   // This ensures that when users add shifts and navigate to pay calculator,
   // the tracker mode will show updated data
@@ -213,12 +239,21 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       if (!isFocused || !settings || mode !== "tracker") return;
 
       try {
-        const hm = await settingsService.deriveTrackerHoursForDate(date);
-        setTrackerHoursWorked(hm);
+        if (hasExistingCalculation) {
+          // If pay has already been calculated, show 0 hours
+          setTrackerHoursWorked({ hours: 0, minutes: 0 });
+          setTrackerOvertimeWorked({ hours: 0, minutes: 0 });
+          setHasShiftsForDate(false);
+        } else {
+          // Load hours normally
+          const hm = await settingsService.deriveTrackerHoursForDate(date);
+          setTrackerHoursWorked(hm);
+          setTrackerOvertimeWorked({ hours: 0, minutes: 0 });
 
-        // Check if there are shifts for this date
-        const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
-        setHasShiftsForDate(hasShifts);
+          // Check if there are shifts for this date
+          const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
+          setHasShiftsForDate(hasShifts);
+        }
       } catch (error) {
         console.error("Error refreshing tracker data:", error);
       }
@@ -226,7 +261,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
     // Refresh tracker data when screen is focused
     void refreshTrackerData();
-  }, [isFocused, date, mode, settings]);
+  }, [isFocused, date, mode, settings, hasExistingCalculation]);
 
   // Recalculate pay whenever inputs change
   const recalc = async (): Promise<void> => {
@@ -260,11 +295,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     let overtimeWorked: HoursAndMinutes =
       mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked;
 
-    // Auto-derive tracker overtime split when OT not entered
+    // Auto-derive tracker overtime split when OT not entered OR when overtime rules are configured
     if (
       mode === "tracker" &&
       (overtimeWorked.hours || 0) === 0 &&
-      (overtimeWorked.minutes || 0) === 0
+      (overtimeWorked.minutes || 0) === 0 &&
+      (trackerHoursWorked.hours > 0 || trackerHoursWorked.minutes > 0)
     ) {
       try {
         const split = await settingsService.deriveTrackerOvertimeSplitForDate(
@@ -359,6 +395,10 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     setBreakdown(result);
     setTrackerDerivedSplit(derivedSplit);
     setTrackerNightHint({ base: nightBaseHours, ot: nightOvertimeHours });
+
+    // Store calculated hours for display
+    setCalculatedHoursWorked(hoursWorked);
+    setCalculatedOvertimeWorked(overtimeWorked);
   };
 
   useEffect(() => {
@@ -383,6 +423,16 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       Alert.alert(
         "Rate required",
         "Please select a base rate in Settings or enter a manual base rate."
+      );
+      return;
+    }
+
+    // Check if pay has already been calculated for this date (only in tracker mode)
+    if (hasExistingCalculation && mode === "tracker") {
+      Alert.alert(
+        "Pay Already Calculated",
+        "Pay has already been calculated for this date. Please delete the existing calculation first or switch to manual mode to calculate additional hours.",
+        [{ text: "OK" }]
       );
       return;
     }
@@ -446,6 +496,10 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       };
 
       await settingsService.savePayCalculation(entry);
+
+      // Update the existing calculation state immediately
+      setHasExistingCalculation(true);
+
       notify.success(
         "Saved",
         `${formatDateDisplay(
@@ -454,7 +508,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       );
       onPaySaved();
     } catch (e) {
-      Alert.alert("Error", "Failed to save pay calculation");
+      if (e instanceof Error && e.message.includes("already exists")) {
+        Alert.alert("Duplicate Calculation", e.message, [{ text: "OK" }]);
+      } else {
+        Alert.alert("Error", "Failed to save pay calculation");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -472,6 +530,31 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const overtimeRates = (settings?.payRates || []).filter(
     (r) => r.type === "overtime"
   );
+
+  // Check if overtime rules are configured
+  const hasOvertimeRules = useMemo(() => {
+    if (!settings?.payRules?.overtime) return false;
+    const ot = settings.payRules.overtime as any;
+
+    // Check if overtime is enabled and has valid rules
+    const isEnabled = ot.enabled === true; // Only true if explicitly enabled
+
+    // Check new nested structure
+    const hasDailyRule = typeof ot.daily?.threshold === "number";
+    const hasWeeklyRule = typeof ot.weekly?.threshold === "number";
+
+    // Check legacy flat fields
+    const hasLegacyDailyRule = typeof ot.dailyThreshold === "number";
+    const hasLegacyWeeklyRule = typeof ot.weeklyThreshold === "number";
+
+    return (
+      isEnabled &&
+      (hasDailyRule ||
+        hasWeeklyRule ||
+        hasLegacyDailyRule ||
+        hasLegacyWeeklyRule)
+    );
+  }, [settings?.payRules?.overtime]);
 
   if (loadingSettings) {
     return (
@@ -594,6 +677,32 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       />
 
       {/* Hours */}
+      {hasExistingCalculation && mode === "tracker" && (
+        <View
+          style={[
+            styles.existingCalculationBanner,
+            {
+              backgroundColor: colors.warning + "20",
+              borderColor: colors.warning,
+            },
+          ]}
+        >
+          <ThemedText
+            style={[styles.existingCalculationText, { color: colors.warning }]}
+          >
+            ⚠️ Pay has already been calculated for this date
+          </ThemedText>
+          <ThemedText
+            style={[
+              styles.existingCalculationSubtext,
+              { color: colors.textSecondary },
+            ]}
+          >
+            Switch to manual mode to calculate pay for additional hours
+          </ThemedText>
+        </View>
+      )}
+
       <PayHoursInput
         mode={mode}
         date={date}
@@ -611,6 +720,17 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         onManualOvertimeChange={setManualOvertimeWorked}
         onManualNightBaseChange={setManualNightBase}
         onManualNightOtChange={setManualNightOt}
+        hasOvertimeRules={hasOvertimeRules}
+        isOverrideMode={isOverrideMode}
+        onToggleOverride={() => setIsOverrideMode(!isOverrideMode)}
+        onResetOverride={() => {
+          setIsOverrideMode(false);
+          // Reset tracker hours to auto-calculated values
+          if (trackerDerivedSplit) {
+            setTrackerHoursWorked(trackerDerivedSplit.base);
+            setTrackerOvertimeWorked(trackerDerivedSplit.overtime);
+          }
+        }}
       />
 
       {/* Breakdown */}
@@ -621,12 +741,8 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         onSave={handleSave}
         hasShifts={hasShiftsForDate}
         hasPayRates={baseRates.length > 0 || overtimeRates.length > 0}
-        hoursWorked={
-          mode === "tracker" ? trackerHoursWorked : manualHoursWorked
-        }
-        overtimeWorked={
-          mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked
-        }
+        hoursWorked={calculatedHoursWorked}
+        overtimeWorked={calculatedOvertimeWorked}
         baseRate={resolveRateValue(hourlyRateId)}
         overtimeRate={resolveRateValue(overtimeRateId)}
         allowanceItems={settings?.payRules?.allowances || []}
@@ -640,6 +756,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
           (mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked)
             .minutes /
             60
+        }
+        isDisabled={hasExistingCalculation && mode === "tracker"}
+        disabledReason={
+          hasExistingCalculation && mode === "tracker"
+            ? "Pay already calculated for this date"
+            : undefined
         }
       />
     </ThemedView>

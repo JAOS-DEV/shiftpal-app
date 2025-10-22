@@ -35,7 +35,11 @@ export interface NightRules {
   enabled?: boolean;
   start?: string; // "HH:MM"
   end?: string; // "HH:MM"
-  // Legacy shape retained; future: align to mode/multiplier/uplift if needed
+  // New unified shape
+  mode?: "multiplier" | "fixed";
+  multiplier?: number; // e.g., 1.5 for +50%
+  uplift?: number; // e.g., 0.5 for +£0.50/h
+  // Legacy shape (percentage or fixed value)
   type?: "percentage" | "fixed";
   value?: number; // percentage or fixed uplift per hour
 }
@@ -119,6 +123,8 @@ export interface PayBreakdown {
   base: number;
   overtime: number;
   uplifts: number;
+  nightUplift?: number; // separate night uplift amount
+  weekendUplift?: number; // separate weekend uplift amount
   allowances: number;
   gross: number; // base + overtime + uplifts + allowances
   tax: number; // deductions

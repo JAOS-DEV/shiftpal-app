@@ -118,19 +118,46 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
             <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
               Uplifts
             </ThemedText>
-            <View style={styles.breakdownRow}>
-              <ThemedText
-                style={[styles.breakdownLabel, { color: colors.textSecondary }]}
-              >
-                Night Shift
-              </ThemedText>
-              <ThemedText
-                style={[styles.breakdownValue, { color: colors.success }]}
-              >
-                {currencySymbol}
-                {(breakdown?.uplifts ?? 0).toFixed(2)}
-              </ThemedText>
-            </View>
+
+            {/* Night Shift Uplift */}
+            {(breakdown?.nightUplift ?? 0) > 0 && (
+              <View style={styles.breakdownRow}>
+                <ThemedText
+                  style={[
+                    styles.breakdownLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Night Shift
+                </ThemedText>
+                <ThemedText
+                  style={[styles.breakdownValue, { color: colors.success }]}
+                >
+                  {currencySymbol}
+                  {(breakdown?.nightUplift ?? 0).toFixed(2)}
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Weekend Uplift */}
+            {(breakdown?.weekendUplift ?? 0) > 0 && (
+              <View style={styles.breakdownRow}>
+                <ThemedText
+                  style={[
+                    styles.breakdownLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Weekend
+                </ThemedText>
+                <ThemedText
+                  style={[styles.breakdownValue, { color: colors.success }]}
+                >
+                  {currencySymbol}
+                  {(breakdown?.weekendUplift ?? 0).toFixed(2)}
+                </ThemedText>
+              </View>
+            )}
           </View>
         )}
 

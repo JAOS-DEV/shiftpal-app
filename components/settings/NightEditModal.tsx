@@ -1,14 +1,14 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
-import { AppSettings, NightRules, PayRules } from "@/types/settings";
+import { AppSettings, PayRules } from "@/types/settings";
 import React, { useMemo } from "react";
 import {
-    Modal,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
@@ -69,11 +69,13 @@ export const NightEditModal: React.FC<NightEditModalProps> = ({
   };
 
   React.useEffect(() => {
+    const mode = settings?.payRules?.night?.mode || "fixed";
+    const value =
+      mode === "multiplier"
+        ? settings?.payRules?.night?.multiplier
+        : settings?.payRules?.night?.uplift;
     setNightValueText(
-      settings?.payRules?.night?.value !== undefined &&
-        settings?.payRules?.night?.value !== null
-        ? String(settings?.payRules?.night?.value)
-        : ""
+      value !== undefined && value !== null ? String(value) : ""
     );
   }, [settings]);
 
@@ -187,19 +189,19 @@ export const NightEditModal: React.FC<NightEditModalProps> = ({
           <View style={[styles.inlineInputs, styles.topMargin]}>
             <Dropdown
               compact
-              placeholder="Type"
-              value={settings?.payRules?.night?.type || "fixed"}
+              placeholder="Mode"
+              value={settings?.payRules?.night?.mode || "fixed"}
               onChange={(v) =>
                 updatePayRules({
                   night: {
                     ...(settings?.payRules?.night || {}),
-                    type: v as NightRules["type"],
+                    mode: v as "fixed" | "multiplier",
                   },
                 })
               }
               items={[
-                { value: "fixed", label: "Fixed" },
-                { value: "percentage", label: "Percentage" },
+                { value: "fixed", label: "Fixed uplift" },
+                { value: "multiplier", label: "Multiplier" },
               ]}
             />
             <TextInput
@@ -211,8 +213,12 @@ export const NightEditModal: React.FC<NightEditModalProps> = ({
               onEndEditing={() => {
                 let n = parseFloat(nightValueText || "0");
                 if (Number.isNaN(n)) n = 0;
+                const mode = settings?.payRules?.night?.mode || "fixed";
                 updatePayRules({
-                  night: { ...(settings?.payRules?.night || {}), value: n },
+                  night: {
+                    ...(settings?.payRules?.night || {}),
+                    [mode === "multiplier" ? "multiplier" : "uplift"]: n,
+                  },
                 });
                 setNightValueText(String(n));
               }}
@@ -289,4 +295,3 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
-

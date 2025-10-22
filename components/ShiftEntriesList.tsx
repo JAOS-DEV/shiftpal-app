@@ -25,20 +25,41 @@ export function ShiftEntriesList({
   embedded = false,
 }: ShiftEntriesListProps): React.JSX.Element {
   const { colors } = useTheme();
-  const handleRemoveShift = (shiftId: string, shiftInfo: string) => {
-    Alert.alert(
-      "Remove Shift",
-      `Are you sure you want to remove this shift?\n${shiftInfo}`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => onRemoveShift(shiftId),
-        },
-      ]
-    );
-  };
+
+  // All hooks must be called before any early returns to maintain consistent hook order
+  const data = useMemo(() => shifts, [shifts]);
+  const keyExtractor = useCallback((item: Shift) => item.id, []);
+
+  const handleRemoveShift = useCallback(
+    (shiftId: string, shiftInfo: string) => {
+      Alert.alert(
+        "Remove Shift",
+        `Are you sure you want to remove this shift?\n${shiftInfo}`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => onRemoveShift(shiftId),
+          },
+        ]
+      );
+    },
+    [onRemoveShift]
+  );
+
+  const renderItem = useCallback(
+    ({ item, index }: ListRenderItemInfo<Shift>) => (
+      <ShiftRow
+        shift={item}
+        index={index}
+        onRemove={() =>
+          handleRemoveShift(item.id, `${item.start} - ${item.end}`)
+        }
+      />
+    ),
+    [handleRemoveShift]
+  );
 
   if (shifts.length === 0) {
     return (
@@ -55,21 +76,6 @@ export function ShiftEntriesList({
       </ThemedView>
     );
   }
-
-  const data = useMemo(() => shifts, [shifts]);
-  const keyExtractor = useCallback((item: Shift) => item.id, []);
-  const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<Shift>) => (
-      <ShiftRow
-        shift={item}
-        index={index}
-        onRemove={() =>
-          handleRemoveShift(item.id, `${item.start} - ${item.end}`)
-        }
-      />
-    ),
-    [handleRemoveShift]
-  );
 
   return (
     <ThemedView style={styles.container}>

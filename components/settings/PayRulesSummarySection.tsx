@@ -32,33 +32,33 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
 
   const getOvertimeSummary = (): string => {
     const ot: OvertimeRules = payRules?.overtime || {};
+    const enabled = ot?.enabled !== false;
+
+    if (!enabled) {
+      return "Disabled";
+    }
+
     const basis = ot.active || "daily";
     const rule = basis === "weekly" ? ot.weekly : ot.daily;
     const threshold = rule?.threshold ?? (basis === "weekly" ? 40 : 8);
-    const mode = rule?.mode || "fixed";
-    const value =
-      mode === "multiplier" ? rule?.multiplier ?? 1.5 : rule?.uplift ?? 2;
-    return `${
-      basis === "weekly" ? "Weekly" : "Daily"
-    } threshold ${threshold}h • ${
-      mode === "multiplier"
-        ? `${value}×`
-        : `+${currencySymbol}${Number(value).toFixed(2)}`
-    }`;
+    return `${basis === "weekly" ? "Weekly" : "Daily"} threshold ${threshold}h`;
   };
 
   const getNightSummary = (): string => {
     const n: NightRules = payRules?.night || {};
-    const enabled = n?.enabled !== false;
+    const enabled = n?.enabled === true;
     const start = n?.start || "22:00";
     const end = n?.end || "06:00";
-    const type = n?.type || "fixed";
-    const value = Number(n?.value ?? 1);
+    const mode = n?.mode || "fixed";
+    const value =
+      mode === "multiplier"
+        ? Number(n?.multiplier ?? 1.25)
+        : Number(n?.uplift ?? 1);
     return enabled
       ? `${start}–${end} • ${
-          type === "percentage"
-            ? `+${value}%`
-            : `+${currencySymbol}${value.toFixed(2)}`
+          mode === "multiplier"
+            ? `+${Math.round((value - 1) * 100)}%`
+            : `+${currencySymbol}${value.toFixed(2)}/h`
         }`
       : "Disabled";
   };
@@ -101,7 +101,14 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
         type="subtitle"
         style={[styles.sectionTitle, { color: colors.text }]}
       >
-        Pay Rules
+        Pay Rules (Tracker Mode)
+      </ThemedText>
+
+      <ThemedText
+        style={[styles.sectionDescription, { color: colors.textSecondary }]}
+      >
+        These rules automatically apply when calculating pay in tracker mode.
+        Manual mode gives you full control.
       </ThemedText>
 
       {/* Overtime row */}
@@ -112,6 +119,11 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
             style={[styles.ruleDescription, { color: colors.textSecondary }]}
           >
             {getOvertimeSummary()}
+          </ThemedText>
+          <ThemedText
+            style={[styles.ruleModeNote, { color: colors.textSecondary }]}
+          >
+            Auto-applies in tracker mode
           </ThemedText>
         </View>
         <TouchableOpacity
@@ -135,6 +147,11 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
           >
             {getNightSummary()}
           </ThemedText>
+          <ThemedText
+            style={[styles.ruleModeNote, { color: colors.textSecondary }]}
+          >
+            Auto-applies in tracker mode
+          </ThemedText>
         </View>
         <TouchableOpacity
           style={[styles.actionButton, { borderColor: colors.primary }]}
@@ -156,6 +173,11 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
             style={[styles.ruleDescription, { color: colors.textSecondary }]}
           >
             {getWeekendSummary()}
+          </ThemedText>
+          <ThemedText
+            style={[styles.ruleModeNote, { color: colors.textSecondary }]}
+          >
+            Auto-applies in tracker mode
           </ThemedText>
         </View>
         <TouchableOpacity
@@ -183,7 +205,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
     marginBottom: 16,
+    lineHeight: 18,
   },
   simpleRow: {
     flexDirection: "row",
@@ -211,5 +238,10 @@ const styles = StyleSheet.create({
   ruleDescription: {
     fontSize: 14,
     lineHeight: 18,
+  },
+  ruleModeNote: {
+    fontSize: 12,
+    fontStyle: "italic",
+    marginTop: 2,
   },
 });

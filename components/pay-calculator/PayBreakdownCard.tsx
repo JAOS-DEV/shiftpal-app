@@ -19,6 +19,9 @@ interface PayBreakdownCardProps {
   overtimeRate?: number;
   allowanceItems?: AllowanceItem[];
   totalHours?: number;
+  // Disable save button
+  isDisabled?: boolean;
+  disabledReason?: string;
 }
 
 export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
@@ -34,6 +37,8 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
   overtimeRate,
   allowanceItems = [],
   totalHours = 0,
+  isDisabled = false,
+  disabledReason,
 }) => {
   const { colors } = useTheme();
 
@@ -65,14 +70,28 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
       <TouchableOpacity
         style={[
           styles.saveBtn,
-          { borderColor: colors.primary },
-          Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
+          {
+            borderColor: isDisabled ? colors.border : colors.primary,
+            opacity: isDisabled ? 0.5 : 1,
+          },
+          Platform.OS === "web"
+            ? ({ cursor: isDisabled ? "not-allowed" : "pointer" } as any)
+            : null,
         ]}
         onPress={onSave}
-        disabled={isSaving}
+        disabled={isSaving || isDisabled}
       >
-        <ThemedText style={[styles.saveBtnText, { color: colors.primary }]}>
-          {isSaving ? "Saving..." : "Save Pay"}
+        <ThemedText
+          style={[
+            styles.saveBtnText,
+            { color: isDisabled ? colors.textSecondary : colors.primary },
+          ]}
+        >
+          {isSaving
+            ? "Saving..."
+            : isDisabled
+            ? disabledReason || "Cannot Save"
+            : "Save Pay"}
         </ThemedText>
       </TouchableOpacity>
     </View>
