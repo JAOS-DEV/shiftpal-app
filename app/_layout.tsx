@@ -1,6 +1,9 @@
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
-import { ThemeProvider as CustomThemeProvider } from "@/providers/ThemeProvider";
+import {
+  ThemeProvider as CustomThemeProvider,
+  useTheme,
+} from "@/providers/ThemeProvider";
 import {
   DarkTheme,
   DefaultTheme,
@@ -14,105 +17,118 @@ import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-// Custom toast configuration with transparency
-const toastConfig = {
-  success: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: '#4CAF50',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 8,
-        marginHorizontal: 16,
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 15,
-        backgroundColor: 'transparent',
-      }}
-      text1Style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-      }}
-      text2Style={{
-        fontSize: 14,
-        color: '#666',
-      }}
+// Themed toast configuration component
+function ThemedToastConfig() {
+  const { colors } = useTheme();
+
+  const toastConfig = {
+    success: (props: any) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: colors.success,
+          backgroundColor: colors.surface,
+          borderRadius: 8,
+          marginHorizontal: 16,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          backgroundColor: "transparent",
+        }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.text,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+    error: (props: any) => (
+      <ErrorToast
+        {...props}
+        style={{
+          borderLeftColor: colors.error,
+          backgroundColor: colors.surface,
+          borderRadius: 8,
+          marginHorizontal: 16,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          backgroundColor: "transparent",
+        }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.text,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+    info: (props: any) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: colors.primary,
+          backgroundColor: colors.surface,
+          borderRadius: 8,
+          marginHorizontal: 16,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          backgroundColor: "transparent",
+        }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.text,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+    warning: (props: any) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: colors.warning,
+          backgroundColor: colors.surface,
+          borderRadius: 8,
+          marginHorizontal: 16,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          backgroundColor: "transparent",
+        }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.text,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+  };
+
+  return (
+    <Toast
+      config={toastConfig}
+      position="top"
+      topOffset={80}
+      visibilityTime={3000}
     />
-  ),
-  error: (props: any) => (
-    <ErrorToast
-      {...props}
-      style={{
-        borderLeftColor: '#F44336',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 8,
-        marginHorizontal: 16,
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 15,
-        backgroundColor: 'transparent',
-      }}
-      text1Style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-      }}
-      text2Style={{
-        fontSize: 14,
-        color: '#666',
-      }}
-    />
-  ),
-  info: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: '#2196F3',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 8,
-        marginHorizontal: 16,
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 15,
-        backgroundColor: 'transparent',
-      }}
-      text1Style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-      }}
-      text2Style={{
-        fontSize: 14,
-        color: '#666',
-      }}
-    />
-  ),
-  warning: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: '#FF9800',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 8,
-        marginHorizontal: 16,
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 15,
-        backgroundColor: 'transparent',
-      }}
-      text1Style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-      }}
-      text2Style={{
-        fontSize: 14,
-        color: '#666',
-      }}
-    />
-  ),
-};
+  );
+}
 
 function RootNavigator() {
   const { user, initializing } = useAuth();
@@ -144,12 +160,7 @@ export default function RootLayout() {
         <AuthProvider>
           <RootNavigator />
           <StatusBar style="auto" />
-          <Toast 
-            config={toastConfig}
-            position="top" 
-            topOffset={80}
-            visibilityTime={3000}
-          />
+          <ThemedToastConfig />
         </AuthProvider>
       </ThemeProvider>
     </CustomThemeProvider>

@@ -1,3 +1,4 @@
+import { useTheme } from "@/providers/ThemeProvider";
 import React from "react";
 import { TextInput, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ThemedText";
@@ -17,33 +18,42 @@ export const NoteModal: React.FC<NoteModalProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { colors } = useTheme();
+
   if (!visible) {
     return null;
   }
 
   return (
     <View style={styles.noteModalOverlay}>
-      <View style={styles.noteModal}>
-        <ThemedText style={styles.noteModalTitle}>
+      <View style={[styles.noteModal, { backgroundColor: colors.surface }]}>
+        <ThemedText style={[styles.noteModalTitle, { color: colors.text }]}>
           Add break note
         </ThemedText>
         <TextInput
-          style={styles.noteInput}
+          style={[
+            styles.noteInput,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              color: colors.text,
+            },
+          ]}
           value={noteText}
           onChangeText={onNoteTextChange}
           placeholder="e.g., Lunch, Personal errand"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textSecondary}
           multiline
         />
         <View style={styles.noteModalButtons}>
           <TouchableOpacity
-            style={styles.noteCancel}
+            style={[styles.noteCancel, { borderColor: colors.border }]}
             onPress={onCancel}
           >
-            <ThemedText>Cancel</ThemedText>
+            <ThemedText style={{ color: colors.text }}>Cancel</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.noteSave}
+            style={[styles.noteSave, { backgroundColor: colors.primary }]}
             onPress={onSave}
           >
             <ThemedText style={{ color: "white" }}>Save</ThemedText>
@@ -67,7 +77,7 @@ const styles = {
     zIndex: 1000,
   },
   noteModal: {
-    backgroundColor: "white",
+    backgroundColor: "white", // Will be overridden by theme
     borderRadius: 12,
     padding: 20,
     margin: 20,
@@ -81,13 +91,14 @@ const styles = {
   },
   noteInput: {
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     minHeight: 80,
     textAlignVertical: "top" as const,
     marginBottom: 16,
+    backgroundColor: "white", // Will be overridden by theme
   },
   noteModalButtons: {
     flexDirection: "row" as const,
@@ -99,7 +110,7 @@ const styles = {
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E5EA", // Will be overridden by theme
     alignItems: "center" as const,
   },
   noteSave: {
@@ -107,7 +118,7 @@ const styles = {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF", // Will be overridden by theme
     alignItems: "center" as const,
   },
 };
