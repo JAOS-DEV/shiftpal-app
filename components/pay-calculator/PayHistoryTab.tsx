@@ -291,6 +291,7 @@ export const PayHistoryTab: React.FC<PayHistoryTabProps> = ({
                   onRecalculate={handleRecalcEntry}
                   onDelete={handleDelete}
                   resolveRateValue={resolveRateValue}
+                  settings={settings}
                 />
               ))}
             </View>

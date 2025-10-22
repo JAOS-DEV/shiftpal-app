@@ -1,5 +1,9 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import { HoursAndMinutes, PayCalculationEntry } from "@/types/settings";
+import {
+  AppSettings,
+  HoursAndMinutes,
+  PayCalculationEntry,
+} from "@/types/settings";
 import React, { useState } from "react";
 import {
   Alert,
@@ -9,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
+import { PayBreakdownDisplay } from "./PayBreakdownDisplay";
 
 interface PayHistoryEntryProps {
   entry: PayCalculationEntry;
@@ -17,6 +22,7 @@ interface PayHistoryEntryProps {
   onRecalculate: (entry: PayCalculationEntry) => void;
   onDelete: (id: string) => void;
   resolveRateValue: (id: string | null | undefined) => number | undefined;
+  settings?: AppSettings | null;
 }
 
 export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
@@ -26,6 +32,7 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
   onRecalculate,
   onDelete,
   resolveRateValue,
+  settings,
 }) => {
   const { colors } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -88,23 +95,10 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
 
   const baseMinutes = hmToMinutes(entry.input.hoursWorked);
   const overtimeMinutes = hmToMinutes(entry.input.overtimeWorked);
-  const baseAmount = baseRateVal * (baseMinutes / 60);
-  const overtimeAmount = overtimeRateVal * (overtimeMinutes / 60);
-  const overtimeAmountFinal = Number(
-    (entry.calculatedPay as any).overtime ?? 0
-  );
-  const upliftsAmount = Number((entry.calculatedPay as any).uplifts ?? 0);
-  const allowancesAmount = Number((entry.calculatedPay as any).allowances ?? 0);
-  const totalBeforeDeductions =
-    (entry.calculatedPay as any).gross ??
-    entry.calculatedPay.base +
-      entry.calculatedPay.overtime +
-      entry.calculatedPay.uplifts +
-      entry.calculatedPay.allowances;
   const totalMinutes = baseMinutes + overtimeMinutes;
 
   return (
-    <View style={styles.entryContainer}>
+    <View style={styles.entryCard}>
       <TouchableOpacity
         style={[
           styles.entryHeader,
@@ -113,88 +107,41 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
         onPress={() => setIsExpanded(!isExpanded)}
         accessibilityLabel="Toggle entry details"
       >
-        <View style={styles.flex1}>
-          <ThemedText style={styles.entrySubmittedAt}>
-            Submitted at: {formatTimeOfDay(entry.createdAt)}
-          </ThemedText>
-          <ThemedText style={styles.finalTotalText}>
-            Final Total: {currencySymbol}
-            {entry.calculatedPay.total.toFixed(2)}
-          </ThemedText>
-          <ThemedText style={styles.entryCollapsedMeta}>
-            Hours: {minutesToHMText(totalMinutes)}
-          </ThemedText>
+        <View style={styles.entryHeaderContent}>
+          <View style={styles.entrySummary}>
+            <ThemedText style={styles.entryTime}>
+              Submitted at: {formatTimeOfDay(entry.createdAt)}
+            </ThemedText>
+            <ThemedText style={styles.entryHours}>
+              Hours: {minutesToHMText(totalMinutes)}
+            </ThemedText>
+          </View>
+          <View style={styles.entryTotal}>
+            <ThemedText style={styles.entryTotalLabel}>Total</ThemedText>
+            <ThemedText style={styles.entryTotalValue}>
+              {currencySymbol}
+              {entry.calculatedPay.total.toFixed(2)}
+            </ThemedText>
+          </View>
         </View>
-        <ThemedText style={styles.expandIconSmall}>
+        <ThemedText style={styles.expandIcon}>
           {isExpanded ? "▼" : "▶"}
         </ThemedText>
       </TouchableOpacity>
 
       {isExpanded && (
         <>
-          <ThemedText style={styles.entryTotalBefore}>
-            Total (before deductions): {currencySymbol}
-            {totalBeforeDeductions.toFixed(2)}
-          </ThemedText>
-
-          <View style={styles.lineItemRow}>
-            <ThemedText style={styles.lineItemLabel}>Standard:</ThemedText>
-            <ThemedText style={styles.lineItemValue}>
-              {formatHMClock(entry.input.hoursWorked)} @ {currencySymbol}
-              {baseRateVal.toFixed(2)}
-            </ThemedText>
-          </View>
-          <ThemedText style={styles.lineItemAmount}>
-            {currencySymbol}
-            {baseAmount.toFixed(2)}
-          </ThemedText>
-
-          {overtimeMinutes > 0 && (
-            <>
-              <View style={styles.lineItemRow}>
-                <ThemedText style={styles.lineItemLabel}>Overtime:</ThemedText>
-                <ThemedText style={styles.lineItemValue}>
-                  {formatHMClock(entry.input.overtimeWorked)} @ {currencySymbol}
-                  {overtimeRateVal.toFixed(2)}
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.lineItemAmount}>
-                {currencySymbol}
-                {overtimeAmountFinal
-                  ? overtimeAmountFinal.toFixed(2)
-                  : overtimeAmount.toFixed(2)}
-              </ThemedText>
-            </>
-          )}
-
-          {upliftsAmount > 0 && (
-            <View style={styles.lineItemRow}>
-              <ThemedText style={styles.lineItemLabel}>Uplifts:</ThemedText>
-              <ThemedText style={styles.lineItemValue}>
-                {currencySymbol}
-                {upliftsAmount.toFixed(2)}
-              </ThemedText>
-            </View>
-          )}
-
-          {allowancesAmount > 0 && (
-            <View style={styles.lineItemRow}>
-              <ThemedText style={styles.lineItemLabel}>Allowances:</ThemedText>
-              <ThemedText style={styles.lineItemValue}>
-                {currencySymbol}
-                {allowancesAmount.toFixed(2)}
-              </ThemedText>
-            </View>
-          )}
-
-          <ThemedText style={styles.deductionText}>
-            Tax: {currencySymbol}
-            {Number((entry.calculatedPay as any).tax ?? 0).toFixed(2)}
-          </ThemedText>
-          <ThemedText style={styles.deductionText}>
-            NI: {currencySymbol}
-            {Number((entry.calculatedPay as any).ni ?? 0).toFixed(2)}
-          </ThemedText>
+          <PayBreakdownDisplay
+            breakdown={entry.calculatedPay}
+            currencySymbol={currencySymbol}
+            hoursWorked={entry.input.hoursWorked}
+            overtimeWorked={entry.input.overtimeWorked}
+            baseRate={baseRateVal}
+            overtimeRate={overtimeRateVal}
+            allowanceItems={settings?.payRules?.allowances || []}
+            totalHours={totalMinutes / 60}
+            showTitle={false}
+          />
 
           <View style={styles.actionsRow}>
             {isStale && (
@@ -234,61 +181,71 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
 };
 
 const styles = StyleSheet.create({
-  entryContainer: {
-    borderTopWidth: 1,
-    borderTopColor: "#EFEFF4",
-    paddingTop: 8,
-    marginTop: 8,
+  entryCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   entryHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
   },
-  flex1: {
+  entryHeaderContent: {
     flex: 1,
-  },
-  entrySubmittedAt: {
-    opacity: 0.8,
-  },
-  finalTotalText: {
-    marginTop: 6,
-    color: "#28A745",
-    fontWeight: "700",
-  },
-  entryCollapsedMeta: {
-    opacity: 0.8,
-  },
-  expandIconSmall: {
-    opacity: 0.6,
-  },
-  entryTotalBefore: {
-    marginTop: 6,
-    fontWeight: "600",
-  },
-  lineItemRow: {
-    marginTop: 8,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
-  lineItemLabel: {
-    fontWeight: "600",
+  entrySummary: {
+    flex: 1,
   },
-  lineItemValue: {
-    opacity: 0.9,
+  entryTime: {
+    fontSize: 14,
+    color: "#6C757D",
+    marginBottom: 4,
   },
-  lineItemAmount: {
-    marginTop: 2,
-    alignSelf: "flex-end",
+  entryHours: {
+    fontSize: 14,
+    color: "#6C757D",
   },
-  deductionText: {
-    marginTop: 6,
-    color: "#FF3B30",
+  entryTotal: {
+    alignItems: "flex-end",
+    marginLeft: 16,
+  },
+  entryTotalLabel: {
+    fontSize: 12,
+    color: "#6C757D",
+    marginBottom: 2,
+  },
+  entryTotalValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#007AFF",
+  },
+  expandIcon: {
+    fontSize: 16,
+    color: "#6C757D",
+    marginLeft: 12,
   },
   actionsRow: {
-    marginTop: 8,
+    marginTop: 16,
     alignItems: "flex-end",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F8F9FA",
   },
   staleWarning: {
     marginBottom: 8,

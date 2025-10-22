@@ -7,7 +7,13 @@ import { settingsService } from "@/services/settingsService";
 import { AppSettings, PayCalculationEntry } from "@/types/settings";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -114,38 +120,46 @@ export default function PayCalculatorScreen(): React.JSX.Element {
           />
         </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + 60,
-            ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
-          }}
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <View style={Platform.OS === "web" ? styles.webMaxWidth : undefined}>
-            {topTab === "calculator" ? (
-              <PayCalculatorTab
-                settings={settings}
-                loadingSettings={loadingSettings}
-                onPaySaved={handlePaySaved}
-                manualBaseRateText={manualBaseRateText}
-                manualOvertimeRateText={manualOvertimeRateText}
-                onManualBaseRateTextChange={handleManualBaseRateTextChange}
-                onManualOvertimeRateTextChange={
-                  handleManualOvertimeRateTextChange
-                }
-              />
-            ) : (
-              <PayHistoryTab
-                settings={settings}
-                payHistory={payHistory}
-                loadingHistory={loadingHistory}
-                currentVersion={currentVersion}
-                onHistoryUpdated={handleHistoryUpdated}
-              />
-            )}
-          </View>
-        </ScrollView>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={{
+              paddingBottom: insets.bottom + 60,
+              ...(Platform.OS === "web" ? { alignItems: "center" } : {}),
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View
+              style={Platform.OS === "web" ? styles.webMaxWidth : undefined}
+            >
+              {topTab === "calculator" ? (
+                <PayCalculatorTab
+                  settings={settings}
+                  loadingSettings={loadingSettings}
+                  onPaySaved={handlePaySaved}
+                  manualBaseRateText={manualBaseRateText}
+                  manualOvertimeRateText={manualOvertimeRateText}
+                  onManualBaseRateTextChange={handleManualBaseRateTextChange}
+                  onManualOvertimeRateTextChange={
+                    handleManualOvertimeRateTextChange
+                  }
+                />
+              ) : (
+                <PayHistoryTab
+                  settings={settings}
+                  payHistory={payHistory}
+                  loadingHistory={loadingHistory}
+                  currentVersion={currentVersion}
+                  onHistoryUpdated={handleHistoryUpdated}
+                />
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </ThemedView>
     </SafeAreaView>
   );
@@ -156,6 +170,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
     flex: 1,
   },
   scroll: {
