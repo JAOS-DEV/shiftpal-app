@@ -2,12 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { AllowanceItem } from "@/types/settings";
 import React, { useState } from "react";
-import {
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
 
@@ -17,11 +12,9 @@ interface AllowancesSettingsSectionProps {
   onSettingsChange: () => void;
 }
 
-export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps> = ({
-  allowances,
-  currencySymbol,
-  onSettingsChange,
-}) => {
+export const AllowancesSettingsSection: React.FC<
+  AllowancesSettingsSectionProps
+> = ({ allowances, currencySymbol, onSettingsChange }) => {
   const { colors } = useTheme();
   const [newAllowance, setNewAllowance] = useState<{
     type: string;
@@ -33,7 +26,7 @@ export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps>
     if (!newAllowance.type || !newAllowance.value) return;
     const valueNum = parseFloat(newAllowance.value.replace(/[^0-9.\-]/g, ""));
     if (Number.isNaN(valueNum)) return;
-    
+
     const updatedAllowances = [
       ...allowances,
       {
@@ -43,7 +36,7 @@ export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps>
         unit: newAllowance.unit,
       },
     ];
-    
+
     await settingsService.setPayRules({ allowances: updatedAllowances });
     setNewAllowance({ type: "", value: "", unit: "perShift" });
     onSettingsChange();
@@ -61,8 +54,8 @@ export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps>
         return "per shift";
       case "perHour":
         return "per hour";
-      case "perKm":
-        return "per km";
+      case "perDay":
+        return "per day";
       default:
         return "per shift";
     }
@@ -115,11 +108,16 @@ export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps>
               placeholder="Unit"
               style={styles.unitDropdown}
               value={newAllowance.unit}
-              onChange={(v) => setNewAllowance((p) => ({ ...p, unit: v as AllowanceItem["unit"] }))}
+              onChange={(v) =>
+                setNewAllowance((p) => ({
+                  ...p,
+                  unit: v as AllowanceItem["unit"],
+                }))
+              }
               items={[
                 { value: "perShift", label: "Per Shift" },
                 { value: "perHour", label: "Per Hour" },
-                { value: "perKm", label: "Per KM" },
+                { value: "perDay", label: "Per Day" },
               ]}
             />
           </View>
@@ -150,7 +148,12 @@ export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps>
                   >
                     {allowance.type}
                   </ThemedText>
-                  <ThemedText style={[styles.allowanceUnit, { color: colors.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      styles.allowanceUnit,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {getUnitLabel(allowance.unit)}
                   </ThemedText>
                 </View>
@@ -159,7 +162,9 @@ export const AllowancesSettingsSection: React.FC<AllowancesSettingsSectionProps>
                     {currencySymbol}
                     {allowance.value.toFixed(2)}
                   </ThemedText>
-                  <TouchableOpacity onPress={() => deleteAllowance(allowance.id)}>
+                  <TouchableOpacity
+                    onPress={() => deleteAllowance(allowance.id)}
+                  >
                     <ThemedText style={{ color: colors.error }}>
                       Delete
                     </ThemedText>

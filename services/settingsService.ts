@@ -709,7 +709,8 @@ class SettingsService {
     return allowances.reduce((sum, a) => {
       if (a.unit === "perShift") return sum + a.value;
       if (a.unit === "perHour") return sum + a.value * hours;
-      return sum; // perKm unsupported in calculator context
+      if (a.unit === "perDay") return sum + a.value; // Per day is treated as per shift for now
+      return sum;
     }, 0);
   }
 

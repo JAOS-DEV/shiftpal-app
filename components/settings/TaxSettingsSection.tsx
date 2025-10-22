@@ -1,7 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { TaxRules } from "@/types/settings";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Switch, TextInput, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
@@ -22,8 +22,15 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
     taxRules?.percentage?.toString() || "20"
   );
   const [personalAllowance, setPersonalAllowance] = useState(
-    taxRules?.personalAllowance?.toString() || "12570"
+    taxRules?.personalAllowance?.toString() || ""
   );
+
+  // Sync component state with props when they change
+  useEffect(() => {
+    setIsEnabled(taxRules?.enabled ?? false);
+    setPercentage(taxRules?.percentage?.toString() || "20");
+    setPersonalAllowance(taxRules?.personalAllowance?.toString() || "");
+  }, [taxRules]);
 
   const updateTaxRules = async (updates: Partial<TaxRules>): Promise<void> => {
     await settingsService.setPayRules({ tax: { ...taxRules, ...updates } });
@@ -37,29 +44,36 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
         enabled: true,
         type: "flat",
         percentage: parseFloat(percentage) || 20,
-        personalAllowance: parseFloat(personalAllowance) || 12570,
+        personalAllowance: parseFloat(personalAllowance) || 0,
       });
     } else {
       await updateTaxRules({
         enabled: false,
-        percentage: 0,
-        personalAllowance: 0,
+        // Preserve the values instead of setting them to 0
+        percentage: parseFloat(percentage) || 20,
+        personalAllowance: parseFloat(personalAllowance) || 0,
       });
     }
   };
 
   const handlePercentageChange = async (value: string): Promise<void> => {
     setPercentage(value);
-    const numValue = parseFloat(value) || 0;
-    await updateTaxRules({ percentage: numValue });
+    // Only update if the value is a valid number or empty
+    if (value === "" || !isNaN(parseFloat(value))) {
+      const numValue = value === "" ? 0 : parseFloat(value);
+      await updateTaxRules({ percentage: numValue });
+    }
   };
 
   const handlePersonalAllowanceChange = async (
     value: string
   ): Promise<void> => {
     setPersonalAllowance(value);
-    const numValue = parseFloat(value) || 0;
-    await updateTaxRules({ personalAllowance: numValue });
+    // Only update if the value is a valid number or empty
+    if (value === "" || !isNaN(parseFloat(value))) {
+      const numValue = value === "" ? 0 : parseFloat(value);
+      await updateTaxRules({ personalAllowance: numValue });
+    }
   };
 
   return (
@@ -127,7 +141,7 @@ export const TaxSettingsSection: React.FC<TaxSettingsSectionProps> = ({
                 placeholder="12570"
                 keyboardType="decimal-pad"
                 placeholderTextColor={colors.textSecondary}
-                value={personalAllowance}
+                value={personalAllowance === "0" ? "" : personalAllowance}
                 onChangeText={handlePersonalAllowanceChange}
                 style={[
                   styles.input,

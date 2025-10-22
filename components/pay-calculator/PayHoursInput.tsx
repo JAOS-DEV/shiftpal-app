@@ -165,7 +165,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
             keyboardType="number-pad"
             placeholder="0"
             placeholderTextColor="#6B7280"
-            value={getCurrentHours(mode, "base").hours.toString()}
+            value={
+              getCurrentHours(mode, "base").hours === 0
+                ? ""
+                : getCurrentHours(mode, "base").hours.toString()
+            }
             onChangeText={(text) =>
               handleHoursChange(
                 mode,
@@ -181,7 +185,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
             keyboardType="number-pad"
             placeholder="0"
             placeholderTextColor="#6B7280"
-            value={getCurrentHours(mode, "base").minutes.toString()}
+            value={
+              getCurrentHours(mode, "base").minutes === 0
+                ? ""
+                : getCurrentHours(mode, "base").minutes.toString()
+            }
             onChangeText={(text) =>
               handleHoursChange(
                 mode,
@@ -202,7 +210,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
             keyboardType="number-pad"
             placeholder="0"
             placeholderTextColor="#6B7280"
-            value={getCurrentHours(mode, "overtime").hours.toString()}
+            value={
+              getCurrentHours(mode, "overtime").hours === 0
+                ? ""
+                : getCurrentHours(mode, "overtime").hours.toString()
+            }
             onChangeText={(text) =>
               handleHoursChange(
                 mode,
@@ -218,7 +230,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
             keyboardType="number-pad"
             placeholder="0"
             placeholderTextColor="#6B7280"
-            value={getCurrentHours(mode, "overtime").minutes.toString()}
+            value={
+              getCurrentHours(mode, "overtime").minutes === 0
+                ? ""
+                : getCurrentHours(mode, "overtime").minutes.toString()
+            }
             onChangeText={(text) =>
               handleHoursChange(
                 mode,
@@ -241,7 +257,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
                 keyboardType="number-pad"
                 placeholder="0"
                 placeholderTextColor="#6B7280"
-                value={getCurrentNightHours("base").hours.toString()}
+                value={
+                  getCurrentNightHours("base").hours === 0
+                    ? ""
+                    : getCurrentNightHours("base").hours.toString()
+                }
                 onChangeText={(text) =>
                   handleNightHoursChange(
                     "base",
@@ -256,7 +276,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
                 keyboardType="number-pad"
                 placeholder="0"
                 placeholderTextColor="#6B7280"
-                value={getCurrentNightHours("base").minutes.toString()}
+                value={
+                  getCurrentNightHours("base").minutes === 0
+                    ? ""
+                    : getCurrentNightHours("base").minutes.toString()
+                }
                 onChangeText={(text) =>
                   handleNightHoursChange(
                     "base",
@@ -276,7 +300,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
                 keyboardType="number-pad"
                 placeholder="0"
                 placeholderTextColor="#6B7280"
-                value={getCurrentNightHours("overtime").hours.toString()}
+                value={
+                  getCurrentNightHours("overtime").hours === 0
+                    ? ""
+                    : getCurrentNightHours("overtime").hours.toString()
+                }
                 onChangeText={(text) =>
                   handleNightHoursChange(
                     "overtime",
@@ -291,7 +319,11 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
                 keyboardType="number-pad"
                 placeholder="0"
                 placeholderTextColor="#6B7280"
-                value={getCurrentNightHours("overtime").minutes.toString()}
+                value={
+                  getCurrentNightHours("overtime").minutes === 0
+                    ? ""
+                    : getCurrentNightHours("overtime").minutes.toString()
+                }
                 onChangeText={(text) =>
                   handleNightHoursChange(
                     "overtime",

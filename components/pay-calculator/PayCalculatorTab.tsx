@@ -599,6 +599,18 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         }
         baseRate={resolveRateValue(hourlyRateId)}
         overtimeRate={resolveRateValue(overtimeRateId)}
+        allowanceItems={settings?.payRules?.allowances || []}
+        totalHours={
+          (mode === "tracker" ? trackerHoursWorked : manualHoursWorked).hours +
+          (mode === "tracker" ? trackerHoursWorked : manualHoursWorked)
+            .minutes /
+            60 +
+          (mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked)
+            .hours +
+          (mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked)
+            .minutes /
+            60
+        }
       />
     </ThemedView>
   );

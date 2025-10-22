@@ -1,7 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { NiRules } from "@/types/settings";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Switch, TextInput, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 
@@ -22,8 +22,15 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
     niRules?.percentage?.toString() || "12"
   );
   const [threshold, setThreshold] = useState(
-    niRules?.threshold?.toString() || "190"
+    niRules?.threshold?.toString() || ""
   );
+
+  // Sync component state with props when they change
+  useEffect(() => {
+    setIsEnabled(niRules?.enabled ?? false);
+    setPercentage(niRules?.percentage?.toString() || "12");
+    setThreshold(niRules?.threshold?.toString() || "");
+  }, [niRules]);
 
   const updateNiRules = async (updates: Partial<NiRules>): Promise<void> => {
     await settingsService.setPayRules({ ni: { ...niRules, ...updates } });
@@ -37,27 +44,34 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
         enabled: true,
         type: "flat",
         percentage: parseFloat(percentage) || 12,
-        threshold: parseFloat(threshold) || 190,
+        threshold: parseFloat(threshold) || 0,
       });
     } else {
       await updateNiRules({
         enabled: false,
-        percentage: 0,
-        threshold: 0,
+        // Preserve the values instead of setting them to 0
+        percentage: parseFloat(percentage) || 12,
+        threshold: parseFloat(threshold) || 0,
       });
     }
   };
 
   const handlePercentageChange = async (value: string): Promise<void> => {
     setPercentage(value);
-    const numValue = parseFloat(value) || 0;
-    await updateNiRules({ percentage: numValue });
+    // Only update if the value is a valid number or empty
+    if (value === "" || !isNaN(parseFloat(value))) {
+      const numValue = value === "" ? 0 : parseFloat(value);
+      await updateNiRules({ percentage: numValue });
+    }
   };
 
   const handleThresholdChange = async (value: string): Promise<void> => {
     setThreshold(value);
-    const numValue = parseFloat(value) || 0;
-    await updateNiRules({ threshold: numValue });
+    // Only update if the value is a valid number or empty
+    if (value === "" || !isNaN(parseFloat(value))) {
+      const numValue = value === "" ? 0 : parseFloat(value);
+      await updateNiRules({ threshold: numValue });
+    }
   };
 
   return (
@@ -125,7 +139,7 @@ export const NiSettingsSection: React.FC<NiSettingsSectionProps> = ({
                 placeholder="190"
                 keyboardType="decimal-pad"
                 placeholderTextColor={colors.textSecondary}
-                value={threshold}
+                value={threshold === "0" ? "" : threshold}
                 onChangeText={handleThresholdChange}
                 style={[
                   styles.input,

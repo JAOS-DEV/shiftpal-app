@@ -68,9 +68,9 @@ export interface NiRules {
 
 export interface AllowanceItem {
   id: string;
-  type: string; // e.g., "Meal", "Mileage"
+  type: string; // e.g., "Meal", "Travel"
   value: number; // currency amount or per-unit amount
-  unit: "perShift" | "perHour" | "perKm";
+  unit: "perShift" | "perHour" | "perDay";
 }
 
 export interface PayPeriodConfig {
