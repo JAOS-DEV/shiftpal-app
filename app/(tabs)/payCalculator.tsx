@@ -2,16 +2,12 @@ import { SegmentedSwitcher } from "@/components/SegmentedSwitcher";
 import { ThemedView } from "@/components/ThemedView";
 import { PayCalculatorTab } from "@/components/pay-calculator/PayCalculatorTab";
 import { PayHistoryTab } from "@/components/pay-calculator/PayHistoryTab";
+import { useAuth } from "@/providers/AuthProvider";
 import { settingsService } from "@/services/settingsService";
 import { AppSettings, PayCalculationEntry } from "@/types/settings";
 import { useIsFocused } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -20,15 +16,36 @@ import {
 type TopTab = "calculator" | "history";
 
 export default function PayCalculatorScreen(): React.JSX.Element {
+  const { user } = useAuth();
   const [topTab, setTopTab] = useState<TopTab>("calculator");
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState<boolean>(true);
   const [payHistory, setPayHistory] = useState<PayCalculationEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [currentVersion, setCurrentVersion] = useState<string>("");
-  
+
+  // Manual rate state lifted to persist across tab switches
+  const [manualBaseRateText, setManualBaseRateText] = useState<string>("");
+  const [manualOvertimeRateText, setManualOvertimeRateText] =
+    useState<string>("");
+
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+
+  // Memoize manual rate change handlers to prevent unnecessary re-renders
+  const handleManualBaseRateTextChange = useCallback((value: string) => {
+    setManualBaseRateText(value);
+  }, []);
+
+  const handleManualOvertimeRateTextChange = useCallback((value: string) => {
+    setManualOvertimeRateText(value);
+  }, []);
+
+  // Reset manual rates when user changes (logout/login)
+  useEffect(() => {
+    setManualBaseRateText("");
+    setManualOvertimeRateText("");
+  }, [user?.uid]);
 
   // Load settings when focused
   useEffect(() => {
@@ -111,6 +128,12 @@ export default function PayCalculatorScreen(): React.JSX.Element {
                 settings={settings}
                 loadingSettings={loadingSettings}
                 onPaySaved={handlePaySaved}
+                manualBaseRateText={manualBaseRateText}
+                manualOvertimeRateText={manualOvertimeRateText}
+                onManualBaseRateTextChange={handleManualBaseRateTextChange}
+                onManualOvertimeRateTextChange={
+                  handleManualOvertimeRateTextChange
+                }
               />
             ) : (
               <PayHistoryTab

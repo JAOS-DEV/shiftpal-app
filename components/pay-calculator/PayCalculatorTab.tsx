@@ -1,4 +1,5 @@
 import { DateSelector } from "@/components/DateSelector";
+import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/types/settings";
 import { notify } from "@/utils/notify";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Platform, TouchableOpacity, View } from "react-native";
@@ -22,26 +24,55 @@ import { PayRatesInput } from "./PayRatesInput";
 
 type Mode = "tracker" | "manual";
 
+const STORAGE_KEYS = {
+  baseRateId: "shiftpal.preferences.last_base_rate_id",
+  overtimeRateId: "shiftpal.preferences.last_overtime_rate_id",
+} as const;
+
 interface PayCalculatorTabProps {
   settings: AppSettings | null;
   loadingSettings: boolean;
   onPaySaved: () => void;
+  // Manual rate state lifted from parent to persist across tab switches
+  manualBaseRateText: string;
+  manualOvertimeRateText: string;
+  onManualBaseRateTextChange: (value: string) => void;
+  onManualOvertimeRateTextChange: (value: string) => void;
 }
 
 export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   settings,
   loadingSettings,
   onPaySaved,
+  manualBaseRateText,
+  manualOvertimeRateText,
+  onManualBaseRateTextChange,
+  onManualOvertimeRateTextChange,
 }): React.JSX.Element => {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const isFocused = useIsFocused();
   const [mode, setMode] = useState<Mode>("tracker");
   const [date, setDate] = useState<string>(getCurrentDateString());
   const [hourlyRateId, setHourlyRateId] = useState<string | null>(null);
   const [overtimeRateId, setOvertimeRateId] = useState<string | null>(null);
-  const [manualBaseRateText, setManualBaseRateText] = useState<string>("");
-  const [manualOvertimeRateText, setManualOvertimeRateText] =
-    useState<string>("");
+
+  // Persist rate selections when they change
+  useEffect(() => {
+    if (hourlyRateId) {
+      AsyncStorage.setItem(STORAGE_KEYS.baseRateId, hourlyRateId).catch(
+        () => {}
+      );
+    }
+  }, [hourlyRateId]);
+
+  useEffect(() => {
+    if (overtimeRateId) {
+      AsyncStorage.setItem(STORAGE_KEYS.overtimeRateId, overtimeRateId).catch(
+        () => {}
+      );
+    }
+  }, [overtimeRateId]);
 
   // Tracker mode hours
   const [trackerHoursWorked, setTrackerHoursWorked] = useState<HoursAndMinutes>(
@@ -103,24 +134,63 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     [settings?.preferences?.currency]
   );
 
+  // Reset component state when user changes (logout/login)
+  useEffect(() => {
+    // Reset all state to initial values when user changes
+    setMode("tracker");
+    setDate(getCurrentDateString());
+    setHourlyRateId(null);
+    setOvertimeRateId(null);
+    // Note: manual rate text is now managed by parent, so we don't reset it here
+    setTrackerHoursWorked({ hours: 0, minutes: 0 });
+    setTrackerOvertimeWorked({ hours: 0, minutes: 0 });
+    setManualHoursWorked({ hours: 0, minutes: 0 });
+    setManualOvertimeWorked({ hours: 0, minutes: 0 });
+    setManualNightBase({ hours: 0, minutes: 0 });
+    setManualNightOt({ hours: 0, minutes: 0 });
+    setBreakdown(null);
+    setHasShiftsForDate(false);
+    setTrackerDerivedSplit(null);
+    setTrackerNightHint(null);
+  }, [user?.uid]); // Reset when user ID changes
+
   // Load default rates and tracker hours when mode/date changes
   useEffect(() => {
     const load = async (): Promise<void> => {
       if (!settings) return;
-      const base = settings.payRates.find((r) => r.type === "base");
-      const ot = settings.payRates.find((r) => r.type === "overtime") || base;
 
-      // Only set rate IDs if we have valid rates
-      if (base) {
-        setHourlyRateId(base.id);
+      // Load persisted rate selections
+      const [savedBaseRateId, savedOvertimeRateId] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.baseRateId),
+        AsyncStorage.getItem(STORAGE_KEYS.overtimeRateId),
+      ]);
+
+      const baseRates = settings.payRates.filter((r) => r.type === "base");
+      const overtimeRates = settings.payRates.filter(
+        (r) => r.type === "overtime"
+      );
+
+      // Set base rate: use saved, then first available, then custom
+      if (savedBaseRateId && baseRates.find((r) => r.id === savedBaseRateId)) {
+        setHourlyRateId(savedBaseRateId);
+      } else if (baseRates.length > 0) {
+        setHourlyRateId(baseRates[0].id);
       } else {
-        setHourlyRateId(null);
+        setHourlyRateId("custom");
       }
 
-      if (ot) {
-        setOvertimeRateId(ot.id);
+      // Set overtime rate: use saved, then first available, then base rate, then custom
+      if (
+        savedOvertimeRateId &&
+        overtimeRates.find((r) => r.id === savedOvertimeRateId)
+      ) {
+        setOvertimeRateId(savedOvertimeRateId);
+      } else if (overtimeRates.length > 0) {
+        setOvertimeRateId(overtimeRates[0].id);
+      } else if (baseRates.length > 0) {
+        setOvertimeRateId(baseRates[0].id);
       } else {
-        setOvertimeRateId(null);
+        setOvertimeRateId("custom");
       }
 
       if (mode === "tracker") {
@@ -239,8 +309,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         total: 0,
       };
     }
-    // If we have manual rates but no saved rates, use manual calculation
-    else if ((!savedBase || !savedOt) && (manualBase > 0 || manualOt > 0)) {
+    // If we have custom rates selected or manual rates, use manual calculation
+    else if (
+      hourlyRateId === "custom" ||
+      overtimeRateId === "custom" ||
+      ((!savedBase || !savedOt) && (manualBase > 0 || manualOt > 0))
+    ) {
       const baseRate = savedBase || manualBase || 0;
       const otRate = savedOt || manualOt || baseRate;
 
@@ -332,7 +406,9 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
           settings as AppSettings
         ),
         rateSnapshot:
-          (settings?.payRates || []).length === 0
+          (settings?.payRates || []).length === 0 ||
+          hourlyRateId === "custom" ||
+          overtimeRateId === "custom"
             ? {
                 base: parseFloat(manualBaseRateText || ""),
                 overtime: parseFloat(manualOvertimeRateText || ""),
@@ -483,8 +559,8 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         currencySymbol={currencySymbol}
         onBaseRateChange={setHourlyRateId}
         onOvertimeRateChange={setOvertimeRateId}
-        onManualBaseRateChange={setManualBaseRateText}
-        onManualOvertimeRateChange={setManualOvertimeRateText}
+        onManualBaseRateChange={onManualBaseRateTextChange}
+        onManualOvertimeRateChange={onManualOvertimeRateTextChange}
       />
 
       {/* Hours */}

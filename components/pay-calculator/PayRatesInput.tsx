@@ -1,9 +1,8 @@
-import { useTheme } from "@/providers/ThemeProvider";
 import { PayRate } from "@/types/settings";
 import React from "react";
-import { Platform, StyleSheet, TextInput, View } from "react-native";
-import { Dropdown } from "../Dropdown";
+import { StyleSheet, View } from "react-native";
 import { ThemedText } from "../ThemedText";
+import { RateDropdown } from "./RateDropdown";
 
 interface PayRatesInputProps {
   baseRates: PayRate[];
@@ -32,10 +31,15 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
   onManualBaseRateChange,
   onManualOvertimeRateChange,
 }) => {
-  const { colors } = useTheme();
+  // Handle base rate change
+  const handleBaseRateChange = (id: string) => {
+    onBaseRateChange(id);
+  };
 
-  const hasBaseRates = baseRates.length > 0;
-  const hasOvertimeRates = overtimeRates.length > 0;
+  // Handle overtime rate change
+  const handleOvertimeRateChange = (id: string) => {
+    onOvertimeRateChange(id);
+  };
 
   return (
     <View style={styles.card}>
@@ -43,55 +47,39 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
         Rates
       </ThemedText>
       <View style={styles.rateInputs}>
-        {hasBaseRates ? (
-          <View style={styles.flex1}>
-            <Dropdown
-              compact
-              placeholder="Select base rate"
-              value={selectedBaseRateId}
-              onChange={onBaseRateChange}
-              items={baseRates.map((r) => ({
-                value: r.id,
-                label: r.label,
-              }))}
-            />
-          </View>
-        ) : (
-          <TextInput
-            style={[styles.rateInput, styles.flex1]}
-            keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
-            placeholder={`${currencySymbol} standard / hr`}
-            placeholderTextColor="#6B7280"
-            selectionColor="#007AFF"
-            value={manualBaseRate}
-            onChangeText={onManualBaseRateChange}
+        <View style={styles.flex1}>
+          <RateDropdown
+            compact
+            placeholder="Select base rate"
+            customPlaceholder={`${currencySymbol}0.00`}
+            currencySymbol={currencySymbol}
+            rateType="base"
+            value={selectedBaseRateId || baseRates[0]?.id || "custom"}
+            onChange={handleBaseRateChange}
+            onCustomChange={onManualBaseRateChange}
+            items={baseRates.map((r) => ({
+              value: r.id,
+              label: r.label,
+            }))}
           />
-        )}
+        </View>
 
-        {hasOvertimeRates ? (
-          <View style={styles.flex1}>
-            <Dropdown
-              compact
-              placeholder="Select overtime rate"
-              value={selectedOvertimeRateId}
-              onChange={onOvertimeRateChange}
-              items={overtimeRates.map((r) => ({
-                value: r.id,
-                label: r.label,
-              }))}
-            />
-          </View>
-        ) : (
-          <TextInput
-            style={[styles.rateInput, styles.flex1]}
-            keyboardType={Platform.OS === "web" ? "default" : "decimal-pad"}
-            placeholder={`${currencySymbol} overtime / hr (optional)`}
-            placeholderTextColor="#6B7280"
-            selectionColor="#007AFF"
-            value={manualOvertimeRate}
-            onChangeText={onManualOvertimeRateChange}
+        <View style={styles.flex1}>
+          <RateDropdown
+            compact
+            placeholder="Select overtime rate"
+            customPlaceholder={`${currencySymbol}0.00`}
+            currencySymbol={currencySymbol}
+            rateType="overtime"
+            value={selectedOvertimeRateId || overtimeRates[0]?.id || "custom"}
+            onChange={handleOvertimeRateChange}
+            onCustomChange={onManualOvertimeRateChange}
+            items={overtimeRates.map((r) => ({
+              value: r.id,
+              label: r.label,
+            }))}
           />
-        )}
+        </View>
       </View>
     </View>
   );
