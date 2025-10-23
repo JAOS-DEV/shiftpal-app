@@ -65,38 +65,6 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
     return `${h}:${String(m).padStart(2, "0")}`;
   };
 
-  const renderTrackerHints = (): React.ReactNode => {
-    if (mode !== "tracker") return null;
-
-    const parts: string[] = [];
-    if (trackerDerivedSplit) {
-      parts.push(`Standard: ${formatHMClock(trackerDerivedSplit.base)}`);
-      parts.push(`Overtime: ${formatHMClock(trackerDerivedSplit.overtime)}`);
-    }
-    if (trackerNightHint && (trackerNightHint.base || trackerNightHint.ot)) {
-      const nb = trackerNightHint.base || { hours: 0, minutes: 0 };
-      const no = trackerNightHint.ot || { hours: 0, minutes: 0 };
-      const totalMinutes =
-        Math.max(0, (nb.hours || 0) * 60 + (nb.minutes || 0)) +
-        Math.max(0, (no.hours || 0) * 60 + (no.minutes || 0));
-      const total = {
-        hours: Math.floor(totalMinutes / 60),
-        minutes: totalMinutes % 60,
-      };
-      parts.push(`Night uplift applied: ${formatHMClock(total)}`);
-    }
-    if (!parts.length) return null;
-
-    return (
-      <>
-        <ThemedText style={styles.helperText}>
-          Auto-fills from your shifts for the selected date when available.
-        </ThemedText>
-        <ThemedText style={styles.helperText}>{parts.join(" • ")}</ThemedText>
-      </>
-    );
-  };
-
   // Helper functions to handle HoursAndMinutes conversion
   const updateHours = (
     current: HoursAndMinutes,
@@ -166,7 +134,15 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
     if (mode !== "tracker" || !hasOvertimeRules || isOverrideMode) return null;
 
     return (
-      <View style={styles.readOnlyContainer}>
+      <View
+        style={[
+          styles.readOnlyContainer,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <ThemedText style={[styles.readOnlyTitle, { color: colors.text }]}>
           Auto-calculated from your shifts
         </ThemedText>
@@ -504,7 +480,6 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
           )}
         </>
       )}
-      {renderTrackerHints()}
     </View>
   );
 };
@@ -546,17 +521,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     textAlign: "center",
   },
-  helperText: {
-    marginTop: 8,
-    fontStyle: "italic",
-  },
+
   readOnlyContainer: {
     marginTop: 8,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: "#F8F9FA", // Will be overridden by theme
     borderWidth: 1,
-    borderColor: "#E5E5EA", // Will be overridden by theme
   },
   readOnlyTitle: {
     fontSize: 14,
