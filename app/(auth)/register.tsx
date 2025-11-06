@@ -3,6 +3,7 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/providers/AuthProvider";
 import { authStyles as styles } from "@/styles/auth.styles";
+import { getAuthErrorMessage } from "@/utils/authErrorUtils";
 import { notify } from "@/utils/notify";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -35,11 +36,9 @@ export default function RegisterScreen(): React.JSX.Element {
       await signUpWithEmail(email, password);
       notify.success("Account created");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to register");
-      notify.error(
-        "Registration failed",
-        e instanceof Error ? e.message : undefined
-      );
+      const errorMessage = getAuthErrorMessage(e);
+      setError(errorMessage);
+      notify.error("Registration failed", errorMessage);
     } finally {
       setLoading(false);
     }

@@ -53,6 +53,8 @@ export function RateDropdown({
   const [customValue, setCustomValue] = useState("");
   const [customName, setCustomName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showNameError, setShowNameError] = useState(false);
+  const [showValueError, setShowValueError] = useState(false);
   const { colors } = useTheme();
 
   const selectedLabel = useMemo(() => {
@@ -94,6 +96,7 @@ export function RateDropdown({
   const handleCustomInputChange = useCallback(
     (text: string) => {
       setCustomValue(text);
+      setShowValueError(false);
       if (onCustomChange) {
         onCustomChange(text);
       }
@@ -101,21 +104,38 @@ export function RateDropdown({
     [onCustomChange]
   );
 
+  const handleCustomNameChange = useCallback((text: string) => {
+    setCustomName(text);
+    setShowNameError(false);
+  }, []);
+
   const handleCustomSubmit = useCallback(async () => {
-    if (!customValue.trim() || !customName.trim()) {
-      Alert.alert(
-        "Missing Information",
-        "Please enter both a rate value and a name for your custom rate."
-      );
+    // Reset error states
+    setShowNameError(false);
+    setShowValueError(false);
+
+    let hasError = false;
+
+    // Validate rate name first
+    if (!customName.trim()) {
+      setShowNameError(true);
+      hasError = true;
+    }
+
+    // Validate rate value
+    if (!customValue.trim()) {
+      setShowValueError(true);
       return;
     }
 
     const rateValue = parseFloat(customValue);
     if (isNaN(rateValue) || rateValue <= 0) {
-      Alert.alert(
-        "Invalid Rate",
-        "Please enter a valid positive number for the rate."
-      );
+      setShowValueError(true);
+      return;
+    }
+
+    // If name is missing, don't proceed
+    if (hasError) {
       return;
     }
 
@@ -127,15 +147,20 @@ export function RateDropdown({
         type: rateType,
       });
 
-      // Clear the custom inputs
+      // Clear the custom inputs and error states
       setCustomValue("");
       setCustomName("");
+      setShowNameError(false);
+      setShowValueError(false);
 
       // Select the newly created rate
       onChange(newRate.id);
       setOpen(false);
     } catch (error) {
-      Alert.alert("Error", "Failed to save the custom rate. Please try again.");
+      Alert.alert(
+        "Error",
+        "Failed to save the custom rate. Please try again."
+      );
       console.error("Error saving custom rate:", error);
     } finally {
       setIsSaving(false);
@@ -237,15 +262,30 @@ export function RateDropdown({
                   <TextInput
                     style={[
                       styles.customInput,
-                      { borderColor: colors.border, color: colors.text },
+                      {
+                        borderColor: showNameError
+                          ? colors.error || "#ef4444"
+                          : colors.border,
+                        color: colors.text,
+                      },
                     ]}
                     placeholder={`e.g., "Weekend ${
                       rateType === "base" ? "Base" : "Overtime"
                     }"`}
                     placeholderTextColor="#6B7280"
                     value={customName}
-                    onChangeText={setCustomName}
+                    onChangeText={handleCustomNameChange}
                   />
+                  {showNameError && (
+                    <ThemedText
+                      style={[
+                        styles.errorText,
+                        { color: colors.error || "#ef4444" },
+                      ]}
+                    >
+                      Rate name is required
+                    </ThemedText>
+                  )}
                 </View>
 
                 {/* Value input */}
@@ -256,29 +296,49 @@ export function RateDropdown({
                     Rate Value
                   </ThemedText>
                   <View style={styles.customInputRow}>
-                    <TextInput
-                      style={[
-                        styles.customInput,
-                        { borderColor: colors.border, color: colors.text },
-                      ]}
-                      keyboardType={
-                        Platform.OS === "web" ? "default" : "decimal-pad"
-                      }
-                      placeholder={customPlaceholder || `${currencySymbol}0.00`}
-                      placeholderTextColor="#6B7280"
-                      value={customValue}
-                      onChangeText={handleCustomInputChange}
-                      onSubmitEditing={handleCustomSubmit}
-                    />
+                    <View style={styles.flex1}>
+                      <TextInput
+                        style={[
+                          styles.customInput,
+                          {
+                            borderColor: showValueError
+                              ? colors.error || "#ef4444"
+                              : colors.border,
+                            color: colors.text,
+                          },
+                        ]}
+                        keyboardType={
+                          Platform.OS === "web" ? "default" : "decimal-pad"
+                        }
+                        placeholder={customPlaceholder || `${currencySymbol}0.00`}
+                        placeholderTextColor="#6B7280"
+                        value={customValue}
+                        onChangeText={handleCustomInputChange}
+                        onSubmitEditing={handleCustomSubmit}
+                      />
+                      {showValueError && (
+                        <ThemedText
+                          style={[
+                            styles.errorText,
+                            { color: colors.error || "#ef4444" },
+                          ]}
+                        >
+                          Valid rate value is required
+                        </ThemedText>
+                      )}
+                    </View>
                     <TouchableOpacity
                       style={[
                         styles.submitButton,
-                        { backgroundColor: colors.primary },
+                        {
+                          backgroundColor: isSaving
+                            ? colors.border
+                            : colors.primary,
+                          opacity: isSaving ? 0.6 : 1,
+                        },
                       ]}
                       onPress={handleCustomSubmit}
-                      disabled={
-                        !customValue.trim() || !customName.trim() || isSaving
-                      }
+                      disabled={isSaving}
                     >
                       <ThemedText style={styles.submitButtonText}>
                         {isSaving ? "Saving..." : "Save"}
@@ -383,8 +443,15 @@ const styles = StyleSheet.create({
   },
   customInputRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
+  },
+  flex1: {
+    flex: 1,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
   },
   customInput: {
     flex: 1,
