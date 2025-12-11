@@ -141,6 +141,8 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         : "£",
     [settings?.preferences?.currency]
   );
+  const taxEnabled = settings?.payRules?.tax?.enabled === true;
+  const niEnabled = settings?.payRules?.ni?.enabled === true;
 
   // Reset component state when user changes (logout/login)
   useEffect(() => {
@@ -369,15 +371,15 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
       // Apply tax and NI if configured
       const taxPct =
-        typeof settings?.payRules?.tax?.percentage === "number"
+        taxEnabled && typeof settings?.payRules?.tax?.percentage === "number"
           ? settings.payRules.tax.percentage
           : 0;
       const niPct =
-        typeof settings?.payRules?.ni?.percentage === "number"
+        niEnabled && typeof settings?.payRules?.ni?.percentage === "number"
           ? settings.payRules.ni.percentage
           : 0;
-      const tax = (taxPct / 100) * gross;
-      const ni = (niPct / 100) * gross;
+      const tax = taxEnabled ? (taxPct / 100) * gross : 0;
+      const ni = niEnabled ? (niPct / 100) * gross : 0;
       const total = gross - tax - ni;
 
       result = {
@@ -427,12 +429,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       return;
     }
 
-    // Check if pay has already been calculated for this date (only in tracker mode)
-    if (hasExistingCalculation && mode === "tracker") {
-      Alert.alert(
-        "Pay Already Calculated",
-        "Pay has already been calculated for this date. Please delete the existing calculation first or switch to manual mode to calculate additional hours.",
-        [{ text: "OK" }]
+    // Check if pay has already been calculated for this date
+    if (hasExistingCalculation) {
+      notify.warn(
+        `Pay already saved (${formatDateDisplay(date)})`,
+        "Delete the existing calculation first."
       );
       return;
     }
@@ -509,9 +510,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       onPaySaved();
     } catch (e) {
       if (e instanceof Error && e.message.includes("already exists")) {
-        Alert.alert("Duplicate Calculation", e.message, [{ text: "OK" }]);
+        notify.warn(
+          `Pay already saved (${formatDateDisplay(date)})`,
+          "Delete the existing calculation first."
+        );
       } else {
-        Alert.alert("Error", "Failed to save pay calculation");
+        notify.error("Error", "Failed to save pay calculation");
       }
     } finally {
       setIsSaving(false);
@@ -677,32 +681,6 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       />
 
       {/* Hours */}
-      {hasExistingCalculation && mode === "tracker" && (
-        <View
-          style={[
-            styles.existingCalculationBanner,
-            {
-              backgroundColor: colors.warning + "20",
-              borderColor: colors.warning,
-            },
-          ]}
-        >
-          <ThemedText
-            style={[styles.existingCalculationText, { color: colors.warning }]}
-          >
-            ⚠️ Pay has already been calculated for this date
-          </ThemedText>
-          <ThemedText
-            style={[
-              styles.existingCalculationSubtext,
-              { color: colors.textSecondary },
-            ]}
-          >
-            Switch to manual mode to calculate pay for additional hours
-          </ThemedText>
-        </View>
-      )}
-
       <PayHoursInput
         mode={mode}
         date={date}
@@ -757,12 +735,10 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
             .minutes /
             60
         }
-        isDisabled={hasExistingCalculation && mode === "tracker"}
-        disabledReason={
-          hasExistingCalculation && mode === "tracker"
-            ? "Pay already calculated for this date"
-            : undefined
-        }
+        isDisabled={false}
+        disabledReason={undefined}
+        taxEnabled={taxEnabled}
+        niEnabled={niEnabled}
       />
     </ThemedView>
   );

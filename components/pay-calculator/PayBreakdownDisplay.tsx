@@ -15,6 +15,8 @@ interface PayBreakdownDisplayProps {
   totalHours?: number;
   showTitle?: boolean;
   title?: string;
+  taxEnabled?: boolean;
+  niEnabled?: boolean;
 }
 
 export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
@@ -28,8 +30,11 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
   totalHours = 0,
   showTitle = true,
   title = "Pay Breakdown",
+  taxEnabled = false,
+  niEnabled = false,
 }) => {
   const { colors } = useTheme();
+  const shouldShowDeductions = taxEnabled || niEnabled;
 
   // Helper function to format hours and minutes
   const formatHours = (hm?: { hours: number; minutes: number }): string => {
@@ -201,37 +206,49 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
         )}
 
         {/* Deductions section */}
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
-            Deductions
-          </ThemedText>
-          <View style={styles.breakdownRow}>
-            <ThemedText
-              style={[styles.breakdownLabel, { color: colors.textSecondary }]}
-            >
-              Tax
+        {shouldShowDeductions && (
+          <View style={styles.section}>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
+              Deductions
             </ThemedText>
-            <ThemedText
-              style={[styles.deductionValue, { color: colors.error }]}
-            >
-              -{currencySymbol}
-              {(breakdown?.tax ?? 0).toFixed(2)}
-            </ThemedText>
+            {taxEnabled && (
+              <View style={styles.breakdownRow}>
+                <ThemedText
+                  style={[
+                    styles.breakdownLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Tax
+                </ThemedText>
+                <ThemedText
+                  style={[styles.deductionValue, { color: colors.error }]}
+                >
+                  -{currencySymbol}
+                  {(breakdown?.tax ?? 0).toFixed(2)}
+                </ThemedText>
+              </View>
+            )}
+            {niEnabled && (
+              <View style={styles.breakdownRow}>
+                <ThemedText
+                  style={[
+                    styles.breakdownLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  NI
+                </ThemedText>
+                <ThemedText
+                  style={[styles.deductionValue, { color: colors.error }]}
+                >
+                  -{currencySymbol}
+                  {(breakdown?.ni ?? 0).toFixed(2)}
+                </ThemedText>
+              </View>
+            )}
           </View>
-          <View style={styles.breakdownRow}>
-            <ThemedText
-              style={[styles.breakdownLabel, { color: colors.textSecondary }]}
-            >
-              NI
-            </ThemedText>
-            <ThemedText
-              style={[styles.deductionValue, { color: colors.error }]}
-            >
-              -{currencySymbol}
-              {(breakdown?.ni ?? 0).toFixed(2)}
-            </ThemedText>
-          </View>
-        </View>
+        )}
 
         {/* Total section */}
         <View style={[styles.totalSection, { borderTopColor: colors.border }]}>

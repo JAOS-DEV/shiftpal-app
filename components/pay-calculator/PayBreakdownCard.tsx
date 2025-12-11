@@ -22,6 +22,8 @@ interface PayBreakdownCardProps {
   // Disable save button
   isDisabled?: boolean;
   disabledReason?: string;
+  taxEnabled?: boolean;
+  niEnabled?: boolean;
 }
 
 export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
@@ -39,6 +41,8 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
   totalHours = 0,
   isDisabled = false,
   disabledReason,
+  taxEnabled = false,
+  niEnabled = false,
 }) => {
   const { colors } = useTheme();
 
@@ -64,6 +68,8 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
           allowanceItems={allowanceItems}
           totalHours={totalHours}
           showTitle={false}
+          taxEnabled={taxEnabled}
+          niEnabled={niEnabled}
         />
       )}
 

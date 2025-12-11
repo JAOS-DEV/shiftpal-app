@@ -93,6 +93,8 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
     (typeof savedOtVal === "number"
       ? savedOtVal
       : entry.rateSnapshot?.overtime) ?? baseRateVal;
+  const taxEnabled = settings?.payRules?.tax?.enabled;
+  const niEnabled = settings?.payRules?.ni?.enabled;
 
   const baseMinutes = hmToMinutes(entry.input.hoursWorked);
   const overtimeMinutes = hmToMinutes(entry.input.overtimeWorked);
@@ -159,6 +161,8 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
             allowanceItems={settings?.payRules?.allowances || []}
             totalHours={totalMinutes / 60}
             showTitle={false}
+            taxEnabled={taxEnabled}
+            niEnabled={niEnabled}
           />
 
           <View style={[styles.actionsRow, { borderTopColor: colors.border }]}>
