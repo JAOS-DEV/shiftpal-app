@@ -306,7 +306,7 @@ class ShiftService {
           (shift) => shift.id !== shiftId
         );
         await AsyncStorage.setItem(
-          SHIFTS_STORAGE_KEY,
+          this.getStorageKey(SHIFTS_STORAGE_KEY),
           JSON.stringify(allShifts)
         );
       }
