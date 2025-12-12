@@ -28,7 +28,6 @@ interface PayHoursInputProps {
   onManualNightBaseChange: (hours: HoursAndMinutes) => void;
   onManualNightOtChange: (hours: HoursAndMinutes) => void;
   // New props for conditional display
-  hasOvertimeRules?: boolean;
   isOverrideMode?: boolean;
   onToggleOverride?: () => void;
   onResetOverride?: () => void;
@@ -58,7 +57,6 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
   onManualOvertimeChange,
   onManualNightBaseChange,
   onManualNightOtChange,
-  hasOvertimeRules = false,
   isOverrideMode = false,
   onToggleOverride,
   onResetOverride,
@@ -312,23 +310,6 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
               <ThemedText>m</ThemedText>
             </View>
           </View>
-
-          {/* Reset button when in override mode */}
-          {mode === "tracker" &&
-            hasOvertimeRules &&
-            isOverrideMode &&
-            onResetOverride && (
-              <TouchableOpacity
-                style={[styles.resetButton, { borderColor: colors.primary }]}
-                onPress={onResetOverride}
-              >
-                <ThemedText
-                  style={[styles.resetButtonText, { color: colors.primary }]}
-                >
-                  Reset to Auto-calculated
-                </ThemedText>
-              </TouchableOpacity>
-            )}
 
           {showNightInputs && (
             <>

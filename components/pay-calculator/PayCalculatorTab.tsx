@@ -675,22 +675,9 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       // Fetch hours from tracker
       const hm = await settingsService.deriveTrackerHoursForDate(date);
 
-      // Fetch overtime split if overtime rules are configured
-      let baseHours = hm;
-      let overtimeHours: HoursAndMinutes = { hours: 0, minutes: 0 };
-
-      if (hasOvertimeRules) {
-        try {
-          const split = await settingsService.deriveTrackerOvertimeSplitForDate(
-            date,
-            settings
-          );
-          baseHours = split.base;
-          overtimeHours = split.overtime;
-        } catch (error) {
-          console.error("Error deriving overtime split:", error);
-        }
-      }
+      // All hours are base hours (no overtime split)
+      const baseHours = hm;
+      const overtimeHours: HoursAndMinutes = { hours: 0, minutes: 0 };
 
       // Fetch night allocation if night rules are configured
       let nightBase: HoursAndMinutes = { hours: 0, minutes: 0 };
@@ -740,31 +727,6 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const overtimeRates = (settings?.payRates || []).filter(
     (r) => r.type === "overtime"
   );
-
-  // Check if overtime rules are configured
-  const hasOvertimeRules = useMemo(() => {
-    if (!settings?.payRules?.overtime) return false;
-    const ot = settings.payRules.overtime as any;
-
-    // Check if overtime is enabled and has valid rules
-    const isEnabled = ot.enabled === true; // Only true if explicitly enabled
-
-    // Check new nested structure
-    const hasDailyRule = typeof ot.daily?.threshold === "number";
-    const hasWeeklyRule = typeof ot.weekly?.threshold === "number";
-
-    // Check legacy flat fields
-    const hasLegacyDailyRule = typeof ot.dailyThreshold === "number";
-    const hasLegacyWeeklyRule = typeof ot.weeklyThreshold === "number";
-
-    return (
-      isEnabled &&
-      (hasDailyRule ||
-        hasWeeklyRule ||
-        hasLegacyDailyRule ||
-        hasLegacyWeeklyRule)
-    );
-  }, [settings?.payRules?.overtime]);
 
   // Check if night rules are configured
   const hasNightRules = useMemo(() => {
@@ -884,7 +846,6 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         onManualOvertimeChange={setManualOvertimeWorked}
         onManualNightBaseChange={setManualNightBase}
         onManualNightOtChange={setManualNightOt}
-        hasOvertimeRules={hasOvertimeRules}
         isOverrideMode={isOverrideMode}
         onToggleOverride={() => setIsOverrideMode(!isOverrideMode)}
         onResetOverride={() => {

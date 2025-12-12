@@ -1,6 +1,5 @@
 import { HelpModal } from "@/components/settings/HelpModal";
 import { NightEditModal } from "@/components/settings/NightEditModal";
-import { OvertimeEditModal } from "@/components/settings/OvertimeEditModal";
 import { PayPeriodSettingsSection } from "@/components/settings/PayPeriodSettingsSection";
 import { PayRatesSection } from "@/components/settings/PayRatesSection";
 import { PayRulesSummarySection } from "@/components/settings/PayRulesSummarySection";
@@ -34,7 +33,6 @@ export default function PaySettingsScreen() {
   const router = useRouter();
   const { settings, refreshSettings } = useSettings();
   const {
-    showOvertimeSheet,
     showNightSheet,
     showWeekendSheet,
     showWeekStartPicker,
@@ -88,12 +86,6 @@ export default function PaySettingsScreen() {
           title={helpModal.title}
           body={helpModal.body}
           onClose={closeHelp}
-        />
-        <OvertimeEditModal
-          visible={showOvertimeSheet}
-          settings={settings}
-          onClose={() => closeModal("showOvertimeSheet")}
-          onSettingsChange={refreshSettings}
         />
         <NightEditModal
           visible={showNightSheet}
@@ -167,7 +159,6 @@ export default function PaySettingsScreen() {
               <PayRulesSummarySection
                 payRules={settings?.payRules}
                 currencySymbol={currencySymbol}
-                onEditOvertime={() => openModal("showOvertimeSheet")}
                 onEditNight={() => openModal("showNightSheet")}
                 onEditWeekend={() => openModal("showWeekendSheet")}
                 onEditWeekStart={() => openModal("showWeekStartPicker")}

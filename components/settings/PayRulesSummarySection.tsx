@@ -1,7 +1,6 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import {
   NightRules,
-  OvertimeRules,
   PayRules,
   WeekendRules,
 } from "@/types/settings";
@@ -12,7 +11,6 @@ import { ThemedText } from "../ui/ThemedText";
 interface PayRulesSummarySectionProps {
   payRules: PayRules | undefined;
   currencySymbol: string;
-  onEditOvertime: () => void;
   onEditNight: () => void;
   onEditWeekend: () => void;
   onEditWeekStart: () => void;
@@ -22,27 +20,12 @@ interface PayRulesSummarySectionProps {
 export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
   payRules,
   currencySymbol,
-  onEditOvertime,
   onEditNight,
   onEditWeekend,
   onEditWeekStart,
   onHelp,
 }) => {
   const { colors } = useTheme();
-
-  const getOvertimeSummary = (): string => {
-    const ot: OvertimeRules = payRules?.overtime || {};
-    const enabled = ot?.enabled !== false;
-
-    if (!enabled) {
-      return "Disabled";
-    }
-
-    const basis = ot.active || "daily";
-    const rule = basis === "weekly" ? ot.weekly : ot.daily;
-    const threshold = rule?.threshold ?? (basis === "weekly" ? 40 : 8);
-    return `${basis === "weekly" ? "Weekly" : "Daily"} threshold ${threshold}h`;
-  };
 
   const getNightSummary = (): string => {
     const n: NightRules = payRules?.night || {};
@@ -110,33 +93,6 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
         These rules automatically apply when calculating pay in the pay
         calculator.
       </ThemedText>
-
-      {/* Overtime row */}
-      <View style={styles.simpleRow}>
-        <View style={styles.ruleContent}>
-          <ThemedText style={styles.ruleTitle}>Overtime</ThemedText>
-          <ThemedText
-            style={[styles.ruleDescription, { color: colors.textSecondary }]}
-          >
-            {getOvertimeSummary()}
-          </ThemedText>
-          <ThemedText
-            style={[styles.ruleModeNote, { color: colors.textSecondary }]}
-          >
-            Auto-applies in tracker mode
-          </ThemedText>
-        </View>
-        <TouchableOpacity
-          style={[styles.actionButton, { borderColor: colors.primary }]}
-          onPress={onEditOvertime}
-        >
-          <ThemedText
-            style={[styles.actionButtonText, { color: colors.primary }]}
-          >
-            Edit
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
 
       {/* Night row */}
       <View style={styles.simpleRow}>

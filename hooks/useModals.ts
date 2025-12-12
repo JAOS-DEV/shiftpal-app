@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 interface ModalState {
-  showOvertimeSheet: boolean;
   showNightSheet: boolean;
   showWeekendSheet: boolean;
   showWeekStartPicker: boolean;
@@ -14,7 +13,6 @@ interface ModalState {
 
 export const useModals = () => {
   const [modalState, setModalState] = useState<ModalState>({
-    showOvertimeSheet: false,
     showNightSheet: false,
     showWeekendSheet: false,
     showWeekStartPicker: false,
@@ -26,21 +24,21 @@ export const useModals = () => {
   });
 
   const openModal = (modalName: keyof Omit<ModalState, "helpModal">) => {
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       [modalName]: true,
     }));
   };
 
   const closeModal = (modalName: keyof Omit<ModalState, "helpModal">) => {
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       [modalName]: false,
     }));
   };
 
   const openHelpModal = (title: string, body: string) => {
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       helpModal: {
         visible: true,
@@ -51,7 +49,7 @@ export const useModals = () => {
   };
 
   const closeHelpModal = () => {
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       helpModal: {
         visible: false,
