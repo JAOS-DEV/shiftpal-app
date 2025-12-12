@@ -32,6 +32,13 @@ interface PayHoursInputProps {
   isOverrideMode?: boolean;
   onToggleOverride?: () => void;
   onResetOverride?: () => void;
+  // New props for Load from Tracker button
+  hasSubmittedShifts?: boolean;
+  isLoadingTrackerHours?: boolean;
+  hasLoadedFromTracker?: boolean;
+  onLoadFromTracker?: () => void;
+  hasNightRules?: boolean;
+  hasExistingCalculation?: boolean;
 }
 
 export const PayHoursInput: React.FC<PayHoursInputProps> = ({
@@ -55,6 +62,12 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
   isOverrideMode = false,
   onToggleOverride,
   onResetOverride,
+  hasSubmittedShifts = false,
+  isLoadingTrackerHours = false,
+  hasLoadedFromTracker = false,
+  onLoadFromTracker,
+  hasNightRules = false,
+  hasExistingCalculation = false,
 }) => {
   const { colors } = useTheme();
 
@@ -126,79 +139,8 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
     }
   };
 
-  // Check if night inputs should be shown (when night rules are enabled)
-  const showNightInputs = mode === "manual"; // For now, only show in manual mode
-
-  // Render read-only display when overtime rules are configured and not in override mode
-  const renderReadOnlyDisplay = () => {
-    if (mode !== "tracker" || !hasOvertimeRules || isOverrideMode) return null;
-
-    return (
-      <View
-        style={[
-          styles.readOnlyContainer,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <ThemedText style={[styles.readOnlyTitle, { color: colors.text }]}>
-          Auto-calculated from your shifts
-        </ThemedText>
-        <View style={styles.readOnlyRow}>
-          <ThemedText
-            style={[styles.readOnlyLabel, { color: colors.textSecondary }]}
-          >
-            Standard:
-          </ThemedText>
-          <ThemedText style={[styles.readOnlyValue, { color: colors.text }]}>
-            {formatHMClock(trackerDerivedSplit?.base || trackerHours)}
-          </ThemedText>
-        </View>
-        <View style={styles.readOnlyRow}>
-          <ThemedText
-            style={[styles.readOnlyLabel, { color: colors.textSecondary }]}
-          >
-            Overtime:
-          </ThemedText>
-          <ThemedText style={[styles.readOnlyValue, { color: colors.text }]}>
-            {formatHMClock(trackerDerivedSplit?.overtime || trackerOvertime)}
-          </ThemedText>
-        </View>
-        {trackerNightHint && (trackerNightHint.base || trackerNightHint.ot) && (
-          <View style={styles.readOnlyRow}>
-            <ThemedText
-              style={[styles.readOnlyLabel, { color: colors.textSecondary }]}
-            >
-              Night uplift:
-            </ThemedText>
-            <ThemedText style={[styles.readOnlyValue, { color: colors.text }]}>
-              {formatHMClock({
-                hours:
-                  (trackerNightHint.base?.hours || 0) +
-                  (trackerNightHint.ot?.hours || 0),
-                minutes:
-                  ((trackerNightHint.base?.minutes || 0) +
-                    (trackerNightHint.ot?.minutes || 0)) %
-                  60,
-              })}
-            </ThemedText>
-          </View>
-        )}
-        <TouchableOpacity
-          style={[styles.overrideButton, { borderColor: colors.primary }]}
-          onPress={onToggleOverride}
-        >
-          <ThemedText
-            style={[styles.overrideButtonText, { color: colors.primary }]}
-          >
-            Override
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  // Check if night inputs should be shown (only when night rules are enabled)
+  const showNightInputs = hasNightRules;
 
   return (
     <View
@@ -207,15 +149,47 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
-      <ThemedText type="subtitle" style={styles.cardTitle}>
-        Hours
-      </ThemedText>
-
-      {renderReadOnlyDisplay()}
-
-      {/* Only show input fields when not in read-only mode */}
-      {!(mode === "tracker" && hasOvertimeRules && !isOverrideMode) && (
-        <>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle" style={styles.cardTitle}>
+          Hours
+        </ThemedText>
+        {mode === "manual" && onLoadFromTracker && (
+          <TouchableOpacity
+            style={[
+              styles.loadButton,
+              !hasSubmittedShifts && styles.loadButtonDisabled,
+            ]}
+            onPress={onLoadFromTracker}
+            disabled={!hasSubmittedShifts || isLoadingTrackerHours}
+          >
+            <ThemedText
+              style={[
+                styles.loadButtonText,
+                {
+                  color: hasSubmittedShifts
+                    ? hasExistingCalculation
+                      ? colors.error || "#FF3B30"
+                      : colors.primary
+                    : colors.textSecondary,
+                },
+              ]}
+            >
+              {isLoadingTrackerHours
+                ? "Loading..."
+                : hasExistingCalculation
+                ? "↻ Update from Tracker"
+                : hasLoadedFromTracker
+                ? "↻ Reload"
+                : "↓ Load from Tracker"}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+      </View>
+      {!hasSubmittedShifts && mode === "manual" && (
+        <ThemedText style={[styles.hintText, { color: colors.textSecondary }]}>
+          No submitted shifts for this date
+        </ThemedText>
+      )}
           <View style={styles.row}>
             <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
               Standard
@@ -478,8 +452,6 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
               </View>
             </>
           )}
-        </>
-      )}
     </View>
   );
 };
@@ -494,8 +466,32 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5EA", // Will be overridden by theme
     backgroundColor: "white", // Will be overridden by theme
   },
-  cardTitle: {
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
+  },
+  cardTitle: {
+    marginBottom: 0,
+  },
+  loadButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  loadButtonDisabled: {
+    opacity: 0.5,
+  },
+  loadButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  hintText: {
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 8,
+    fontStyle: "italic",
   },
   row: {
     marginTop: 8,

@@ -36,6 +36,12 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
   const { colors } = useTheme();
   const shouldShowDeductions = taxEnabled || niEnabled;
 
+  // Safely format rate values
+  const formatRate = (rate: number | undefined): string => {
+    if (typeof rate !== "number" || isNaN(rate)) return "0.00";
+    return rate.toFixed(2);
+  };
+
   // Helper function to format hours and minutes
   const formatHours = (hm?: { hours: number; minutes: number }): string => {
     if (!hm) return "0:00";
@@ -64,7 +70,8 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
       >
         {/* Hours breakdown section */}
         {hoursWorked &&
-          baseRate &&
+          typeof baseRate === "number" &&
+          baseRate > 0 &&
           (hoursWorked.hours > 0 || hoursWorked.minutes > 0) && (
             <View style={styles.section}>
               <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
@@ -78,7 +85,7 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                   ]}
                 >
                   Standard {formatHours(hoursWorked)} @ {currencySymbol}
-                  {baseRate.toFixed(2)}
+                  {formatRate(baseRate)}
                 </ThemedText>
                 <ThemedText
                   style={[styles.breakdownValue, { color: colors.success }]}
@@ -86,13 +93,14 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                   {currencySymbol}
                   {(
                     (hoursWorked.hours + hoursWorked.minutes / 60) *
-                    baseRate
+                    (baseRate || 0)
                   ).toFixed(2)}
                 </ThemedText>
               </View>
               {overtimeWorked &&
                 (overtimeWorked.hours > 0 || overtimeWorked.minutes > 0) &&
-                overtimeRate && (
+                typeof overtimeRate === "number" &&
+                overtimeRate > 0 && (
                   <View style={styles.breakdownRow}>
                     <ThemedText
                       style={[
@@ -101,7 +109,7 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                       ]}
                     >
                       Overtime {formatHours(overtimeWorked)} @ {currencySymbol}
-                      {overtimeRate.toFixed(2)}
+                      {formatRate(overtimeRate)}
                     </ThemedText>
                     <ThemedText
                       style={[styles.breakdownValue, { color: colors.success }]}
@@ -109,7 +117,7 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                       {currencySymbol}
                       {(
                         (overtimeWorked.hours + overtimeWorked.minutes / 60) *
-                        overtimeRate
+                        (overtimeRate || 0)
                       ).toFixed(2)}
                     </ThemedText>
                   </View>

@@ -30,31 +30,6 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 8,
   },
-  modeRow: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E5EA", // Will be overridden by theme
-    overflow: "hidden",
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    backgroundColor: "white", // Will be overridden by theme
-  },
-  modeButtonActive: {
-    backgroundColor: "#007AFF", // Will be overridden by theme
-  },
-  modeText: {
-    fontWeight: "600",
-    color: "#8E8E93", // Will be overridden by theme
-  },
-  modeTextActive: {
-    color: "white", // Will be overridden by theme
-  },
   existingCalculationBanner: {
     marginHorizontal: 16,
     marginTop: 12,

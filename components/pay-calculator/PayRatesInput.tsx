@@ -69,10 +69,22 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
     selectedBaseRateId !== "custom" &&
     baseRates.some((r) => r.id === selectedBaseRateId);
 
+  // Check if we have a valid manual base rate
+  const hasValidManualBaseRate = parseFloat(manualBaseRate || "") > 0;
+
   const hasStandardRate =
     selectedBaseRateExists ||
-    (selectedBaseRateId === "custom" && parseFloat(manualBaseRate || "") > 0) ||
-    (!selectedBaseRateId && parseFloat(manualBaseRate || "") > 0);
+    (selectedBaseRateId === "custom" && hasValidManualBaseRate) ||
+    (!selectedBaseRateId && hasValidManualBaseRate);
+
+  // Additional check: if selectedBaseRateId exists but rate doesn't exist in array,
+  // and no manual rate, then we DON'T have a valid rate
+  const hasStaleBaseRate =
+    selectedBaseRateId &&
+    selectedBaseRateId !== "custom" &&
+    !baseRates.some((r) => r.id === selectedBaseRateId);
+
+  const hasActualStandardRate = hasStandardRate && !hasStaleBaseRate;
 
   // Check if overtime rate is configured
   // Verify that selectedOvertimeRateId actually exists in overtimeRates or baseRates
@@ -82,20 +94,70 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
     (overtimeRates.some((r) => r.id === selectedOvertimeRateId) ||
       baseRates.some((r) => r.id === selectedOvertimeRateId));
 
+  // Check if we have a valid manual overtime rate
+  const hasValidManualOvertimeRate = parseFloat(manualOvertimeRate || "") > 0;
+
   const hasOvertimeRate =
     selectedOvertimeRateExists ||
-    (selectedOvertimeRateId === "custom" &&
-      parseFloat(manualOvertimeRate || "") > 0) ||
-    (!selectedOvertimeRateId && parseFloat(manualOvertimeRate || "") > 0);
+    (selectedOvertimeRateId === "custom" && hasValidManualOvertimeRate) ||
+    (!selectedOvertimeRateId && hasValidManualOvertimeRate);
 
-  // Show warning if standard hours present but no standard rate
-  const showStandardWarning = hasStandardHours && !hasStandardRate;
+  // Check for stale overtime rate ID (selected but doesn't exist)
+  const hasStaleOvertimeRate =
+    selectedOvertimeRateId &&
+    selectedOvertimeRateId !== "custom" &&
+    !(
+      overtimeRates.some((r) => r.id === selectedOvertimeRateId) ||
+      baseRates.some((r) => r.id === selectedOvertimeRateId)
+    );
 
-  // Show warning if overtime hours present but no overtime rate
-  const showOvertimeWarning = hasOvertimeHours && !hasOvertimeRate;
+  const hasActualOvertimeRate = hasOvertimeRate && !hasStaleOvertimeRate;
 
-  // Legacy warning: Show warning if there are shifts but no pay rates
-  const showLegacyWarning = hasShifts && !hasPayRates;
+  // Check if overtime rate is specifically an overtime rate (not just using base rate)
+  const hasSpecificOvertimeRate =
+    selectedOvertimeRateId &&
+    selectedOvertimeRateId !== "custom" &&
+    overtimeRates.some((r) => r.id === selectedOvertimeRateId);
+
+  const hasCustomOvertimeRate =
+    (selectedOvertimeRateId === "custom" && hasValidManualOvertimeRate) ||
+    (!selectedOvertimeRateId && hasValidManualOvertimeRate);
+
+  // Show warning if:
+  // 1. Standard hours present but no standard rate
+  // 2. Stale rate detected (regardless of hours - rate is invalid)
+  // 3. Selected "custom" but no manual rate entered AND hours present
+  const hasEmptyCustomBaseRate =
+    selectedBaseRateId === "custom" && !hasValidManualBaseRate;
+
+  const showStandardWarning =
+    (hasStandardHours && !hasActualStandardRate) ||
+    hasStaleBaseRate ||
+    (hasStandardHours && hasEmptyCustomBaseRate);
+
+  // Show warning if:
+  // 1. Overtime hours present but no overtime rate
+  // 2. Stale overtime rate detected (regardless of hours)
+  // 3. Selected "custom" but no manual rate entered AND hours present
+  const hasEmptyCustomOvertimeRate =
+    selectedOvertimeRateId === "custom" && !hasValidManualOvertimeRate;
+
+  const showOvertimeWarning =
+    (hasOvertimeHours && !hasActualOvertimeRate) ||
+    hasStaleOvertimeRate ||
+    (hasOvertimeHours && hasEmptyCustomOvertimeRate);
+  
+  // Show info if overtime hours exist but using base rate as fallback
+  // Only show if we have an actual valid standard rate
+  const showOvertimeInfo =
+    hasOvertimeHours &&
+    hasActualStandardRate &&
+    !hasStaleBaseRate &&
+    !showOvertimeWarning &&
+    !hasSpecificOvertimeRate &&
+    !hasCustomOvertimeRate;
+
+  // Legacy warning removed - specific warnings provide better UX
 
   return (
     <View
@@ -108,23 +170,7 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
         Rates
       </ThemedText>
 
-      {/* Warning for shifts without pay rates (legacy) */}
-      {showLegacyWarning && !showStandardWarning && !showOvertimeWarning && (
-        <View
-          style={[
-            styles.warningContainer,
-            {
-              backgroundColor: colors.warning + "20",
-              borderColor: colors.warning + "40",
-            },
-          ]}
-        >
-          <ThemedText style={[styles.warningText, { color: colors.warning }]}>
-            ⚠️ You have shifts recorded but no pay rates set. Set your rates
-            below to calculate pay.
-          </ThemedText>
-        </View>
-      )}
+      {/* Legacy warning removed - specific warnings are more helpful */}
 
       {/* Warning for standard hours without standard rate */}
       {showStandardWarning && (
@@ -138,8 +184,13 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
           ]}
         >
           <ThemedText style={[styles.warningText, { color: colors.warning }]}>
-            ⚠️ You have standard hours but no standard rate set. Set your
-            standard rate below to calculate pay.
+            {hasStaleBaseRate
+              ? "⚠️ The selected standard rate no longer exists. Please select a valid standard rate below."
+              : hasEmptyCustomBaseRate
+              ? "⚠️ You have standard hours but no standard rate set. Enter a rate or select from settings."
+              : hasStandardHours
+              ? "⚠️ You have standard hours but no standard rate set. Set your standard rate below to calculate pay."
+              : "⚠️ No standard rate set. Set your standard rate below to calculate pay."}
           </ThemedText>
         </View>
       )}
@@ -156,8 +207,31 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
           ]}
         >
           <ThemedText style={[styles.warningText, { color: colors.warning }]}>
-            ⚠️ You have overtime hours but no overtime rate set. Set your
-            overtime rate below to calculate pay.
+            {hasStaleOvertimeRate
+              ? "⚠️ The selected overtime rate no longer exists. Please select a valid overtime rate below."
+              : hasEmptyCustomOvertimeRate
+              ? "⚠️ You have overtime hours but no overtime rate set. Enter a rate or select from settings."
+              : hasOvertimeHours
+              ? "⚠️ You have overtime hours but no overtime rate set. Set your overtime rate below to calculate pay."
+              : "⚠️ No overtime rate set. Set your overtime rate below to calculate pay."}
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Info when using base rate for overtime */}
+      {showOvertimeInfo && (
+        <View
+          style={[
+            styles.infoContainer,
+            {
+              backgroundColor: colors.primary + "15",
+              borderColor: colors.primary + "30",
+            },
+          ]}
+        >
+          <ThemedText style={[styles.infoText, { color: colors.primary }]}>
+            ℹ️ Using standard rate for overtime hours. Select an overtime rate
+            for accurate calculations.
           </ThemedText>
         </View>
       )}
@@ -254,6 +328,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   warningText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  infoContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  infoText: {
     fontSize: 14,
     fontWeight: "500",
   },

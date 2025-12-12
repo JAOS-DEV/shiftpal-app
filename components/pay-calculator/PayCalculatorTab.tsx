@@ -2,6 +2,7 @@ import { DateSelector } from "@/components/DateSelector";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
+import { shiftService } from "@/services/shiftService";
 import {
   AppSettings,
   HoursAndMinutes,
@@ -14,7 +15,7 @@ import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Platform, TouchableOpacity, View } from "react-native";
+import { Alert, Platform, View } from "react-native";
 import { ThemedText } from "../ThemedText";
 import { ThemedView } from "../ThemedView";
 import { PayBreakdownCard } from "./PayBreakdownCard";
@@ -52,7 +53,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const { colors } = useTheme();
   const { user } = useAuth();
   const isFocused = useIsFocused();
-  const [mode, setMode] = useState<Mode>("tracker");
+  const [mode, setMode] = useState<Mode>("manual"); // Always manual mode for UI
   const [date, setDate] = useState<string>(getCurrentDateString());
   const [hourlyRateId, setHourlyRateId] = useState<string | null>(null);
   const [overtimeRateId, setOvertimeRateId] = useState<string | null>(null);
@@ -122,6 +123,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const [hasExistingCalculation, setHasExistingCalculation] = useState(false);
   const [isOverrideMode, setIsOverrideMode] = useState(false);
 
+  // State for Load from Tracker functionality
+  const [hasSubmittedShifts, setHasSubmittedShifts] = useState(false);
+  const [isLoadingTrackerHours, setIsLoadingTrackerHours] = useState(false);
+  const [hasLoadedFromTracker, setHasLoadedFromTracker] = useState(false);
+
   // Derived hints for tracker mode
   const [trackerDerivedSplit, setTrackerDerivedSplit] = useState<{
     base: HoursAndMinutes;
@@ -147,7 +153,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   // Reset component state when user changes (logout/login)
   useEffect(() => {
     // Reset all state to initial values when user changes
-    setMode("tracker");
+    setMode("manual");
     setDate(getCurrentDateString());
     setHourlyRateId(null);
     setOvertimeRateId(null);
@@ -164,7 +170,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     setTrackerNightHint(null);
   }, [user?.uid]); // Reset when user ID changes
 
-  // Load default rates and tracker hours when mode/date changes
+  // Load default rates when settings change
   useEffect(() => {
     const load = async (): Promise<void> => {
       if (!settings) return;
@@ -186,7 +192,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       } else if (baseRates.length > 0) {
         setHourlyRateId(baseRates[0].id);
       } else {
+        // Switching to custom - clear manual rate text so warning shows
         setHourlyRateId("custom");
+        if (savedBaseRateId && savedBaseRateId !== "custom") {
+          // Had a saved rate that was deleted - clear manual text
+          onManualBaseRateTextChange("");
+        }
       }
 
       // Set overtime rate: use saved, then first available, then base rate, then custom
@@ -200,20 +211,16 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       } else if (baseRates.length > 0) {
         setOvertimeRateId(baseRates[0].id);
       } else {
+        // Switching to custom - clear manual rate text so warning shows
         setOvertimeRateId("custom");
-      }
-
-      if (mode === "tracker") {
-        const hm = await settingsService.deriveTrackerHoursForDate(date);
-        setTrackerHoursWorked(hm);
-
-        // Check if there are shifts for this date
-        const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
-        setHasShiftsForDate(hasShifts);
+        if (savedOvertimeRateId && savedOvertimeRateId !== "custom") {
+          // Had a saved rate that was deleted - clear manual text
+          onManualOvertimeRateTextChange("");
+        }
       }
     };
     void load();
-  }, [mode, date, settings]);
+  }, [settings, onManualBaseRateTextChange, onManualOvertimeRateTextChange]);
 
   // Check for existing calculations whenever date changes
   useEffect(() => {
@@ -233,37 +240,110 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     void checkExistingCalculation();
   }, [date, settings]);
 
-  // Refresh tracker data when the screen is focused
-  // This ensures that when users add shifts and navigate to pay calculator,
-  // the tracker mode will show updated data
+  // Check for submitted shifts whenever date changes
   useEffect(() => {
-    const refreshTrackerData = async (): Promise<void> => {
-      if (!isFocused || !settings || mode !== "tracker") return;
-
+    const checkSubmittedShifts = async (): Promise<void> => {
       try {
-        if (hasExistingCalculation) {
-          // If pay has already been calculated, show 0 hours
-          setTrackerHoursWorked({ hours: 0, minutes: 0 });
-          setTrackerOvertimeWorked({ hours: 0, minutes: 0 });
-          setHasShiftsForDate(false);
-        } else {
-          // Load hours normally
-          const hm = await settingsService.deriveTrackerHoursForDate(date);
-          setTrackerHoursWorked(hm);
-          setTrackerOvertimeWorked({ hours: 0, minutes: 0 });
-
-          // Check if there are shifts for this date
-          const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
-          setHasShiftsForDate(hasShifts);
-        }
+        const submittedDays = await shiftService.getSubmittedDays({
+          type: "all",
+        });
+        const dayForDate = submittedDays.find((d) => d.date === date);
+        const hasShifts =
+          dayForDate &&
+          dayForDate.submissions &&
+          dayForDate.submissions.length > 0;
+        setHasSubmittedShifts(!!hasShifts);
       } catch (error) {
-        console.error("Error refreshing tracker data:", error);
+        console.error("Error checking submitted shifts:", error);
+        setHasSubmittedShifts(false);
       }
     };
 
-    // Refresh tracker data when screen is focused
-    void refreshTrackerData();
-  }, [isFocused, date, mode, settings, hasExistingCalculation]);
+    void checkSubmittedShifts();
+  }, [date]);
+
+  // Reset loaded from tracker flag when date changes
+  useEffect(() => {
+    setHasLoadedFromTracker(false);
+  }, [date]);
+
+  // Load persisted manual inputs for the current date
+  useEffect(() => {
+    const loadPersistedInputs = async (): Promise<void> => {
+      try {
+        const key = `pay_calc_manual_inputs.${date}`;
+        const data = await AsyncStorage.getItem(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          setManualHoursWorked(parsed.hoursWorked || { hours: 0, minutes: 0 });
+          setManualOvertimeWorked(
+            parsed.overtimeWorked || { hours: 0, minutes: 0 }
+          );
+          setManualNightBase(parsed.nightBase || { hours: 0, minutes: 0 });
+          setManualNightOt(parsed.nightOt || { hours: 0, minutes: 0 });
+        } else {
+          // Reset to zeros if no persisted data
+          setManualHoursWorked({ hours: 0, minutes: 0 });
+          setManualOvertimeWorked({ hours: 0, minutes: 0 });
+          setManualNightBase({ hours: 0, minutes: 0 });
+          setManualNightOt({ hours: 0, minutes: 0 });
+        }
+      } catch (error) {
+        console.error("Error loading persisted inputs:", error);
+      }
+    };
+
+    void loadPersistedInputs();
+  }, [date]);
+
+  // Persist manual inputs whenever they change
+  useEffect(() => {
+    const persistInputs = async (): Promise<void> => {
+      try {
+        const key = `pay_calc_manual_inputs.${date}`;
+        const data = {
+          hoursWorked: manualHoursWorked,
+          overtimeWorked: manualOvertimeWorked,
+          nightBase: manualNightBase,
+          nightOt: manualNightOt,
+        };
+        await AsyncStorage.setItem(key, JSON.stringify(data));
+      } catch (error) {
+        console.error("Error persisting inputs:", error);
+      }
+    };
+
+    void persistInputs();
+  }, [
+    date,
+    manualHoursWorked,
+    manualOvertimeWorked,
+    manualNightBase,
+    manualNightOt,
+  ]);
+
+  // Refresh submitted shifts check when screen is focused
+  useEffect(() => {
+    const refreshSubmittedShifts = async (): Promise<void> => {
+      if (!isFocused) return;
+
+      try {
+        const submittedDays = await shiftService.getSubmittedDays({
+          type: "all",
+        });
+        const dayForDate = submittedDays.find((d) => d.date === date);
+        const hasShifts =
+          dayForDate &&
+          dayForDate.submissions &&
+          dayForDate.submissions.length > 0;
+        setHasSubmittedShifts(!!hasShifts);
+      } catch (error) {
+        console.error("Error refreshing submitted shifts:", error);
+      }
+    };
+
+    void refreshSubmittedShifts();
+  }, [isFocused, date]);
 
   // Recalculate pay whenever inputs change
   const recalc = async (): Promise<void> => {
@@ -276,44 +356,13 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       overtime: HoursAndMinutes;
     } | null = null;
 
-    // Derive night allocation
-    if (mode === "tracker") {
-      try {
-        const alloc = await settingsService.deriveTrackerNightAllocationForDate(
-          date,
-          settings
-        );
-        nightBaseHours = alloc.nightBase;
-        nightOvertimeHours = alloc.nightOvertime;
-      } catch {}
-    } else {
-      nightBaseHours = manualNightBase;
-      nightOvertimeHours = manualNightOt;
-    }
+    // Always use manual night hours (since we always show manual input fields)
+    nightBaseHours = manualNightBase;
+    nightOvertimeHours = manualNightOt;
 
-    // Choose hours for calculation
-    let hoursWorked: HoursAndMinutes =
-      mode === "tracker" ? trackerHoursWorked : manualHoursWorked;
-    let overtimeWorked: HoursAndMinutes =
-      mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked;
-
-    // Auto-derive tracker overtime split when OT not entered OR when overtime rules are configured
-    if (
-      mode === "tracker" &&
-      (overtimeWorked.hours || 0) === 0 &&
-      (overtimeWorked.minutes || 0) === 0 &&
-      (trackerHoursWorked.hours > 0 || trackerHoursWorked.minutes > 0)
-    ) {
-      try {
-        const split = await settingsService.deriveTrackerOvertimeSplitForDate(
-          date,
-          settings
-        );
-        hoursWorked = split.base;
-        overtimeWorked = split.overtime;
-        derivedSplit = split;
-      } catch {}
-    }
+    // Always use manual hours for calculation (since UI always shows manual inputs)
+    let hoursWorked: HoursAndMinutes = manualHoursWorked;
+    let overtimeWorked: HoursAndMinutes = manualOvertimeWorked;
 
     const input: PayCalculationInput = {
       mode,
@@ -411,20 +460,62 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     date,
     hourlyRateId,
     overtimeRateId,
-    trackerHoursWorked,
-    trackerOvertimeWorked,
     manualHoursWorked,
     manualOvertimeWorked,
+    manualNightBase,
+    manualNightOt,
     manualBaseRateText,
     manualOvertimeRateText,
   ]);
 
   const handleSave = async (): Promise<void> => {
     if (!breakdown) return;
+
+    // Check if hours are entered
+    const totalMinutes =
+      (manualHoursWorked.hours || 0) * 60 +
+      (manualHoursWorked.minutes || 0) +
+      (manualOvertimeWorked.hours || 0) * 60 +
+      (manualOvertimeWorked.minutes || 0);
+
+    if (totalMinutes === 0) {
+      notify.warn(
+        "No hours entered",
+        "Please enter hours worked before saving."
+      );
+      return;
+    }
+
+    // Check if rates are configured
     if (!hourlyRateId && !manualBaseRateText) {
       Alert.alert(
         "Rate required",
         "Please select a base rate in Settings or enter a manual base rate."
+      );
+      return;
+    }
+
+    // Validate that rates have actual values
+    const baseRate = hourlyRateId
+      ? resolveRateValue(hourlyRateId)
+      : parseFloat(manualBaseRateText || "");
+    const overtimeRate = overtimeRateId
+      ? resolveRateValue(overtimeRateId)
+      : parseFloat(manualOvertimeRateText || "") || baseRate;
+
+    if (!baseRate || baseRate <= 0) {
+      notify.warn(
+        "Invalid rate",
+        "Please enter a valid base rate greater than 0."
+      );
+      return;
+    }
+
+    // Check if total pay is £0 (shouldn't happen if rates are valid, but safety check)
+    if (breakdown.total <= 0) {
+      notify.warn(
+        "£0 calculation",
+        "Cannot save a pay calculation with £0 total."
       );
       return;
     }
@@ -443,14 +534,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       const entry: PayCalculationEntry = {
         id: Date.now().toString(36),
         input: {
-          mode,
+          mode: hasLoadedFromTracker ? "tracker" : "manual", // Track origin
           date,
           hourlyRateId,
           overtimeRateId,
-          hoursWorked:
-            mode === "tracker" ? trackerHoursWorked : manualHoursWorked,
-          overtimeWorked:
-            mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked,
+          hoursWorked: manualHoursWorked, // Always use manual (UI shows manual inputs)
+          overtimeWorked: manualOvertimeWorked,
         },
         calculatedPay: breakdown,
         rateSnapshot:
@@ -463,16 +552,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
               }
             : undefined,
         calcSnapshot: {
-          usedBase:
-            mode === "tracker" ? trackerDerivedSplit?.base : manualHoursWorked,
-          usedOvertime:
-            mode === "tracker"
-              ? trackerDerivedSplit?.overtime
-              : manualOvertimeWorked,
+          usedBase: manualHoursWorked, // Always use manual
+          usedOvertime: manualOvertimeWorked,
           night: Boolean((settings?.payRules?.night as any)?.enabled)
             ? {
-                base: trackerNightHint?.base,
-                overtime: trackerNightHint?.ot,
+                base: manualNightBase,
+                overtime: manualNightOt,
                 type: settings?.payRules?.night?.type,
                 value: settings?.payRules?.night?.value,
               }
@@ -508,6 +593,21 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         )} • Total ${currencySymbol}${breakdown.total.toFixed(2)}`
       );
       onPaySaved();
+
+      // Clear hour inputs after successful save
+      setManualHoursWorked({ hours: 0, minutes: 0 });
+      setManualOvertimeWorked({ hours: 0, minutes: 0 });
+      setManualNightBase({ hours: 0, minutes: 0 });
+      setManualNightOt({ hours: 0, minutes: 0 });
+      setHasLoadedFromTracker(false);
+
+      // Also clear persisted inputs for this date
+      try {
+        const key = `pay_calc_manual_inputs.${date}`;
+        await AsyncStorage.removeItem(key);
+      } catch (error) {
+        console.error("Error clearing persisted inputs:", error);
+      }
     } catch (e) {
       if (e instanceof Error && e.message.includes("already exists")) {
         notify.warn(
@@ -519,6 +619,112 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLoadFromTracker = async (): Promise<void> => {
+    if (!settings || !hasSubmittedShifts) return;
+
+    // If pay already exists, confirm replacement
+    if (hasExistingCalculation) {
+      const confirmReplace =
+        Platform.OS === "web"
+          ? window.confirm(
+              "Replace existing calculation with current tracker hours?"
+            )
+          : await new Promise<boolean>((resolve) => {
+              Alert.alert(
+                "Replace Calculation",
+                "This will replace your existing pay calculation with current tracker hours. Continue?",
+                [
+                  {
+                    text: "Cancel",
+                    style: "cancel",
+                    onPress: () => resolve(false),
+                  },
+                  {
+                    text: "Replace",
+                    style: "destructive",
+                    onPress: () => resolve(true),
+                  },
+                ]
+              );
+            });
+
+      if (!confirmReplace) return;
+
+      // Delete existing calculation first
+      try {
+        const existingEntries = await settingsService.getPayHistory();
+        const entryToDelete = existingEntries.find(
+          (e) => e.input.date === date
+        );
+        if (entryToDelete) {
+          await settingsService.deletePayCalculation(entryToDelete.id);
+          setHasExistingCalculation(false);
+        }
+      } catch (error) {
+        console.error("Error deleting existing calculation:", error);
+        notify.error("Error", "Failed to delete existing calculation");
+        return;
+      }
+    }
+
+    setIsLoadingTrackerHours(true);
+    try {
+      // Fetch hours from tracker
+      const hm = await settingsService.deriveTrackerHoursForDate(date);
+
+      // Fetch overtime split if overtime rules are configured
+      let baseHours = hm;
+      let overtimeHours: HoursAndMinutes = { hours: 0, minutes: 0 };
+
+      if (hasOvertimeRules) {
+        try {
+          const split = await settingsService.deriveTrackerOvertimeSplitForDate(
+            date,
+            settings
+          );
+          baseHours = split.base;
+          overtimeHours = split.overtime;
+        } catch (error) {
+          console.error("Error deriving overtime split:", error);
+        }
+      }
+
+      // Fetch night allocation if night rules are configured
+      let nightBase: HoursAndMinutes = { hours: 0, minutes: 0 };
+      let nightOt: HoursAndMinutes = { hours: 0, minutes: 0 };
+
+      if (settings?.payRules?.night?.enabled) {
+        try {
+          const alloc =
+            await settingsService.deriveTrackerNightAllocationForDate(
+              date,
+              settings
+            );
+          nightBase = alloc.nightBase || { hours: 0, minutes: 0 };
+          nightOt = alloc.nightOvertime || { hours: 0, minutes: 0 };
+        } catch (error) {
+          console.error("Error deriving night allocation:", error);
+        }
+      }
+
+      // Populate manual input fields
+      setManualHoursWorked(baseHours);
+      setManualOvertimeWorked(overtimeHours);
+      setManualNightBase(nightBase);
+      setManualNightOt(nightOt);
+
+      // Track that data came from tracker (but keep mode as "manual" for UI)
+      setHasLoadedFromTracker(true);
+
+      notify.success("Loaded", "Hours loaded from tracker");
+    } catch (error) {
+      console.error("Error loading from tracker:", error);
+      notify.error("Error", "Failed to load hours from tracker");
+    } finally {
+      setIsLoadingTrackerHours(false);
     }
   };
 
@@ -560,6 +766,53 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     );
   }, [settings?.payRules?.overtime]);
 
+  // Check if night rules are configured
+  const hasNightRules = useMemo(() => {
+    return settings?.payRules?.night?.enabled === true;
+  }, [settings?.payRules?.night]);
+
+  // Determine if save should be disabled
+  const { isSaveDisabled, disabledReason } = useMemo(() => {
+    // Check if hours are entered
+    const totalMinutes =
+      (manualHoursWorked.hours || 0) * 60 +
+      (manualHoursWorked.minutes || 0) +
+      (manualOvertimeWorked.hours || 0) * 60 +
+      (manualOvertimeWorked.minutes || 0);
+
+    if (totalMinutes === 0) {
+      return { isSaveDisabled: true, disabledReason: "Enter hours to save" };
+    }
+
+    // Check if rates are configured
+    const baseRate = hourlyRateId
+      ? resolveRateValue(hourlyRateId)
+      : parseFloat(manualBaseRateText || "");
+
+    if (!baseRate || baseRate <= 0) {
+      return {
+        isSaveDisabled: true,
+        disabledReason: "Set a valid pay rate to save",
+      };
+    }
+
+    // Check if total is £0
+    if (breakdown && breakdown.total <= 0) {
+      return {
+        isSaveDisabled: true,
+        disabledReason: "Total must be greater than £0",
+      };
+    }
+
+    return { isSaveDisabled: false, disabledReason: undefined };
+  }, [
+    manualHoursWorked,
+    manualOvertimeWorked,
+    hourlyRateId,
+    manualBaseRateText,
+    breakdown,
+  ]);
+
   if (loadingSettings) {
     return (
       <View
@@ -594,75 +847,6 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     <ThemedView>
       <DateSelector selectedDate={date} onDateChange={setDate} />
 
-      {/* Mode toggle */}
-      <View style={[styles.modeRow, { borderColor: colors.border }]}>
-        <TouchableOpacity
-          style={[
-            styles.modeButton,
-            { backgroundColor: colors.surface },
-            Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
-            mode === "tracker" && [
-              styles.modeButtonActive,
-              { backgroundColor: colors.primary },
-            ],
-          ]}
-          onPress={async () => {
-            setMode("tracker");
-            // Refresh tracker data when switching to tracker mode
-            if (settings) {
-              try {
-                const hm = await settingsService.deriveTrackerHoursForDate(
-                  date
-                );
-                setTrackerHoursWorked(hm);
-                const hasShifts = (hm.hours || 0) > 0 || (hm.minutes || 0) > 0;
-                setHasShiftsForDate(hasShifts);
-              } catch (error) {
-                console.error("Error refreshing tracker data:", error);
-              }
-            }
-          }}
-        >
-          <ThemedText
-            style={[
-              styles.modeText,
-              { color: colors.textSecondary },
-              mode === "tracker" && [
-                styles.modeTextActive,
-                { color: colors.surface },
-              ],
-            ]}
-          >
-            Tracker
-          </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.modeButton,
-            { backgroundColor: colors.surface },
-            Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null,
-            mode === "manual" && [
-              styles.modeButtonActive,
-              { backgroundColor: colors.primary },
-            ],
-          ]}
-          onPress={() => setMode("manual")}
-        >
-          <ThemedText
-            style={[
-              styles.modeText,
-              { color: colors.textSecondary },
-              mode === "manual" && [
-                styles.modeTextActive,
-                { color: colors.surface },
-              ],
-            ]}
-          >
-            Manual
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
-
       {/* Rates */}
       <PayRatesInput
         baseRates={baseRates}
@@ -676,13 +860,9 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         onOvertimeRateChange={setOvertimeRateId}
         onManualBaseRateChange={onManualBaseRateTextChange}
         onManualOvertimeRateChange={onManualOvertimeRateTextChange}
-        hoursWorked={
-          mode === "tracker" ? trackerHoursWorked : manualHoursWorked
-        }
-        overtimeWorked={
-          mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked
-        }
-        hasShifts={hasShiftsForDate}
+        hoursWorked={manualHoursWorked}
+        overtimeWorked={manualOvertimeWorked}
+        hasShifts={hasSubmittedShifts}
         hasPayRates={baseRates.length > 0 || overtimeRates.length > 0}
       />
 
@@ -715,6 +895,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
             setTrackerOvertimeWorked(trackerDerivedSplit.overtime);
           }
         }}
+        hasSubmittedShifts={hasSubmittedShifts}
+        isLoadingTrackerHours={isLoadingTrackerHours}
+        hasLoadedFromTracker={hasLoadedFromTracker}
+        onLoadFromTracker={handleLoadFromTracker}
+        hasNightRules={hasNightRules}
+        hasExistingCalculation={hasExistingCalculation}
       />
 
       {/* Breakdown */}
@@ -723,7 +909,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         currencySymbol={currencySymbol}
         isSaving={isSaving}
         onSave={handleSave}
-        hasShifts={hasShiftsForDate}
+        hasShifts={hasSubmittedShifts}
         hasPayRates={baseRates.length > 0 || overtimeRates.length > 0}
         hoursWorked={calculatedHoursWorked}
         overtimeWorked={calculatedOvertimeWorked}
@@ -731,18 +917,13 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         overtimeRate={resolveRateValue(overtimeRateId)}
         allowanceItems={settings?.payRules?.allowances || []}
         totalHours={
-          (mode === "tracker" ? trackerHoursWorked : manualHoursWorked).hours +
-          (mode === "tracker" ? trackerHoursWorked : manualHoursWorked)
-            .minutes /
-            60 +
-          (mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked)
-            .hours +
-          (mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked)
-            .minutes /
-            60
+          manualHoursWorked.hours +
+          manualHoursWorked.minutes / 60 +
+          manualOvertimeWorked.hours +
+          manualOvertimeWorked.minutes / 60
         }
-        isDisabled={false}
-        disabledReason={undefined}
+        isDisabled={isSaveDisabled}
+        disabledReason={disabledReason}
         taxEnabled={taxEnabled}
         niEnabled={niEnabled}
       />
