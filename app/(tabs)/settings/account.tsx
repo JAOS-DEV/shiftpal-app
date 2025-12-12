@@ -41,16 +41,16 @@ export default function AccountSettingsScreen() {
       : "£";
 
   React.useEffect(() => {
+    const weeklyGoal = settings?.preferences?.weeklyGoal;
     setWeeklyGoalText(
-      settings?.preferences?.weeklyGoal !== undefined &&
-        settings?.preferences?.weeklyGoal !== null
-        ? String(settings?.preferences?.weeklyGoal)
+      weeklyGoal !== undefined && weeklyGoal !== null && weeklyGoal > 0
+        ? String(weeklyGoal)
         : ""
     );
+    const monthlyGoal = settings?.preferences?.monthlyGoal;
     setMonthlyGoalText(
-      settings?.preferences?.monthlyGoal !== undefined &&
-        settings?.preferences?.monthlyGoal !== null
-        ? String(settings?.preferences?.monthlyGoal)
+      monthlyGoal !== undefined && monthlyGoal !== null && monthlyGoal > 0
+        ? String(monthlyGoal)
         : ""
     );
   }, [settings]);
@@ -148,7 +148,7 @@ export default function AccountSettingsScreen() {
                     Weekly goal
                   </ThemedText>
                   <TextInput
-                    placeholder={`${currencySymbol}`}
+                    placeholder={`${currencySymbol}0`}
                     placeholderTextColor={colors.textSecondary}
                     keyboardType="decimal-pad"
                     value={weeklyGoalText}
@@ -157,7 +157,7 @@ export default function AccountSettingsScreen() {
                       let n = parseFloat(weeklyGoalText || "");
                       if (Number.isNaN(n)) n = 0;
                       n = Math.max(0, n);
-                      setWeeklyGoalText(String(n));
+                      setWeeklyGoalText(n > 0 ? String(n) : "");
                       await settingsService.setPreferences({
                         weeklyGoal: n,
                       });
@@ -176,7 +176,7 @@ export default function AccountSettingsScreen() {
                     Monthly goal
                   </ThemedText>
                   <TextInput
-                    placeholder={`${currencySymbol}`}
+                    placeholder={`${currencySymbol}0`}
                     placeholderTextColor={colors.textSecondary}
                     keyboardType="decimal-pad"
                     value={monthlyGoalText}
@@ -185,7 +185,7 @@ export default function AccountSettingsScreen() {
                       let n = parseFloat(monthlyGoalText || "");
                       if (Number.isNaN(n)) n = 0;
                       n = Math.max(0, n);
-                      setMonthlyGoalText(String(n));
+                      setMonthlyGoalText(n > 0 ? String(n) : "");
                       await settingsService.setPreferences({
                         monthlyGoal: n,
                       });

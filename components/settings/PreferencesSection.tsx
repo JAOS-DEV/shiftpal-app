@@ -2,12 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { AppSettings, Preferences } from "@/types/settings";
 import React, { useState } from "react";
-import {
-    StyleSheet,
-    Switch,
-    TextInput,
-    View
-} from "react-native";
+import { StyleSheet, Switch, TextInput, View } from "react-native";
 import { Dropdown } from "../Dropdown";
 import { ThemedText } from "../ThemedText";
 
@@ -27,21 +22,23 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
   const [monthlyGoalText, setMonthlyGoalText] = useState("");
 
   React.useEffect(() => {
+    const weeklyGoal = settings?.preferences?.weeklyGoal;
     setWeeklyGoalText(
-      settings?.preferences?.weeklyGoal !== undefined &&
-        settings?.preferences?.weeklyGoal !== null
-        ? String(settings?.preferences?.weeklyGoal)
+      weeklyGoal !== undefined && weeklyGoal !== null && weeklyGoal > 0
+        ? String(weeklyGoal)
         : ""
     );
+    const monthlyGoal = settings?.preferences?.monthlyGoal;
     setMonthlyGoalText(
-      settings?.preferences?.monthlyGoal !== undefined &&
-        settings?.preferences?.monthlyGoal !== null
-        ? String(settings?.preferences?.monthlyGoal)
+      monthlyGoal !== undefined && monthlyGoal !== null && monthlyGoal > 0
+        ? String(monthlyGoal)
         : ""
     );
   }, [settings]);
 
-  const updatePreferences = async (updates: Partial<Preferences>): Promise<void> => {
+  const updatePreferences = async (
+    updates: Partial<Preferences>
+  ): Promise<void> => {
     await settingsService.setPreferences(updates);
     onSettingsChange();
   };
@@ -81,7 +78,9 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
           compact
           placeholder="Currency"
           value={settings?.preferences?.currency || "GBP"}
-          onChange={(v) => updatePreferences({ currency: v as Preferences["currency"] })}
+          onChange={(v) =>
+            updatePreferences({ currency: v as Preferences["currency"] })
+          }
           items={[
             { value: "GBP", label: "GBP (£)" },
             { value: "USD", label: "USD ($)" },
@@ -92,7 +91,9 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
           compact
           placeholder="Time format"
           value={settings?.preferences?.timeFormat || "24h"}
-          onChange={(v) => updatePreferences({ timeFormat: v as Preferences["timeFormat"] })}
+          onChange={(v) =>
+            updatePreferences({ timeFormat: v as Preferences["timeFormat"] })
+          }
           items={[
             { value: "24h", label: "24-hour" },
             { value: "12h", label: "12-hour" },
@@ -109,7 +110,9 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
           compact
           placeholder="Date format"
           value={settings?.preferences?.dateFormat || "DD/MM/YYYY"}
-          onChange={(v) => updatePreferences({ dateFormat: v as Preferences["dateFormat"] })}
+          onChange={(v) =>
+            updatePreferences({ dateFormat: v as Preferences["dateFormat"] })
+          }
           items={[
             { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
             { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
@@ -138,7 +141,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
               Weekly goal
             </ThemedText>
             <TextInput
-              placeholder={`${currencySymbol}`}
+              placeholder={`${currencySymbol}0`}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={weeklyGoalText}
@@ -147,7 +150,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
                 let n = parseFloat(weeklyGoalText || "");
                 if (Number.isNaN(n)) n = 0;
                 n = Math.max(0, n);
-                setWeeklyGoalText(String(n));
+                setWeeklyGoalText(n > 0 ? String(n) : "");
                 const next = await settingsService.setPreferences({
                   weeklyGoal: n,
                 });
@@ -166,7 +169,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
               Monthly goal
             </ThemedText>
             <TextInput
-              placeholder={`${currencySymbol}`}
+              placeholder={`${currencySymbol}0`}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={monthlyGoalText}
@@ -175,7 +178,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
                 let n = parseFloat(monthlyGoalText || "");
                 if (Number.isNaN(n)) n = 0;
                 n = Math.max(0, n);
-                setMonthlyGoalText(String(n));
+                setMonthlyGoalText(n > 0 ? String(n) : "");
                 const next = await settingsService.setPreferences({
                   monthlyGoal: n,
                 });
@@ -266,4 +269,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
