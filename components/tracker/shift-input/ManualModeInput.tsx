@@ -9,7 +9,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, TextInput, TouchableOpacity, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../../ui/ThemedText";
 import { styles } from "./ManualModeInput.styles";
 import { NoteModal } from "./NoteModal";
 import { TimeInput } from "./TimeInput";

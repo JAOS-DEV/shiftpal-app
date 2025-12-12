@@ -3,8 +3,8 @@ import { Shift } from "@/types/shift";
 import { formatDurationText } from "@/utils/timeUtils";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 
 interface DailyTotalsProps {
   shifts: Shift[];

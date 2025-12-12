@@ -8,22 +8,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { styles } from "./ShiftEntriesList.styles";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
+import { styles } from "./ShiftList.styles";
 
-interface ShiftEntriesListProps {
+interface ShiftListProps {
   shifts: Shift[];
   onRemoveShift: (shiftId: string) => void;
   // When embedded in a parent ScrollView, disable FlatList to avoid nested VirtualizedList warning
   embedded?: boolean;
 }
 
-export function ShiftEntriesList({
+export function ShiftList({
   shifts,
   onRemoveShift,
   embedded = false,
-}: ShiftEntriesListProps): React.JSX.Element {
+}: ShiftListProps): React.JSX.Element {
   const { colors } = useTheme();
 
   // All hooks must be called before any early returns to maintain consistent hook order
@@ -208,3 +208,4 @@ const ShiftRow = React.memo(function ShiftRow({
     </View>
   );
 });
+

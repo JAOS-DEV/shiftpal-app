@@ -3,8 +3,8 @@ import { settingsService } from "@/services/settingsService";
 import { AppSettings, Preferences } from "@/types/settings";
 import React, { useState } from "react";
 import { StyleSheet, Switch, TextInput, View } from "react-native";
-import { Dropdown } from "../Dropdown";
-import { ThemedText } from "../ThemedText";
+import { Dropdown } from "../ui/Dropdown";
+import { ThemedText } from "../ui/ThemedText";
 
 interface PreferencesSectionProps {
   settings: AppSettings | null;

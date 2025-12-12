@@ -1,7 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import React from "react";
 import { TextInput, TouchableOpacity, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../../ui/ThemedText";
 
 interface NoteModalProps {
   visible: boolean;

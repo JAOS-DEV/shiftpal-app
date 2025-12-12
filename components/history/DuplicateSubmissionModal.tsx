@@ -10,9 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DatePicker } from "../DatePicker";
-import { ThemedText } from "../ThemedText";
-import { ThemedView } from "../ThemedView";
+import { DatePicker } from "../ui/DatePicker";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 import { IconSymbol } from "../ui/IconSymbol";
 
 interface DuplicateSubmissionModalProps {

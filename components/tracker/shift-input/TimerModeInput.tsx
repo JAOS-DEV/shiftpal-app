@@ -1,8 +1,8 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import React, { useState } from "react";
 import { StyleSheet, Switch, View } from "react-native";
-import { useTimer } from "../../hooks/useTimer";
-import { ThemedText } from "../ThemedText";
+import { useTimer } from "@/hooks/useTimer";
+import { ThemedText } from "../../ui/ThemedText";
 import { BreakHistory } from "./BreakHistory";
 import { NoteModal } from "./NoteModal";
 import { TimerControls } from "./TimerControls";

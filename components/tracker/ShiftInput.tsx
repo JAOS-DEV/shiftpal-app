@@ -2,13 +2,13 @@ import { useTheme } from "@/providers/ThemeProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 import { ManualModeInput } from "./shift-input/ManualModeInput";
 import { TimerModeInput } from "./shift-input/TimerModeInput";
-import { styles } from "./ShiftInputSection.styles";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
+import { styles } from "./ShiftInput.styles";
 
-interface ShiftInputSectionProps {
+interface ShiftInputProps {
   onAddShift: (startTime: string, endTime: string, note?: string) => void;
   onShiftListRefresh?: () => void;
   selectedDate?: string;
@@ -19,11 +19,11 @@ const STORAGE_KEYS = {
   includeBreaks: "shiftpal.preferences.include_breaks",
 } as const;
 
-export function ShiftInputSection({
+export function ShiftInput({
   onAddShift,
   onShiftListRefresh,
   selectedDate,
-}: ShiftInputSectionProps): React.JSX.Element {
+}: ShiftInputProps): React.JSX.Element {
   const { colors } = useTheme();
   const [mode, setMode] = useState<"manual" | "timer">("manual");
   const [includeBreaks, setIncludeBreaks] = useState(false);
@@ -146,3 +146,4 @@ export function ShiftInputSection({
     </ThemedView>
   );
 }
+

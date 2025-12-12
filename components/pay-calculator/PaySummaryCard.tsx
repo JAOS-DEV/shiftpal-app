@@ -2,7 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { AppSettings } from "@/types/settings";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 import { GoalProgressBar } from "./GoalProgressBar";
 
 interface PaySummary {

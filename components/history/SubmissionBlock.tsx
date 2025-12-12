@@ -1,4 +1,4 @@
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/ui/ThemedText";
 import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Submission } from "@/types/shift";
@@ -104,7 +104,10 @@ export const SubmissionBlock: React.FC<SubmissionBlockProps> = ({
 
   return (
     <View
-      style={[styles.submissionBlock, { borderColor: colors.textSecondary }]}
+      style={[
+        styles.submissionBlock,
+        { backgroundColor: colors.card, borderColor: colors.primary },
+      ]}
     >
       <View style={styles.submissionHeader}>
         <ThemedText

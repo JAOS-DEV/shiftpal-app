@@ -11,9 +11,9 @@ import { notify } from "@/utils/notify";
 import { formatDateDisplay } from "@/utils/timeUtils";
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import { PeriodFilter } from "../PeriodFilter";
-import { ThemedText } from "../ThemedText";
-import { ThemedView } from "../ThemedView";
+import { PeriodFilter } from "../ui/PeriodFilter";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 import { PayHistoryEntry as PayHistoryEntryComponent } from "./PayHistoryEntry";
 import { PaySummaryCard } from "./PaySummaryCard";
 

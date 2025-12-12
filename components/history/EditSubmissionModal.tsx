@@ -15,10 +15,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DatePicker } from "../DatePicker";
-import { TimeInput } from "../shift-input/TimeInput";
-import { ThemedText } from "../ThemedText";
-import { ThemedView } from "../ThemedView";
+import { DatePicker } from "../ui/DatePicker";
+import { TimeInput } from "../tracker/shift-input/TimeInput";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 import { IconSymbol } from "../ui/IconSymbol";
 
 interface EditSubmissionModalProps {

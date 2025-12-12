@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Dropdown } from "../Dropdown";
-import { ThemedText } from "../ThemedText";
+import { Dropdown } from "../ui/Dropdown";
+import { ThemedText } from "../ui/ThemedText";
 
 interface PayRatesSectionProps {
   payRates: PayRate[];

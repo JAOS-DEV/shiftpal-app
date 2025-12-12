@@ -1,7 +1,7 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 
 interface GoalProgressBarProps {
   goal: number;

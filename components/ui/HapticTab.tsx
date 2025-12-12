@@ -16,3 +16,4 @@ export function HapticTab(props: BottomTabBarButtonProps): React.JSX.Element {
     />
   );
 }
+

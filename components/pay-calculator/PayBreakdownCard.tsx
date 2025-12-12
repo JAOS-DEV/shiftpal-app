@@ -2,7 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { AllowanceItem, PayBreakdown } from "@/types/settings";
 import React from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 import { PayBreakdownDisplay } from "./PayBreakdownDisplay";
 
 interface PayBreakdownCardProps {

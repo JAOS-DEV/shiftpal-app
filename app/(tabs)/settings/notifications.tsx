@@ -1,6 +1,6 @@
 import { NotificationsSettingsSection } from "@/components/settings/NotificationsSettingsSection";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ui/ThemedText";
+import { ThemedView } from "@/components/ui/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useSettings } from "@/hooks/useSettings";
 import { useTheme } from "@/providers/ThemeProvider";

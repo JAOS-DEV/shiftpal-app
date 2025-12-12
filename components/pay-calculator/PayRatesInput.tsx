@@ -2,7 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { HoursAndMinutes, PayRate } from "@/types/settings";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 import { RateDropdown } from "./RateDropdown";
 
 interface PayRatesInputProps {

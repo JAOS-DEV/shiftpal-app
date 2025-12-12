@@ -47,3 +47,4 @@ export const styles = StyleSheet.create({
     color: "#fff", // Will be overridden by theme
   },
 });
+

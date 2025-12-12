@@ -4,9 +4,9 @@ import { formatDate } from "@/utils/formatUtils";
 import { formatDateDisplay, getCurrentDateString } from "@/utils/timeUtils";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { DatePicker } from "./DatePicker";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
+import { DatePicker } from "../ui/DatePicker";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 
 interface DateSelectorProps {
   selectedDate: string;

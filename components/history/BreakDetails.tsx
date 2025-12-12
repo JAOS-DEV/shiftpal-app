@@ -2,7 +2,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { formatTime } from "@/utils/formatUtils";
 import React from "react";
 import { View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 
 interface BreakDetailsProps {
   breaks: Array<{

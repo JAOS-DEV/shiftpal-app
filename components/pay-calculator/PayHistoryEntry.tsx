@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 import { PayBreakdownDisplay } from "./PayBreakdownDisplay";
 
 interface PayHistoryEntryProps {

@@ -3,8 +3,8 @@ import { notify } from "@/utils/notify";
 import * as Haptics from "expo-haptics";
 import React from "react";
 import { Alert, Platform, StyleSheet, TouchableOpacity } from "react-native";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 
 interface SubmitButtonProps {
   shifts: Shift[];

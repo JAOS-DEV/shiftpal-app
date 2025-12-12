@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { TouchableOpacity, View } from "react-native";
-import { ThemedText } from "../ThemedText";
-import { IconSymbol } from "../ui/IconSymbol";
+import { ThemedText } from "../../ui/ThemedText";
+import { IconSymbol } from "../../ui/IconSymbol";
 
 interface BreakHistoryProps {
   breaks: Array<{ start: number; end?: number; durationMs: number; note?: string }>;

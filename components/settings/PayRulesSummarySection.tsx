@@ -7,7 +7,7 @@ import {
 } from "@/types/settings";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 
 interface PayRulesSummarySectionProps {
   payRules: PayRules | undefined;

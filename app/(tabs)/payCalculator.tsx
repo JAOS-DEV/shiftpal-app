@@ -1,5 +1,5 @@
-import { SegmentedSwitcher } from "@/components/SegmentedSwitcher";
-import { ThemedView } from "@/components/ThemedView";
+import { SegmentedSwitcher } from "@/components/ui/SegmentedSwitcher";
+import { ThemedView } from "@/components/ui/ThemedView";
 import { PayCalculatorTab } from "@/components/pay-calculator/PayCalculatorTab";
 import { PayHistoryTab } from "@/components/pay-calculator/PayHistoryTab";
 import { useAuth } from "@/providers/AuthProvider";

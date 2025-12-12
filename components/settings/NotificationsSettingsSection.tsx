@@ -7,7 +7,7 @@ import {
     Switch,
     View,
 } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 
 interface NotificationsSettingsSectionProps {
   notifications: NotificationsPrefs | undefined;

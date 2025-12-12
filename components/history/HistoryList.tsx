@@ -6,11 +6,11 @@ import { formatDateDisplay } from "@/utils/timeUtils";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
 import { Alert, Platform, TouchableOpacity, View } from "react-native";
-import { DayRow } from "./history/DayRow";
+import { PeriodFilter } from "../ui/PeriodFilter";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
+import { DayRow } from "./DayRow";
 import { styles } from "./HistoryList.styles";
-import { PeriodFilter } from "./PeriodFilter";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
 
 interface HistoryListProps {
   days: Day[];

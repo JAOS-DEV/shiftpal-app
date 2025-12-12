@@ -9,7 +9,7 @@ import {
 } from "@/utils/timeUtils";
 import React, { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../../ui/ThemedText";
 
 interface TimeInputProps {
   startTime: string;

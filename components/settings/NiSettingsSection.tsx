@@ -3,7 +3,7 @@ import { settingsService } from "@/services/settingsService";
 import { NiRules } from "@/types/settings";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Switch, TextInput, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 
 interface NiSettingsSectionProps {
   niRules: NiRules | undefined;

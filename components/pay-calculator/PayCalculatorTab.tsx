@@ -1,4 +1,4 @@
-import { DateSelector } from "@/components/DateSelector";
+import { DateSelector } from "@/components/tracker/DateSelector";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
@@ -16,8 +16,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Platform, View } from "react-native";
-import { ThemedText } from "../ThemedText";
-import { ThemedView } from "../ThemedView";
+import { ThemedText } from "../ui/ThemedText";
+import { ThemedView } from "../ui/ThemedView";
 import { PayBreakdownCard } from "./PayBreakdownCard";
 import { styles } from "./PayCalculatorTab.styles";
 import { PayHoursInput } from "./PayHoursInput";

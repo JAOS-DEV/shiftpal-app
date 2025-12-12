@@ -2,7 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { HoursAndMinutes } from "@/types/settings";
 import React from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-import { ThemedText } from "../ThemedText";
+import { ThemedText } from "../ui/ThemedText";
 
 interface PayHoursInputProps {
   mode: "tracker" | "manual";

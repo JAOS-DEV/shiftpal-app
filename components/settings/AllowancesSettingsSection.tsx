@@ -3,8 +3,8 @@ import { settingsService } from "@/services/settingsService";
 import { AllowanceItem } from "@/types/settings";
 import React, { useState } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-import { Dropdown } from "../Dropdown";
-import { ThemedText } from "../ThemedText";
+import { Dropdown } from "../ui/Dropdown";
+import { ThemedText } from "../ui/ThemedText";
 
 interface AllowancesSettingsSectionProps {
   allowances: AllowanceItem[];

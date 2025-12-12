@@ -4,8 +4,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { SegmentedSwitcher } from "../SegmentedSwitcher";
-import { ThemedText } from "../ThemedText";
+import { SegmentedSwitcher } from "../ui/SegmentedSwitcher";
+import { ThemedText } from "../ui/ThemedText";
 
 type PeriodType = "week" | "month" | "all";
 
