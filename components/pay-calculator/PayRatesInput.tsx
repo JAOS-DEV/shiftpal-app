@@ -1,5 +1,5 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import { PayRate } from "@/types/settings";
+import { HoursAndMinutes, PayRate } from "@/types/settings";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { ThemedText } from "../ThemedText";
@@ -17,7 +17,10 @@ interface PayRatesInputProps {
   onOvertimeRateChange: (id: string) => void;
   onManualBaseRateChange: (value: string) => void;
   onManualOvertimeRateChange: (value: string) => void;
-  // Warning props
+  // Hours props for warnings
+  hoursWorked?: HoursAndMinutes;
+  overtimeWorked?: HoursAndMinutes;
+  // Warning props (keeping for backward compatibility)
   hasShifts?: boolean;
   hasPayRates?: boolean;
 }
@@ -34,6 +37,8 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
   onOvertimeRateChange,
   onManualBaseRateChange,
   onManualOvertimeRateChange,
+  hoursWorked,
+  overtimeWorked,
   hasShifts = false,
   hasPayRates = true,
 }) => {
@@ -49,8 +54,48 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
     onOvertimeRateChange(id);
   };
 
-  // Show warning if there are shifts but no pay rates
-  const showWarning = hasShifts && !hasPayRates;
+  // Check if standard hours are present
+  const hasStandardHours =
+    (hoursWorked?.hours || 0) > 0 || (hoursWorked?.minutes || 0) > 0;
+
+  // Check if overtime hours are present
+  const hasOvertimeHours =
+    (overtimeWorked?.hours || 0) > 0 || (overtimeWorked?.minutes || 0) > 0;
+
+  // Check if standard rate is configured
+  // Verify that selectedBaseRateId actually exists in baseRates
+  const selectedBaseRateExists =
+    selectedBaseRateId &&
+    selectedBaseRateId !== "custom" &&
+    baseRates.some((r) => r.id === selectedBaseRateId);
+
+  const hasStandardRate =
+    selectedBaseRateExists ||
+    (selectedBaseRateId === "custom" && parseFloat(manualBaseRate || "") > 0) ||
+    (!selectedBaseRateId && parseFloat(manualBaseRate || "") > 0);
+
+  // Check if overtime rate is configured
+  // Verify that selectedOvertimeRateId actually exists in overtimeRates or baseRates
+  const selectedOvertimeRateExists =
+    selectedOvertimeRateId &&
+    selectedOvertimeRateId !== "custom" &&
+    (overtimeRates.some((r) => r.id === selectedOvertimeRateId) ||
+      baseRates.some((r) => r.id === selectedOvertimeRateId));
+
+  const hasOvertimeRate =
+    selectedOvertimeRateExists ||
+    (selectedOvertimeRateId === "custom" &&
+      parseFloat(manualOvertimeRate || "") > 0) ||
+    (!selectedOvertimeRateId && parseFloat(manualOvertimeRate || "") > 0);
+
+  // Show warning if standard hours present but no standard rate
+  const showStandardWarning = hasStandardHours && !hasStandardRate;
+
+  // Show warning if overtime hours present but no overtime rate
+  const showOvertimeWarning = hasOvertimeHours && !hasOvertimeRate;
+
+  // Legacy warning: Show warning if there are shifts but no pay rates
+  const showLegacyWarning = hasShifts && !hasPayRates;
 
   return (
     <View
@@ -63,8 +108,8 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
         Rates
       </ThemedText>
 
-      {/* Warning for shifts without pay rates */}
-      {showWarning && (
+      {/* Warning for shifts without pay rates (legacy) */}
+      {showLegacyWarning && !showStandardWarning && !showOvertimeWarning && (
         <View
           style={[
             styles.warningContainer,
@@ -77,6 +122,42 @@ export const PayRatesInput: React.FC<PayRatesInputProps> = ({
           <ThemedText style={[styles.warningText, { color: colors.warning }]}>
             ⚠️ You have shifts recorded but no pay rates set. Set your rates
             below to calculate pay.
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Warning for standard hours without standard rate */}
+      {showStandardWarning && (
+        <View
+          style={[
+            styles.warningContainer,
+            {
+              backgroundColor: colors.warning + "20",
+              borderColor: colors.warning + "40",
+            },
+          ]}
+        >
+          <ThemedText style={[styles.warningText, { color: colors.warning }]}>
+            ⚠️ You have standard hours but no standard rate set. Set your
+            standard rate below to calculate pay.
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Warning for overtime hours without overtime rate */}
+      {showOvertimeWarning && (
+        <View
+          style={[
+            styles.warningContainer,
+            {
+              backgroundColor: colors.warning + "20",
+              borderColor: colors.warning + "40",
+            },
+          ]}
+        >
+          <ThemedText style={[styles.warningText, { color: colors.warning }]}>
+            ⚠️ You have overtime hours but no overtime rate set. Set your
+            overtime rate below to calculate pay.
           </ThemedText>
         </View>
       )}

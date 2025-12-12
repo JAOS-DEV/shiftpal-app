@@ -676,6 +676,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         onOvertimeRateChange={setOvertimeRateId}
         onManualBaseRateChange={onManualBaseRateTextChange}
         onManualOvertimeRateChange={onManualOvertimeRateTextChange}
+        hoursWorked={
+          mode === "tracker" ? trackerHoursWorked : manualHoursWorked
+        }
+        overtimeWorked={
+          mode === "tracker" ? trackerOvertimeWorked : manualOvertimeWorked
+        }
         hasShifts={hasShiftsForDate}
         hasPayRates={baseRates.length > 0 || overtimeRates.length > 0}
       />
