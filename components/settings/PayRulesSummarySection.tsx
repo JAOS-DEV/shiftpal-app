@@ -101,14 +101,14 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
         type="subtitle"
         style={[styles.sectionTitle, { color: colors.text }]}
       >
-        Pay Rules (Tracker Mode)
+        Pay Rules
       </ThemedText>
 
       <ThemedText
         style={[styles.sectionDescription, { color: colors.textSecondary }]}
       >
-        These rules automatically apply when calculating pay in tracker mode.
-        Manual mode gives you full control.
+        These rules automatically apply when calculating pay in the pay
+        calculator.
       </ThemedText>
 
       {/* Overtime row */}

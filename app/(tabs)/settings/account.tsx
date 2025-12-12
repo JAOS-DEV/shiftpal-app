@@ -1,20 +1,19 @@
+import { IconSymbol } from "@/components/ui/IconSymbol";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { ThemedView } from "@/components/ui/ThemedView";
-import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useSettings } from "@/hooks/useSettings";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { settingsService } from "@/services/settingsService";
 import { Preferences } from "@/types/settings";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   Alert,
   Platform,
   ScrollView,
   StyleSheet,
   Switch,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -29,31 +28,6 @@ export default function AccountSettingsScreen() {
   const { settings, refreshSettings } = useSettings();
   const { signOutUser } = useAuth();
   const insets = useSafeAreaInsets();
-
-  const [weeklyGoalText, setWeeklyGoalText] = useState("");
-  const [monthlyGoalText, setMonthlyGoalText] = useState("");
-
-  const currencySymbol =
-    settings?.preferences?.currency === "USD"
-      ? "$"
-      : settings?.preferences?.currency === "EUR"
-      ? "€"
-      : "£";
-
-  React.useEffect(() => {
-    const weeklyGoal = settings?.preferences?.weeklyGoal;
-    setWeeklyGoalText(
-      weeklyGoal !== undefined && weeklyGoal !== null && weeklyGoal > 0
-        ? String(weeklyGoal)
-        : ""
-    );
-    const monthlyGoal = settings?.preferences?.monthlyGoal;
-    setMonthlyGoalText(
-      monthlyGoal !== undefined && monthlyGoal !== null && monthlyGoal > 0
-        ? String(monthlyGoal)
-        : ""
-    );
-  }, [settings]);
 
   const updatePreferences = async (
     updates: Partial<Preferences>
@@ -113,91 +87,6 @@ export default function AccountSettingsScreen() {
               >
                 Account & About
               </ThemedText>
-            </View>
-
-            {/* Goals */}
-            <View
-              style={[
-                styles.section,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <ThemedText
-                type="subtitle"
-                style={[styles.sectionTitle, { color: colors.text }]}
-              >
-                Goals
-              </ThemedText>
-              <ThemedText
-                style={[
-                  styles.sectionDescription,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                Net totals are used. Progress appears in Pay → History for Week
-                or Month.
-              </ThemedText>
-              <View style={styles.goalsGroup}>
-                <View style={styles.goalField}>
-                  <ThemedText
-                    style={[styles.inputLabel, { color: colors.textSecondary }]}
-                  >
-                    Weekly goal
-                  </ThemedText>
-                  <TextInput
-                    placeholder={`${currencySymbol}0`}
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="decimal-pad"
-                    value={weeklyGoalText}
-                    onChangeText={setWeeklyGoalText}
-                    onEndEditing={async () => {
-                      let n = parseFloat(weeklyGoalText || "");
-                      if (Number.isNaN(n)) n = 0;
-                      n = Math.max(0, n);
-                      setWeeklyGoalText(n > 0 ? String(n) : "");
-                      await settingsService.setPreferences({
-                        weeklyGoal: n,
-                      });
-                      refreshSettings();
-                    }}
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: colors.border },
-                    ]}
-                  />
-                </View>
-                <View style={styles.goalField}>
-                  <ThemedText
-                    style={[styles.inputLabel, { color: colors.textSecondary }]}
-                  >
-                    Monthly goal
-                  </ThemedText>
-                  <TextInput
-                    placeholder={`${currencySymbol}0`}
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="decimal-pad"
-                    value={monthlyGoalText}
-                    onChangeText={setMonthlyGoalText}
-                    onEndEditing={async () => {
-                      let n = parseFloat(monthlyGoalText || "");
-                      if (Number.isNaN(n)) n = 0;
-                      n = Math.max(0, n);
-                      setMonthlyGoalText(n > 0 ? String(n) : "");
-                      await settingsService.setPreferences({
-                        monthlyGoal: n,
-                      });
-                      refreshSettings();
-                    }}
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: colors.border },
-                    ]}
-                  />
-                </View>
-              </View>
             </View>
 
             {/* Pay Calculation Rules */}
@@ -350,29 +239,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    marginBottom: 16,
-    fontStyle: "italic",
-  },
-  goalsGroup: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  goalField: {
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
   },
   toggleRow: {
     flexDirection: "row",
