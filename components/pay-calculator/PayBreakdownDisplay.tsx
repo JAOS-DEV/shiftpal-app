@@ -9,8 +9,12 @@ interface PayBreakdownDisplayProps {
   currencySymbol: string;
   hoursWorked?: { hours: number; minutes: number };
   overtimeWorked?: { hours: number; minutes: number };
+  nightHours?: { hours: number; minutes: number };
+  weekendHours?: { hours: number; minutes: number };
   baseRate?: number;
   overtimeRate?: number;
+  nightRate?: number;
+  weekendRate?: number;
   allowanceItems?: AllowanceItem[];
   totalHours?: number;
   showTitle?: boolean;
@@ -24,8 +28,12 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
   currencySymbol,
   hoursWorked,
   overtimeWorked,
+  nightHours,
+  weekendHours,
   baseRate,
   overtimeRate,
+  nightRate,
+  weekendRate,
   allowanceItems = [],
   totalHours = 0,
   showTitle = true,
@@ -142,6 +150,11 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                   ]}
                 >
                   Night Shift
+                  {nightHours &&
+                    (nightHours.hours > 0 || nightHours.minutes > 0) &&
+                    nightRate &&
+                    nightRate > 0 &&
+                    ` ${formatHours(nightHours)} @ ${currencySymbol}${formatRate(nightRate)}`}
                 </ThemedText>
                 <ThemedText
                   style={[styles.breakdownValue, { color: colors.success }]}
@@ -162,6 +175,11 @@ export const PayBreakdownDisplay: React.FC<PayBreakdownDisplayProps> = ({
                   ]}
                 >
                   Weekend
+                  {weekendHours &&
+                    (weekendHours.hours > 0 || weekendHours.minutes > 0) &&
+                    weekendRate &&
+                    weekendRate > 0 &&
+                    ` ${formatHours(weekendHours)} @ ${currencySymbol}${formatRate(weekendRate)}`}
                 </ThemedText>
                 <ThemedText
                   style={[styles.breakdownValue, { color: colors.success }]}

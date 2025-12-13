@@ -100,11 +100,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     });
 
   // Manual night allocation
-  const [manualNightBase, setManualNightBase] = useState<HoursAndMinutes>({
-    hours: 0,
-    minutes: 0,
-  });
-  const [manualNightOt, setManualNightOt] = useState<HoursAndMinutes>({
+  const [manualNight, setManualNight] = useState<HoursAndMinutes>({
     hours: 0,
     minutes: 0,
   });
@@ -133,10 +129,8 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     base: HoursAndMinutes;
     overtime: HoursAndMinutes;
   } | null>(null);
-  const [trackerNightHint, setTrackerNightHint] = useState<{
-    base?: HoursAndMinutes;
-    ot?: HoursAndMinutes;
-  } | null>(null);
+  const [trackerNightHint, setTrackerNightHint] =
+    useState<HoursAndMinutes | null>(null);
 
   const currencySymbol = useMemo(
     () =>
@@ -162,8 +156,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     setTrackerOvertimeWorked({ hours: 0, minutes: 0 });
     setManualHoursWorked({ hours: 0, minutes: 0 });
     setManualOvertimeWorked({ hours: 0, minutes: 0 });
-    setManualNightBase({ hours: 0, minutes: 0 });
-    setManualNightOt({ hours: 0, minutes: 0 });
+    setManualNight({ hours: 0, minutes: 0 });
     setBreakdown(null);
     setHasShiftsForDate(false);
     setTrackerDerivedSplit(null);
@@ -279,14 +272,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
           setManualOvertimeWorked(
             parsed.overtimeWorked || { hours: 0, minutes: 0 }
           );
-          setManualNightBase(parsed.nightBase || { hours: 0, minutes: 0 });
-          setManualNightOt(parsed.nightOt || { hours: 0, minutes: 0 });
+          setManualNight(parsed.night || { hours: 0, minutes: 0 });
         } else {
           // Reset to zeros if no persisted data
           setManualHoursWorked({ hours: 0, minutes: 0 });
           setManualOvertimeWorked({ hours: 0, minutes: 0 });
-          setManualNightBase({ hours: 0, minutes: 0 });
-          setManualNightOt({ hours: 0, minutes: 0 });
+          setManualNight({ hours: 0, minutes: 0 });
         }
       } catch (error) {
         console.error("Error loading persisted inputs:", error);
@@ -304,8 +295,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         const data = {
           hoursWorked: manualHoursWorked,
           overtimeWorked: manualOvertimeWorked,
-          nightBase: manualNightBase,
-          nightOt: manualNightOt,
+          night: manualNight,
         };
         await AsyncStorage.setItem(key, JSON.stringify(data));
       } catch (error) {
@@ -318,8 +308,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     date,
     manualHoursWorked,
     manualOvertimeWorked,
-    manualNightBase,
-    manualNightOt,
+    manualNight,
   ]);
 
   // Refresh submitted shifts check when screen is focused
@@ -349,16 +338,14 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
   const recalc = async (): Promise<void> => {
     if (!settings) return;
 
-    let nightBaseHours: HoursAndMinutes | undefined;
-    let nightOvertimeHours: HoursAndMinutes | undefined;
+    let nightHours: HoursAndMinutes | undefined;
     let derivedSplit: {
       base: HoursAndMinutes;
       overtime: HoursAndMinutes;
     } | null = null;
 
     // Always use manual night hours (since we always show manual input fields)
-    nightBaseHours = manualNightBase;
-    nightOvertimeHours = manualNightOt;
+    nightHours = manualNight;
 
     // Always use manual hours for calculation (since UI always shows manual inputs)
     let hoursWorked: HoursAndMinutes = manualHoursWorked;
@@ -371,8 +358,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       overtimeRateId,
       hoursWorked,
       overtimeWorked,
-      nightBaseHours,
-      nightOvertimeHours,
+      nightHours,
     };
 
     let result = settingsService.computePay(input, settings);
@@ -445,7 +431,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
 
     setBreakdown(result);
     setTrackerDerivedSplit(derivedSplit);
-    setTrackerNightHint({ base: nightBaseHours, ot: nightOvertimeHours });
+    setTrackerNightHint(nightHours || null);
 
     // Store calculated hours for display
     setCalculatedHoursWorked(hoursWorked);
@@ -462,8 +448,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     overtimeRateId,
     manualHoursWorked,
     manualOvertimeWorked,
-    manualNightBase,
-    manualNightOt,
+    manualNight,
     manualBaseRateText,
     manualOvertimeRateText,
   ]);
@@ -556,8 +541,11 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
           usedOvertime: manualOvertimeWorked,
           night: Boolean((settings?.payRules?.night as any)?.enabled)
             ? {
-                base: manualNightBase,
-                overtime: manualNightOt,
+                hours: manualNight,
+                mode: settings?.payRules?.night?.mode,
+                multiplier: settings?.payRules?.night?.multiplier,
+                uplift: settings?.payRules?.night?.uplift,
+                // Legacy fields for backward compatibility
                 type: settings?.payRules?.night?.type,
                 value: settings?.payRules?.night?.value,
               }
@@ -597,8 +585,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       // Clear hour inputs after successful save
       setManualHoursWorked({ hours: 0, minutes: 0 });
       setManualOvertimeWorked({ hours: 0, minutes: 0 });
-      setManualNightBase({ hours: 0, minutes: 0 });
-      setManualNightOt({ hours: 0, minutes: 0 });
+      setManualNight({ hours: 0, minutes: 0 });
       setHasLoadedFromTracker(false);
 
       // Also clear persisted inputs for this date
@@ -680,8 +667,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       const overtimeHours: HoursAndMinutes = { hours: 0, minutes: 0 };
 
       // Fetch night allocation if night rules are configured
-      let nightBase: HoursAndMinutes = { hours: 0, minutes: 0 };
-      let nightOt: HoursAndMinutes = { hours: 0, minutes: 0 };
+      let nightHours: HoursAndMinutes = { hours: 0, minutes: 0 };
 
       if (settings?.payRules?.night?.enabled) {
         try {
@@ -690,8 +676,18 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
               date,
               settings
             );
-          nightBase = alloc.nightBase || { hours: 0, minutes: 0 };
-          nightOt = alloc.nightOvertime || { hours: 0, minutes: 0 };
+          // Combine night base and night overtime into single value
+          const nightBaseHours = alloc.nightBase || { hours: 0, minutes: 0 };
+          const nightOtHours = alloc.nightOvertime || { hours: 0, minutes: 0 };
+          const totalNightMinutes =
+            nightBaseHours.hours * 60 +
+            nightBaseHours.minutes +
+            nightOtHours.hours * 60 +
+            nightOtHours.minutes;
+          nightHours = {
+            hours: Math.floor(totalNightMinutes / 60),
+            minutes: totalNightMinutes % 60,
+          };
         } catch (error) {
           console.error("Error deriving night allocation:", error);
         }
@@ -700,8 +696,7 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
       // Populate manual input fields
       setManualHoursWorked(baseHours);
       setManualOvertimeWorked(overtimeHours);
-      setManualNightBase(nightBase);
-      setManualNightOt(nightOt);
+      setManualNight(nightHours);
 
       // Track that data came from tracker (but keep mode as "manual" for UI)
       setHasLoadedFromTracker(true);
@@ -721,6 +716,74 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
     if (!id) return undefined;
     const list = settings?.payRates || [];
     return list.find((r) => r.id === id)?.value;
+  };
+
+  // Calculate night uplift rate per hour
+  const getNightRate = (): number | undefined => {
+    if (!settings?.payRules?.night?.enabled) return undefined;
+    const nightRules = settings.payRules.night;
+    const baseRate = resolveRateValue(hourlyRateId) || 0;
+    
+    const mode = nightRules.mode || "fixed";
+    if (mode === "multiplier" && typeof nightRules.multiplier === "number") {
+      return baseRate * (nightRules.multiplier - 1);
+    }
+    if (mode === "fixed" && typeof nightRules.uplift === "number") {
+      return nightRules.uplift;
+    }
+    return undefined;
+  };
+
+  // Check if current date is a weekend
+  const isWeekend = useMemo(() => {
+    if (!settings?.payRules?.weekend?.enabled) return false;
+    const weekendRules = settings.payRules.weekend;
+    
+    try {
+      const d = new Date(date + "T00:00:00");
+      if (isNaN(d.getTime())) return false;
+      
+      const day = d.getDay(); // 0=Sun, 6=Sat
+      const days: string[] = Array.isArray(weekendRules?.days)
+        ? weekendRules.days
+        : ["Sat", "Sun"];
+      const map: Record<number, string> = { 0: "Sun", 6: "Sat" };
+      return days.includes(map[day]);
+    } catch {
+      return false;
+    }
+  }, [date, settings?.payRules?.weekend]);
+
+  // Calculate weekend uplift rate per hour
+  const getWeekendRate = (): number | undefined => {
+    if (!isWeekend || !settings?.payRules?.weekend?.enabled) return undefined;
+    const weekendRules = settings.payRules.weekend;
+    const baseRate = resolveRateValue(hourlyRateId) || 0;
+    
+    const mode = weekendRules.mode || "multiplier";
+    if (mode === "multiplier" && typeof weekendRules.multiplier === "number") {
+      return baseRate * (weekendRules.multiplier - 1);
+    }
+    if (mode === "fixed" && typeof weekendRules.uplift === "number") {
+      return weekendRules.uplift;
+    }
+    return undefined;
+  };
+
+  // Calculate weekend hours (all hours on weekend dates)
+  const getWeekendHours = (): { hours: number; minutes: number } | undefined => {
+    if (!isWeekend) return undefined;
+    
+    const totalMinutes =
+      (manualHoursWorked.hours || 0) * 60 +
+      (manualHoursWorked.minutes || 0) +
+      (manualOvertimeWorked.hours || 0) * 60 +
+      (manualOvertimeWorked.minutes || 0);
+    
+    return {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+    };
   };
 
   const baseRates = (settings?.payRates || []).filter((r) => r.type === "base");
@@ -836,16 +899,14 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         trackerOvertime={trackerOvertimeWorked}
         manualHours={manualHoursWorked}
         manualOvertime={manualOvertimeWorked}
-        manualNightBase={manualNightBase}
-        manualNightOt={manualNightOt}
+        manualNight={manualNight}
         trackerDerivedSplit={trackerDerivedSplit}
         trackerNightHint={trackerNightHint}
         onTrackerHoursChange={setTrackerHoursWorked}
         onTrackerOvertimeChange={setTrackerOvertimeWorked}
         onManualHoursChange={setManualHoursWorked}
         onManualOvertimeChange={setManualOvertimeWorked}
-        onManualNightBaseChange={setManualNightBase}
-        onManualNightOtChange={setManualNightOt}
+        onManualNightChange={setManualNight}
         isOverrideMode={isOverrideMode}
         onToggleOverride={() => setIsOverrideMode(!isOverrideMode)}
         onResetOverride={() => {
@@ -874,8 +935,12 @@ export const PayCalculatorTab: React.FC<PayCalculatorTabProps> = ({
         hasPayRates={baseRates.length > 0 || overtimeRates.length > 0}
         hoursWorked={calculatedHoursWorked}
         overtimeWorked={calculatedOvertimeWorked}
+        nightHours={manualNight}
+        weekendHours={getWeekendHours()}
         baseRate={resolveRateValue(hourlyRateId)}
         overtimeRate={resolveRateValue(overtimeRateId)}
+        nightRate={getNightRate()}
+        weekendRate={getWeekendRate()}
         allowanceItems={settings?.payRules?.allowances || []}
         totalHours={
           manualHoursWorked.hours +

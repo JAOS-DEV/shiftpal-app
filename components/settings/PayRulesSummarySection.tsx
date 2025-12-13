@@ -1,9 +1,5 @@
 import { useTheme } from "@/providers/ThemeProvider";
-import {
-  NightRules,
-  PayRules,
-  WeekendRules,
-} from "@/types/settings";
+import { NightRules, PayRules, WeekendRules } from "@/types/settings";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "../ui/ThemedText";
@@ -106,7 +102,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
           <ThemedText
             style={[styles.ruleModeNote, { color: colors.textSecondary }]}
           >
-            Auto-applies in tracker mode
+            Auto-applies when loading hours from tracker in Pay Calculator
           </ThemedText>
         </View>
         <TouchableOpacity
@@ -133,7 +129,7 @@ export const PayRulesSummarySection: React.FC<PayRulesSummarySectionProps> = ({
           <ThemedText
             style={[styles.ruleModeNote, { color: colors.textSecondary }]}
           >
-            Auto-applies in tracker mode
+            Auto-applies on weekend dates based on selected days
           </ThemedText>
         </View>
         <TouchableOpacity

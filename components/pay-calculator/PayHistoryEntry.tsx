@@ -100,6 +100,83 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
   const overtimeMinutes = hmToMinutes(entry.input.overtimeWorked);
   const totalMinutes = baseMinutes + overtimeMinutes;
 
+  // Calculate night hours (handle both new and old formats)
+  const getNightHours = (): HoursAndMinutes | undefined => {
+    if (!entry.calcSnapshot?.night) return undefined;
+    
+    // New format: hours field
+    if ((entry.calcSnapshot.night as any).hours) {
+      return (entry.calcSnapshot.night as any).hours;
+    }
+    
+    // Old format: base + overtime
+    const nightBase = (entry.calcSnapshot.night as any).base;
+    const nightOt = (entry.calcSnapshot.night as any).overtime;
+    if (nightBase || nightOt) {
+      const totalNightMinutes =
+        hmToMinutes(nightBase) + hmToMinutes(nightOt);
+      return {
+        hours: Math.floor(totalNightMinutes / 60),
+        minutes: totalNightMinutes % 60,
+      };
+    }
+    
+    return undefined;
+  };
+
+  // Calculate weekend hours (all hours if weekend was enabled)
+  const getWeekendHours = (): HoursAndMinutes | undefined => {
+    if (!entry.calcSnapshot?.weekend) return undefined;
+    return {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+    };
+  };
+
+  // Calculate night rate
+  const getNightRate = (): number | undefined => {
+    if (!entry.calcSnapshot?.night) return undefined;
+    const nightSettings = entry.calcSnapshot.night as any;
+    
+    // If mode/multiplier exists (new structure)
+    if (nightSettings.mode === "multiplier" && nightSettings.multiplier) {
+      return baseRateVal * (nightSettings.multiplier - 1);
+    }
+    if (nightSettings.mode === "fixed" && nightSettings.uplift) {
+      return nightSettings.uplift;
+    }
+    
+    // Legacy: type and value
+    if (nightSettings.type === "percentage" && nightSettings.value) {
+      return baseRateVal * (nightSettings.value / 100);
+    }
+    if (nightSettings.type === "fixed" && nightSettings.value) {
+      return nightSettings.value;
+    }
+    
+    return undefined;
+  };
+
+  // Calculate weekend rate
+  const getWeekendRate = (): number | undefined => {
+    if (!entry.calcSnapshot?.weekend) return undefined;
+    const weekendSettings = entry.calcSnapshot.weekend;
+    
+    if (weekendSettings.mode === "multiplier" && weekendSettings.value) {
+      return baseRateVal * (weekendSettings.value - 1);
+    }
+    if (weekendSettings.mode === "fixed" && weekendSettings.value) {
+      return weekendSettings.value;
+    }
+    
+    return undefined;
+  };
+
+  const nightHours = getNightHours();
+  const weekendHours = getWeekendHours();
+  const nightRate = getNightRate();
+  const weekendRate = getWeekendRate();
+
   return (
     <View
       style={[
@@ -156,8 +233,12 @@ export const PayHistoryEntry: React.FC<PayHistoryEntryProps> = ({
             currencySymbol={currencySymbol}
             hoursWorked={entry.input.hoursWorked}
             overtimeWorked={entry.input.overtimeWorked}
+            nightHours={nightHours}
+            weekendHours={weekendHours}
             baseRate={baseRateVal}
             overtimeRate={overtimeRateVal}
+            nightRate={nightRate}
+            weekendRate={weekendRate}
             allowanceItems={settings?.payRules?.allowances || []}
             totalHours={totalMinutes / 60}
             showTitle={false}

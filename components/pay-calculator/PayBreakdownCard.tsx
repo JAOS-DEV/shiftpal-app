@@ -15,8 +15,12 @@ interface PayBreakdownCardProps {
   hasPayRates?: boolean;
   hoursWorked?: { hours: number; minutes: number };
   overtimeWorked?: { hours: number; minutes: number };
+  nightHours?: { hours: number; minutes: number };
+  weekendHours?: { hours: number; minutes: number };
   baseRate?: number;
   overtimeRate?: number;
+  nightRate?: number;
+  weekendRate?: number;
   allowanceItems?: AllowanceItem[];
   totalHours?: number;
   // Disable save button
@@ -35,8 +39,12 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
   hasPayRates = true,
   hoursWorked,
   overtimeWorked,
+  nightHours,
+  weekendHours,
   baseRate,
   overtimeRate,
+  nightRate,
+  weekendRate,
   allowanceItems = [],
   totalHours = 0,
   isDisabled = false,
@@ -63,8 +71,12 @@ export const PayBreakdownCard: React.FC<PayBreakdownCardProps> = ({
           currencySymbol={currencySymbol}
           hoursWorked={hoursWorked}
           overtimeWorked={overtimeWorked}
+          nightHours={nightHours}
+          weekendHours={weekendHours}
           baseRate={baseRate}
           overtimeRate={overtimeRate}
+          nightRate={nightRate}
+          weekendRate={weekendRate}
           allowanceItems={allowanceItems}
           totalHours={totalHours}
           showTitle={false}

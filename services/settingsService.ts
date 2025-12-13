@@ -368,11 +368,8 @@ class SettingsService {
 
     const baseHoursRaw = this.toHours(input.hoursWorked);
     const overtimeHoursRaw = this.toHours(input.overtimeWorked);
-    const nightBaseRaw = this.toHours(
-      input.nightBaseHours || { hours: 0, minutes: 0 }
-    );
-    const nightOtRaw = this.toHours(
-      input.nightOvertimeHours || { hours: 0, minutes: 0 }
+    const nightHoursRaw = this.toHours(
+      input.nightHours || { hours: 0, minutes: 0 }
     );
 
     // Prepare base and overtime hours; allow tracker auto-split to override later
@@ -380,8 +377,7 @@ class SettingsService {
     let overtimeHours = overtimeHoursRaw;
 
     // Use minute precision: do not round hours
-    const nightBaseHours = nightBaseRaw;
-    const nightOvertimeHours = nightOtRaw;
+    const nightHours = nightHoursRaw;
 
     // Determine per-hour rates considering overtime model and weekend uplift
     const basePerHour = this.applyWeekendToRate(
@@ -454,14 +450,10 @@ class SettingsService {
     let basePay = basePerHour * baseHours;
     let overtimePay = overtimePerHour * overtimeHours;
 
-    // Night uplift: allocate night hours (applies in both manual and tracker modes)
+    // Night uplift: apply to all night hours (simplified - always applies)
     const nightRules = settings.payRules?.night;
     let nightUplift = 0;
-    if (
-      nightRules &&
-      nightRules?.enabled === true &&
-      (nightBaseHours > 0 || nightOvertimeHours > 0)
-    ) {
+    if (nightRules && nightRules?.enabled === true && nightHours > 0) {
       // Compute night uplift per-hour relative to base rate
       const nightUpliftPerHour = (() => {
         const mode = nightRules.mode || "fixed";
@@ -477,19 +469,8 @@ class SettingsService {
         return 0;
       })();
       if (nightUpliftPerHour > 0) {
-        const stacking = prefs.stackingRule || "stack";
-        // For base night hours, add as uplift component
-        nightUplift += nightUpliftPerHour * nightBaseHours;
-        // For overtime night hours, obey stackingRule vs weekend already processed into overtimePerHour
-        if (stacking === "stack") {
-          nightUplift += nightUpliftPerHour * nightOvertimeHours;
-        } else {
-          // highestOnly: compare (OT with weekend) vs (base+night). Since OT already chosen, compare per-hour
-          const basePlusNight = (baseRate?.value ?? 0) + nightUpliftPerHour;
-          const betterPerHour = Math.max(overtimePerHour, basePlusNight);
-          const delta = (betterPerHour - overtimePerHour) * nightOvertimeHours;
-          if (delta > 0) nightUplift += delta;
-        }
+        // Apply night uplift to all night hours (no stacking rule consideration)
+        nightUplift = nightUpliftPerHour * nightHours;
       }
     }
 

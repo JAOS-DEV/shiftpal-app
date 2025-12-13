@@ -119,7 +119,8 @@ export default function AccountSettingsScreen() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Apply Night/Weekend rates on top of Base/Overtime rates
+                    Apply Weekend rates on top of Overtime rates (if OFF, uses
+                    whichever is higher)
                   </ThemedText>
                 </View>
                 <Switch

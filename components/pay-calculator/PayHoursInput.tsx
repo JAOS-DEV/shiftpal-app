@@ -11,22 +11,17 @@ interface PayHoursInputProps {
   trackerOvertime: HoursAndMinutes;
   manualHours: HoursAndMinutes;
   manualOvertime: HoursAndMinutes;
-  manualNightBase: HoursAndMinutes;
-  manualNightOt: HoursAndMinutes;
+  manualNight: HoursAndMinutes;
   trackerDerivedSplit?: {
     base: HoursAndMinutes;
     overtime: HoursAndMinutes;
   } | null;
-  trackerNightHint?: {
-    base?: HoursAndMinutes;
-    ot?: HoursAndMinutes;
-  } | null;
+  trackerNightHint?: HoursAndMinutes | null;
   onTrackerHoursChange: (hours: HoursAndMinutes) => void;
   onTrackerOvertimeChange: (hours: HoursAndMinutes) => void;
   onManualHoursChange: (hours: HoursAndMinutes) => void;
   onManualOvertimeChange: (hours: HoursAndMinutes) => void;
-  onManualNightBaseChange: (hours: HoursAndMinutes) => void;
-  onManualNightOtChange: (hours: HoursAndMinutes) => void;
+  onManualNightChange: (hours: HoursAndMinutes) => void;
   // New props for conditional display
   isOverrideMode?: boolean;
   onToggleOverride?: () => void;
@@ -47,16 +42,14 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
   trackerOvertime,
   manualHours,
   manualOvertime,
-  manualNightBase,
-  manualNightOt,
+  manualNight,
   trackerDerivedSplit,
   trackerNightHint,
   onTrackerHoursChange,
   onTrackerOvertimeChange,
   onManualHoursChange,
   onManualOvertimeChange,
-  onManualNightBaseChange,
-  onManualNightOtChange,
+  onManualNightChange,
   isOverrideMode = false,
   onToggleOverride,
   onResetOverride,
@@ -98,10 +91,6 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
     }
   };
 
-  const getCurrentNightHours = (type: "base" | "overtime") => {
-    return type === "base" ? manualNightBase : manualNightOt;
-  };
-
   const handleHoursChange = (
     mode: "tracker" | "manual",
     type: "base" | "overtime",
@@ -124,17 +113,9 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
     }
   };
 
-  const handleNightHoursChange = (
-    type: "base" | "overtime",
-    hours: string,
-    minutes: string
-  ) => {
-    const updated = updateHours(getCurrentNightHours(type), hours, minutes);
-    if (type === "base") {
-      onManualNightBaseChange(updated);
-    } else {
-      onManualNightOtChange(updated);
-    }
+  const handleNightHoursChange = (hours: string, minutes: string) => {
+    const updated = updateHours(manualNight, hours, minutes);
+    onManualNightChange(updated);
   };
 
   // Check if night inputs should be shown (only when night rules are enabled)
@@ -188,251 +169,178 @@ export const PayHoursInput: React.FC<PayHoursInputProps> = ({
           No submitted shifts for this date
         </ThemedText>
       )}
-          <View style={styles.row}>
-            <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
-              Standard
-            </ThemedText>
-            <View style={styles.inline}>
-              <TextInput
-                style={[
-                  styles.numInput,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                value={
-                  getCurrentHours(mode, "base").hours === 0
-                    ? ""
-                    : getCurrentHours(mode, "base").hours.toString()
-                }
-                onChangeText={(text) =>
-                  handleHoursChange(
-                    mode,
-                    "base",
-                    text,
-                    getCurrentHours(mode, "base").minutes.toString()
-                  )
-                }
-              />
-              <ThemedText>h</ThemedText>
-              <TextInput
-                style={[
-                  styles.numInput,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                value={
-                  getCurrentHours(mode, "base").minutes === 0
-                    ? ""
-                    : getCurrentHours(mode, "base").minutes.toString()
-                }
-                onChangeText={(text) =>
-                  handleHoursChange(
-                    mode,
-                    "base",
-                    getCurrentHours(mode, "base").hours.toString(),
-                    text
-                  )
-                }
-              />
-              <ThemedText>m</ThemedText>
-            </View>
-          </View>
-          <View style={styles.row}>
-            <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
-              Overtime
-            </ThemedText>
-            <View style={styles.inline}>
-              <TextInput
-                style={[
-                  styles.numInput,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                value={
-                  getCurrentHours(mode, "overtime").hours === 0
-                    ? ""
-                    : getCurrentHours(mode, "overtime").hours.toString()
-                }
-                onChangeText={(text) =>
-                  handleHoursChange(
-                    mode,
-                    "overtime",
-                    text,
-                    getCurrentHours(mode, "overtime").minutes.toString()
-                  )
-                }
-              />
-              <ThemedText>h</ThemedText>
-              <TextInput
-                style={[
-                  styles.numInput,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                value={
-                  getCurrentHours(mode, "overtime").minutes === 0
-                    ? ""
-                    : getCurrentHours(mode, "overtime").minutes.toString()
-                }
-                onChangeText={(text) =>
-                  handleHoursChange(
-                    mode,
-                    "overtime",
-                    getCurrentHours(mode, "overtime").hours.toString(),
-                    text
-                  )
-                }
-              />
-              <ThemedText>m</ThemedText>
-            </View>
-          </View>
+      <View style={styles.row}>
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+          Standard
+        </ThemedText>
+        <View style={styles.inline}>
+          <TextInput
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor={colors.textSecondary}
+            value={
+              getCurrentHours(mode, "base").hours === 0
+                ? ""
+                : getCurrentHours(mode, "base").hours.toString()
+            }
+            onChangeText={(text) =>
+              handleHoursChange(
+                mode,
+                "base",
+                text,
+                getCurrentHours(mode, "base").minutes.toString()
+              )
+            }
+          />
+          <ThemedText>h</ThemedText>
+          <TextInput
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor={colors.textSecondary}
+            value={
+              getCurrentHours(mode, "base").minutes === 0
+                ? ""
+                : getCurrentHours(mode, "base").minutes.toString()
+            }
+            onChangeText={(text) =>
+              handleHoursChange(
+                mode,
+                "base",
+                getCurrentHours(mode, "base").hours.toString(),
+                text
+              )
+            }
+          />
+          <ThemedText>m</ThemedText>
+        </View>
+      </View>
+      <View style={styles.row}>
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+          Overtime
+        </ThemedText>
+        <View style={styles.inline}>
+          <TextInput
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor={colors.textSecondary}
+            value={
+              getCurrentHours(mode, "overtime").hours === 0
+                ? ""
+                : getCurrentHours(mode, "overtime").hours.toString()
+            }
+            onChangeText={(text) =>
+              handleHoursChange(
+                mode,
+                "overtime",
+                text,
+                getCurrentHours(mode, "overtime").minutes.toString()
+              )
+            }
+          />
+          <ThemedText>h</ThemedText>
+          <TextInput
+            style={[
+              styles.numInput,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor={colors.textSecondary}
+            value={
+              getCurrentHours(mode, "overtime").minutes === 0
+                ? ""
+                : getCurrentHours(mode, "overtime").minutes.toString()
+            }
+            onChangeText={(text) =>
+              handleHoursChange(
+                mode,
+                "overtime",
+                getCurrentHours(mode, "overtime").hours.toString(),
+                text
+              )
+            }
+          />
+          <ThemedText>m</ThemedText>
+        </View>
+      </View>
 
-          {showNightInputs && (
-            <>
-              <View style={styles.row}>
-                <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
-                  Night (base)
-                </ThemedText>
-                <View style={styles.inline}>
-                  <TextInput
-                    style={[
-                      styles.numInput,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor={colors.textSecondary}
-                    value={
-                      getCurrentNightHours("base").hours === 0
-                        ? ""
-                        : getCurrentNightHours("base").hours.toString()
-                    }
-                    onChangeText={(text) =>
-                      handleNightHoursChange(
-                        "base",
-                        text,
-                        getCurrentNightHours("base").minutes.toString()
-                      )
-                    }
-                  />
-                  <ThemedText>h</ThemedText>
-                  <TextInput
-                    style={[
-                      styles.numInput,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor={colors.textSecondary}
-                    value={
-                      getCurrentNightHours("base").minutes === 0
-                        ? ""
-                        : getCurrentNightHours("base").minutes.toString()
-                    }
-                    onChangeText={(text) =>
-                      handleNightHoursChange(
-                        "base",
-                        getCurrentNightHours("base").hours.toString(),
-                        text
-                      )
-                    }
-                  />
-                  <ThemedText>m</ThemedText>
-                </View>
-              </View>
-              <View style={styles.row}>
-                <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
-                  Night (OT)
-                </ThemedText>
-                <View style={styles.inline}>
-                  <TextInput
-                    style={[
-                      styles.numInput,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor={colors.textSecondary}
-                    value={
-                      getCurrentNightHours("overtime").hours === 0
-                        ? ""
-                        : getCurrentNightHours("overtime").hours.toString()
-                    }
-                    onChangeText={(text) =>
-                      handleNightHoursChange(
-                        "overtime",
-                        text,
-                        getCurrentNightHours("overtime").minutes.toString()
-                      )
-                    }
-                  />
-                  <ThemedText>h</ThemedText>
-                  <TextInput
-                    style={[
-                      styles.numInput,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor={colors.textSecondary}
-                    value={
-                      getCurrentNightHours("overtime").minutes === 0
-                        ? ""
-                        : getCurrentNightHours("overtime").minutes.toString()
-                    }
-                    onChangeText={(text) =>
-                      handleNightHoursChange(
-                        "overtime",
-                        getCurrentNightHours("overtime").hours.toString(),
-                        text
-                      )
-                    }
-                  />
-                  <ThemedText>m</ThemedText>
-                </View>
-              </View>
-            </>
-          )}
+      {showNightInputs && (
+        <View style={styles.row}>
+          <ThemedText style={[styles.rowLabel, { color: colors.text }]}>
+            Night
+          </ThemedText>
+          <View style={styles.inline}>
+            <TextInput
+              style={[
+                styles.numInput,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={colors.textSecondary}
+              value={
+                manualNight.hours === 0 ? "" : manualNight.hours.toString()
+              }
+              onChangeText={(text) =>
+                handleNightHoursChange(text, manualNight.minutes.toString())
+              }
+            />
+            <ThemedText>h</ThemedText>
+            <TextInput
+              style={[
+                styles.numInput,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={colors.textSecondary}
+              value={
+                manualNight.minutes === 0 ? "" : manualNight.minutes.toString()
+              }
+              onChangeText={(text) =>
+                handleNightHoursChange(manualNight.hours.toString(), text)
+              }
+            />
+            <ThemedText>m</ThemedText>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

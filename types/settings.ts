@@ -139,9 +139,8 @@ export interface PayCalculationInput {
   overtimeRateId: string | null;
   hoursWorked: HoursAndMinutes; // base hours
   overtimeWorked: HoursAndMinutes; // overtime hours (manual) or derived
-  // Calculator mode: optional explicit night allocation
-  nightBaseHours?: HoursAndMinutes;
-  nightOvertimeHours?: HoursAndMinutes;
+  // Calculator mode: optional explicit night hours
+  nightHours?: HoursAndMinutes;
 }
 
 export interface PayCalculationEntry {
@@ -158,12 +157,16 @@ export interface PayCalculationEntry {
     // Hours actually used for calculation after auto-splits
     usedBase?: HoursAndMinutes;
     usedOvertime?: HoursAndMinutes;
-    // Night split used at calculation time
+    // Night hours used at calculation time
     night?: {
-      base?: HoursAndMinutes;
-      overtime?: HoursAndMinutes;
-      type?: "fixed" | "percentage";
-      value?: number; // fixed amount or percentage
+      hours?: HoursAndMinutes; // New format: total night hours
+      base?: HoursAndMinutes; // Legacy format
+      overtime?: HoursAndMinutes; // Legacy format
+      mode?: "fixed" | "multiplier"; // New format
+      multiplier?: number; // e.g., 1.5 for +50%
+      uplift?: number; // e.g., 0.5 for +£0.50/h
+      type?: "fixed" | "percentage"; // Legacy format
+      value?: number; // Legacy format: fixed amount or percentage
     };
     // Weekend rules active that day
     weekend?: {
