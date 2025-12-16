@@ -15,6 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 // Themed toast configuration component
@@ -155,14 +156,18 @@ export default function RootLayout() {
   }
 
   return (
-    <CustomThemeProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <AuthProvider>
-          <RootNavigator />
-          <StatusBar style="auto" />
-          <ThemedToastConfig />
-        </AuthProvider>
-      </ThemeProvider>
-    </CustomThemeProvider>
+    <ErrorBoundary>
+      <CustomThemeProvider>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <AuthProvider>
+            <RootNavigator />
+            <StatusBar style="auto" />
+            <ThemedToastConfig />
+          </AuthProvider>
+        </ThemeProvider>
+      </CustomThemeProvider>
+    </ErrorBoundary>
   );
 }

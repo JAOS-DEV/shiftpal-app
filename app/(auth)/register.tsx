@@ -9,7 +9,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -29,6 +31,10 @@ export default function RegisterScreen(): React.JSX.Element {
   const [loading, setLoading] = useState(false);
   const isLoading = loading;
 
+  // TODO: Update these URLs once Privacy Policy and Terms are hosted
+  const PRIVACY_POLICY_URL = "https://yourwebsite.com/privacy";
+  const TERMS_OF_SERVICE_URL = "https://yourwebsite.com/terms";
+
   async function onSubmit() {
     setError(null);
     setLoading(true);
@@ -43,6 +49,20 @@ export default function RegisterScreen(): React.JSX.Element {
       setLoading(false);
     }
   }
+
+  const handleOpenLink = async (url: string, title: string): Promise<void> => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Error", `Cannot open ${title}`);
+      }
+    } catch (error) {
+      console.error(`Error opening ${title}:`, error);
+      Alert.alert("Error", `Failed to open ${title}`);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -99,6 +119,34 @@ export default function RegisterScreen(): React.JSX.Element {
               I already have an account
             </Text>
           </TouchableOpacity>
+
+          {/* Privacy Policy & Terms */}
+          <View style={styles.legalContainer}>
+            <Text style={styles.legalText}>
+              By creating an account, you agree to our{" "}
+            </Text>
+            <View style={styles.legalLinks}>
+              <TouchableOpacity
+                onPress={() =>
+                  handleOpenLink(TERMS_OF_SERVICE_URL, "Terms of Service")
+                }
+              >
+                <Text style={[styles.legalLink, { color: theme.brandBg }]}>
+                  Terms of Service
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.legalText}> and </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  handleOpenLink(PRIVACY_POLICY_URL, "Privacy Policy")
+                }
+              >
+                <Text style={[styles.legalLink, { color: theme.brandBg }]}>
+                  Privacy Policy
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>

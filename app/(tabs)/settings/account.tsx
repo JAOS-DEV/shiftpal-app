@@ -183,6 +183,34 @@ export default function AccountSettingsScreen() {
                 About
               </ThemedText>
 
+              <TouchableOpacity
+                style={[
+                  styles.linkButton,
+                  { borderBottomWidth: 1, borderBottomColor: colors.border },
+                ]}
+                onPress={() => router.push("/settings/about")}
+                accessibilityLabel="View app information"
+              >
+                <View style={styles.linkContent}>
+                  <IconSymbol
+                    name="info.circle.fill"
+                    size={20}
+                    color={colors.primary}
+                    style={styles.linkIcon}
+                  />
+                  <ThemedText
+                    style={[styles.linkLabel, { color: colors.text }]}
+                  >
+                    App Information
+                  </ThemedText>
+                </View>
+                <IconSymbol
+                  name="chevron.right"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+
               <View style={styles.infoRow}>
                 <ThemedText
                   style={[styles.infoLabel, { color: colors.textSecondary }]}
@@ -281,6 +309,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   infoValue: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  linkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  linkContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  linkIcon: {
+    marginRight: 10,
+  },
+  linkLabel: {
     fontSize: 16,
     fontWeight: "500",
   },

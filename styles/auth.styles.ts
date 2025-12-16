@@ -51,4 +51,25 @@ export const authStyles = StyleSheet.create({
     backgroundColor: "#F3F3F3",
     borderRadius: 12,
   },
+  legalContainer: {
+    marginTop: 24,
+    paddingTop: 16,
+    alignItems: "center",
+  },
+  legalText: {
+    fontSize: 12,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  legalLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  legalLink: {
+    fontSize: 12,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
 });
